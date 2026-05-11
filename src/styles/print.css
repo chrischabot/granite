@@ -1,0 +1,88 @@
+/* ===========================================================================
+ * Granite — Print stylesheet
+ *
+ * Browsers reach here when the user triggers native print (Cmd/Ctrl+P).
+ * We don't try to build a custom print pipeline; we just hide the chrome
+ * and let the active leaf's markdown body flow onto paper.
+ * =========================================================================== */
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    overflow: visible !important;
+    contain: none !important;
+  }
+
+  .titlebar,
+  .workspace-ribbon,
+  .workspace-split.mod-left-split,
+  .workspace-split.mod-right-split,
+  .workspace-tab-header-container,
+  .view-header,
+  .status-bar,
+  .modal-container,
+  .notice-container,
+  .menu,
+  .tooltip,
+  .properties-strip {
+    display: none !important;
+  }
+
+  .horizontal-main-container,
+  .workspace,
+  .workspace-split.mod-root,
+  .workspace-tabs,
+  .workspace-tab-container,
+  .workspace-leaf,
+  .view-content,
+  .markdown-reading-view,
+  .markdown-preview-view,
+  .markdown-preview-sizer,
+  .markdown-preview-section {
+    height: auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    background: white !important;
+    color: black !important;
+    flex: 0 0 auto !important;
+    contain: none !important;
+  }
+
+  .markdown-rendered {
+    color: black !important;
+  }
+
+  /* Force every heading/text/code to break/word-wrap so long pre blocks don't
+     overflow the printable page. */
+  pre,
+  code,
+  blockquote,
+  table {
+    page-break-inside: avoid;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  a {
+    color: #1a1aa0 !important;
+    text-decoration: underline !important;
+  }
+
+  /* Surface the URL of external links after the link text so the printed copy
+     remains useful when paper-only. */
+  a.external-link::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: #444;
+  }
+
+  img,
+  video,
+  canvas,
+  svg {
+    max-width: 100% !important;
+    page-break-inside: avoid;
+  }
+}

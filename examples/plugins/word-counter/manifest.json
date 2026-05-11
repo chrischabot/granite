@@ -1,0 +1,7 @@
+{
+  "id": "word-counter",
+  "name": "Word counter",
+  "version": "1.0.0",
+  "description": "Adds a 'Count words across vault' command that scans every markdown file and shows the total word count as a notice.",
+  "author": "Granite samples"
+}

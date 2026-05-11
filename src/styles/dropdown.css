@@ -1,0 +1,73 @@
+/* ===========================================================================
+ * Granite — Dropdown / select
+ * Source: specs/renderer/dropdown-select.md
+ * =========================================================================== */
+
+select,
+.dropdown {
+  height: var(--input-height);
+  font-size: var(--font-ui-small);
+  font-family: inherit;
+  font-weight: var(--input-font-weight);
+  color: var(--text-normal);
+  line-height: var(--line-height-tight);
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border: 0;
+  box-shadow: var(--input-shadow);
+  border-radius: var(--input-radius);
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: var(--interactive-normal);
+  padding: 0 1.9em 0 0.8em;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.5em center;
+  background-size: 1em auto;
+  cursor: var(--cursor);
+}
+
+@media (hover: hover) {
+  select:hover,
+  .dropdown:hover {
+    box-shadow: var(--input-shadow-hover);
+    background-color: var(--interactive-hover);
+  }
+}
+
+select:focus-visible,
+.dropdown:focus-visible {
+  box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
+  outline: none;
+}
+
+select option,
+.dropdown option {
+  font-weight: normal;
+  background-color: var(--background-primary);
+  color: var(--text-normal);
+}
+
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  cursor: var(--cursor);
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 2px;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(var(--mono-rgb-100), 0.15);
+  border-radius: 14px;
+  height: 22px;
+  width: 22px;
+}

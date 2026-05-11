@@ -1,0 +1,52 @@
+{
+  "name": "granite",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 8080",
+    "build": "tsgo --noEmit && vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 8080",
+    "typecheck": "tsgo --noEmit",
+    "lint": "biome check src",
+    "format": "biome format --write src",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.2",
+    "@codemirror/commands": "^6.6.0",
+    "@codemirror/lang-markdown": "^6.3.0",
+    "@codemirror/language": "^6.10.3",
+    "@codemirror/search": "^6.7.0",
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.34.1",
+    "@vscode/markdown-it-katex": "^1.1.2",
+    "effect": "4.0.0-beta.64",
+    "fast-glob": "^3.3.2",
+    "fzf": "^0.5.2",
+    "idb": "^8.0.0",
+    "js-yaml": "^4.1.0",
+    "katex": "^0.16.11",
+    "lucide-react": "^0.460.0",
+    "markdown-it": "^14.1.0",
+    "markdown-it-footnote": "^4.0.0",
+    "mermaid": "^11.4.0",
+    "prismjs": "^1.29.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/markdown-it": "^14.1.2",
+    "@types/prismjs": "^1.26.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@typescript/native-preview": "7.0.0-dev.20260509.2",
+    "@vitejs/plugin-react": "^4.3.4",
+    "happy-dom": "^15.11.6",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8"
+  }
+}

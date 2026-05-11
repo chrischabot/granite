@@ -1,0 +1,71 @@
+/* ===========================================================================
+ * Granite — High-contrast theme variant
+ * Source: specs/product/24_acceptance_criteria.md (a11y: high-contrast)
+ *
+ * Activates with `body.theme-high-contrast`. Stacks on top of the light/dark
+ * theme — tokens overridden here win because the selector is more specific.
+ * =========================================================================== */
+
+body.theme-high-contrast {
+  /* Strengthen text contrast — pure black/white. */
+  --text-normal: #000000;
+  --text-muted: #1a1a1a;
+  --text-faint: #2b2b2b;
+  --text-on-accent: #ffffff;
+  --text-on-accent-inverted: #000000;
+  --color-base-100: #000000;
+  --color-base-70: #1a1a1a;
+  --color-base-50: #2b2b2b;
+  --color-base-40: #4a4a4a;
+
+  /* Thicker borders + higher-contrast accents. */
+  --border-width: 2px;
+  --background-modifier-border: #000000;
+  --background-modifier-border-hover: #000000;
+  --background-modifier-border-focus: #000000;
+  --interactive-accent: #2a2acf;
+  --interactive-accent-hover: #1212a0;
+  --interactive-normal: #ffffff;
+  --interactive-hover: #f0f0f0;
+
+  /* Strong link contrast. */
+  --link-color: #1212a0;
+  --link-color-hover: #060670;
+  --link-decoration: underline;
+  --link-decoration-thickness: 2px;
+}
+
+body.theme-high-contrast.theme-dark {
+  --text-normal: #ffffff;
+  --text-muted: #f0f0f0;
+  --text-faint: #d8d8d8;
+  --text-on-accent: #000000;
+  --text-on-accent-inverted: #ffffff;
+  --color-base-100: #ffffff;
+  --color-base-70: #f0f0f0;
+  --color-base-50: #d8d8d8;
+  --color-base-40: #b0b0b0;
+  --background-modifier-border: #ffffff;
+  --background-modifier-border-hover: #ffffff;
+  --background-modifier-border-focus: #ffffff;
+  --interactive-accent: #66b8ff;
+  --interactive-accent-hover: #99d4ff;
+  --interactive-normal: #000000;
+  --interactive-hover: #1a1a1a;
+  --link-color: #66b8ff;
+  --link-color-hover: #99d4ff;
+}
+
+/* Force visible focus rings everywhere. */
+body.theme-high-contrast *:focus-visible {
+  outline: 3px solid var(--interactive-accent) !important;
+  outline-offset: 2px !important;
+}
+
+/* Make muted UI elements readable instead of faint. */
+body.theme-high-contrast .tree-item-flair,
+body.theme-high-contrast .nav-file-tag,
+body.theme-high-contrast .suggestion-note,
+body.theme-high-contrast .setting-item-description {
+  color: var(--text-muted) !important;
+}

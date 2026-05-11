@@ -1,0 +1,45 @@
+/* ===========================================================================
+ * Granite — Mobile / responsive breakpoints
+ * Spec: specs/renderer/mobile.md (subset; full mobile pass is in todo)
+ * =========================================================================== */
+
+/* Tablet / narrow desktop: hide the right sidebar to give the editor more room. */
+@media (max-width: 720px) {
+  .workspace-split.mod-right-split {
+    display: none;
+  }
+}
+
+/* Phone-class viewports: collapse the left sidebar (only icons on a thin rail) and
+ * shrink ribbon padding so the editor gets the most space. */
+@media (max-width: 480px) {
+  .workspace-split.mod-left-split {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+  }
+  .workspace-sidebar-content {
+    display: none;
+  }
+  .workspace-sidedock-vault-profile {
+    padding: 4px;
+  }
+  .workspace-drawer-vault-name {
+    display: none;
+  }
+  body {
+    --ribbon-width: 36px;
+    --ribbon-padding: var(--size-2-2) var(--size-2-1) var(--size-2-3);
+  }
+  .titlebar-text {
+    font-size: var(--font-ui-smaller);
+  }
+}
+
+/* Always-on touch tweaks — slightly larger hit targets on coarse pointers. */
+@media (pointer: coarse) {
+  .clickable-icon {
+    min-width: 28px;
+    min-height: 28px;
+  }
+}

@@ -1,0 +1,52 @@
+/* ===========================================================================
+ * Granite — Hover popover + Mermaid blocks
+ * Source: specs/renderer/hover-popover.md (subset)
+ * =========================================================================== */
+
+.popover.hover-popover {
+  font-family: var(--font-interface);
+  font-size: var(--popover-font-size);
+}
+
+.popover.hover-popover .markdown-rendered h1,
+.popover.hover-popover .markdown-rendered h2,
+.popover.hover-popover .markdown-rendered h3 {
+  margin-block-start: var(--size-4-2);
+  margin-block-end: var(--size-4-2);
+  font-size: 1.1em;
+}
+
+.popover.hover-popover .markdown-rendered p {
+  margin-block-start: var(--size-4-2);
+  margin-block-end: var(--size-4-2);
+}
+
+.popover.hover-popover .markdown-rendered pre {
+  font-size: var(--code-size);
+}
+
+/* Mermaid renderings: center, scale to width, soft padding */
+.markdown-rendered .mermaid-block,
+.markdown-rendered .mermaid {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: var(--background-primary-alt);
+  border-radius: var(--radius-m);
+  border: 1px solid var(--background-modifier-border);
+  padding: var(--size-4-3);
+  margin: var(--p-spacing) 0;
+  overflow-x: auto;
+}
+
+.markdown-rendered .mermaid-block svg,
+.markdown-rendered .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.markdown-rendered pre.mermaid-error {
+  color: var(--text-error);
+  background-color: rgba(var(--background-modifier-error-rgb), 0.12);
+  font-size: var(--code-size);
+}

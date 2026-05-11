@@ -1,0 +1,285 @@
+/* ===========================================================================
+ * Granite — Views (file explorer, markdown editor, helpers)
+ * Source: specs/renderer/view-file-explorer.md, tree-item.md, editor-codemirror.md
+ * =========================================================================== */
+
+/* -------------------------------------------------------------------------- *
+ * File explorer pane
+ * -------------------------------------------------------------------------- */
+.nav-files-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.nav-header {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-1);
+  padding: var(--size-2-3) var(--size-4-3);
+  border-bottom: var(--border-width) solid var(--background-modifier-border);
+  flex-shrink: 0;
+}
+
+.nav-files-container {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--size-4-1) var(--size-4-3) var(--size-4-6);
+}
+
+/* -------------------------------------------------------------------------- *
+ * Tree item rows
+ * -------------------------------------------------------------------------- */
+.tree-item-self {
+  align-items: center;
+  display: flex;
+  border-radius: var(--nav-item-radius);
+  color: var(--nav-item-color);
+  font-size: var(--nav-item-size);
+  line-height: var(--line-height-tight);
+  font-weight: var(--nav-item-weight);
+  margin-bottom: var(--nav-item-margin-bottom);
+  padding: var(--size-4-1) var(--size-4-2);
+  position: relative;
+  cursor: var(--cursor);
+  user-select: none;
+  gap: var(--size-2-2);
+  outline: none;
+}
+
+@media (hover: hover) {
+  .tree-item-self.is-clickable:hover,
+  .tree-item-self.mod-collapsible:hover {
+    color: var(--nav-item-color-hover);
+    background-color: var(--nav-item-background-hover);
+  }
+}
+
+.tree-item-self.is-active {
+  color: var(--nav-item-color-active);
+  background-color: var(--nav-item-background-active);
+}
+
+.tree-item-self.is-selected {
+  color: var(--nav-item-color-selected);
+  background-color: var(--nav-item-background-selected);
+}
+
+.tree-item-self.has-focus {
+  box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
+}
+
+.tree-item-self.is-being-dragged-over {
+  background-color: hsla(var(--color-accent-hsl), 0.18);
+  outline: 2px dashed hsla(var(--color-accent-hsl), 0.5);
+  outline-offset: -2px;
+}
+
+.tree-item-self .collapse-icon {
+  display: flex;
+  align-items: center;
+  color: var(--nav-collapse-icon-color);
+}
+
+.tree-item-self .collapse-icon.is-collapsed {
+  color: var(--nav-collapse-icon-color-collapsed);
+}
+
+.tree-item-inner {
+  flex: 1 1 auto;
+  overflow: hidden;
+  white-space: var(--nav-item-white-space);
+  min-width: 0;
+}
+
+.tree-item-inner-text {
+  display: inline-block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+.tree-item-children {
+  /* Nested rows compose their own padding via depth*16 in JS to keep
+     indent independent of parent rules. */
+}
+
+/* -------------------------------------------------------------------------- *
+ * .nav-file-tag — small uppercase extension badge
+ * Source: specs/renderer/view-file-explorer.md §4
+ * -------------------------------------------------------------------------- */
+.nav-file-tag {
+  background-color: var(--nav-tag-background);
+  border-radius: var(--nav-tag-radius);
+  color: var(--nav-tag-color);
+  font-size: 9px;
+  font-weight: var(--nav-tag-weight);
+  letter-spacing: 0.05em;
+  line-height: var(--line-height-normal);
+  margin-inline-start: auto;
+  padding: 0 var(--size-4-1);
+  text-transform: uppercase;
+  align-self: center;
+  flex-shrink: 0;
+}
+
+@media (hover: hover) {
+  .tree-item-self:hover .nav-file-tag {
+    color: var(--nav-tag-color-hover);
+  }
+}
+
+/* -------------------------------------------------------------------------- *
+ * Markdown editor host (CodeMirror 6)
+ * -------------------------------------------------------------------------- */
+.markdown-view-container {
+  position: relative;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cm-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background-color: var(--background-primary);
+}
+
+.cm-host .cm-editor {
+  height: 100%;
+  outline: none;
+}
+
+.cm-host .cm-content {
+  font-family: var(--font-text);
+  font-size: var(--font-text-size);
+  line-height: var(--line-height-normal);
+}
+
+.save-status {
+  position: absolute;
+  bottom: var(--size-4-2);
+  right: var(--size-4-3);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease-in-out;
+}
+
+.save-status.save-status-saving,
+.save-status.save-status-saved,
+.save-status.save-status-dirty,
+.save-status.save-status-error {
+  opacity: 1;
+}
+
+.save-status.save-status-saved {
+  color: var(--text-success);
+}
+
+.save-status.save-status-error {
+  color: var(--text-error);
+}
+
+/* -------------------------------------------------------------------------- *
+ * Generic message (used by error chrome)
+ * -------------------------------------------------------------------------- */
+.message {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: var(--radius-s);
+  margin: var(--size-4-2) var(--size-4-3);
+}
+
+.message.mod-error {
+  background-color: var(--background-modifier-error);
+  color: var(--text-on-accent);
+}
+
+.message.mod-success {
+  background-color: var(--background-modifier-success);
+  color: var(--text-on-accent);
+}
+
+.message.mod-info {
+  background-color: var(--background-modifier-info);
+}
+
+/* -------------------------------------------------------------------------- *
+ * Properties view (sidebar)
+ * -------------------------------------------------------------------------- */
+.metadata-container {
+  padding: var(--size-4-3);
+  font-size: var(--font-ui-small);
+}
+
+.metadata-properties {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+}
+
+.metadata-property {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-2-1);
+  padding: var(--size-2-3);
+  border-radius: var(--radius-s);
+  background-color: var(--background-primary-alt);
+}
+
+.metadata-property-key {
+  color: var(--text-muted);
+  font-weight: var(--font-medium);
+  font-size: var(--font-ui-smaller);
+}
+
+.metadata-property-value {
+  color: var(--text-normal);
+  word-break: break-word;
+}
+
+/* Outline */
+.outline {
+  padding: var(--size-4-2) 0;
+  overflow-y: auto;
+}
+
+/* Backlink rows */
+.search-result {
+  margin-bottom: var(--size-4-2);
+}
+
+.search-result-file-title {
+  font-weight: var(--font-medium);
+}
+
+.search-result-file-matches {
+  margin-top: var(--size-2-1);
+  border-radius: var(--radius-s);
+  overflow: hidden;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+}
+
+.search-result-file-match {
+  cursor: var(--cursor);
+  padding: var(--size-2-2) var(--size-4-2);
+  border-bottom: var(--border-width) solid var(--background-modifier-border);
+}
+
+.search-result-file-match:last-child {
+  border-bottom: none;
+}
+
+@media (hover: hover) {
+  .search-result-file-match:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+}

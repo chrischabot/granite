@@ -1,0 +1,7 @@
+{
+  "id": "auto-tagger",
+  "name": "Auto Tagger",
+  "version": "1.0.0",
+  "description": "Adds a command that turns capitalized phrases in the active note into frontmatter tags. Demonstrates vault read/write + frontmatter editing from a plugin.",
+  "author": "Granite samples"
+}

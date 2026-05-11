@@ -1,0 +1,103 @@
+/* ===========================================================================
+ * Granite — CodeMirror "Live-Preview lite" source styling
+ * Source: specs/renderer/editor-source-mode.md, editor-codemirror.md
+ *
+ * This is a pure-CSS treatment that makes source-mode markdown look closer to
+ * the rendered output: headings get heading sizes, formatting characters dim,
+ * inline code keeps a tinted pill, links color accent. No CM decorations.
+ * =========================================================================== */
+
+.cm-host .cm-line {
+  font-family: var(--font-text);
+}
+
+/* ----- Headings (CodeMirror's lang-markdown emits `.cm-header-1` etc.) ---- */
+.cm-host .cm-header-1 { font-size: 1.618em; line-height: 1.2; letter-spacing: -0.015em; font-weight: var(--h1-weight); }
+.cm-host .cm-header-2 { font-size: 1.462em; line-height: 1.2; letter-spacing: -0.011em; font-weight: var(--h2-weight); }
+.cm-host .cm-header-3 { font-size: 1.318em; line-height: 1.3; letter-spacing: -0.008em; font-weight: var(--h3-weight); }
+.cm-host .cm-header-4 { font-size: 1.188em; line-height: 1.4; letter-spacing: -0.005em; font-weight: var(--h4-weight); }
+.cm-host .cm-header-5 { font-size: 1.076em; line-height: var(--line-height-normal); letter-spacing: -0.002em; font-weight: var(--h5-weight); }
+.cm-host .cm-header-6 { font-size: 1em;     line-height: var(--line-height-normal); letter-spacing: 0;         font-weight: var(--h6-weight); }
+
+/* ----- Formatting characters ---- */
+.cm-host .cm-formatting {
+  color: var(--text-faint);
+}
+
+.cm-host .cm-formatting-header {
+  color: var(--text-faint);
+  font-weight: normal;
+}
+
+.cm-host .cm-formatting-code,
+.cm-host .cm-formatting-code-block {
+  color: var(--text-faint);
+}
+
+/* ----- Bold + italic + strike ---- */
+.cm-host .cm-strong {
+  font-weight: var(--bold-weight);
+  color: var(--bold-color);
+}
+
+.cm-host .cm-em {
+  font-style: italic;
+  color: var(--italic-color);
+}
+
+.cm-host .cm-strikethrough {
+  text-decoration: line-through;
+}
+
+/* ----- Inline code ---- */
+.cm-host .cm-inline-code {
+  font-family: var(--font-monospace);
+  font-size: var(--code-size);
+  background-color: var(--code-background);
+  padding: 0.1em 0.2em;
+  border-radius: var(--code-radius);
+  color: var(--code-normal);
+}
+
+/* ----- Code blocks ---- */
+.cm-host .cm-line.HyperMD-codeblock,
+.cm-host .cm-codeblock {
+  font-family: var(--font-monospace);
+  font-size: var(--code-size);
+  background-color: var(--code-background);
+}
+
+/* ----- Links + tags ---- */
+.cm-host .cm-url,
+.cm-host .cm-link {
+  color: var(--text-accent);
+  text-decoration: var(--link-decoration);
+}
+
+.cm-host .cm-unresolved-link {
+  color: var(--link-unresolved-color);
+  opacity: var(--link-unresolved-opacity);
+  text-decoration: underline;
+  text-decoration-style: var(--link-unresolved-decoration-style);
+  text-decoration-color: var(--link-unresolved-decoration-color);
+}
+
+.cm-host .cm-hashtag {
+  color: var(--tag-color);
+  background-color: var(--tag-background);
+  border-radius: var(--tag-radius);
+  padding: 0 0.4em;
+  font-size: var(--tag-size);
+}
+
+/* ----- Quote ---- */
+.cm-host .cm-quote {
+  color: var(--blockquote-color);
+}
+
+/* ----- List bullet ---- */
+.cm-host .cm-list-1,
+.cm-host .cm-list-2,
+.cm-host .cm-list-3 {
+  /* defer styling to default; ensure baseline alignment */
+}

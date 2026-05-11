@@ -1,0 +1,465 @@
+/* ===========================================================================
+ * Granite — Overlays (modal, prompt, suggestion list, notice)
+ * Source: specs/renderer/modal.md, suggestion-and-prompt.md, notice.md
+ * =========================================================================== */
+
+/* -------------------------------------------------------------------------- *
+ * Modal
+ * -------------------------------------------------------------------------- */
+.modal-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: 0;
+  width: 100%;
+  z-index: var(--layer-modal);
+}
+
+.modal-container.mod-dim .modal {
+  box-shadow: var(--shadow-l);
+}
+
+.modal-container.is-being-dragged {
+  pointer-events: none !important;
+}
+
+.modal-container.is-being-dragged .prompt,
+.modal-container.is-being-dragged .modal {
+  pointer-events: none;
+  opacity: 0.25;
+}
+
+.modal-container.is-being-dragged .modal-bg {
+  opacity: 0 !important;
+}
+
+.modal-bg {
+  position: absolute;
+  top: 0;
+  inset-inline-start: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--background-modifier-cover);
+}
+
+.modal {
+  --checkbox-size: var(--font-ui-medium);
+  background-color: var(--modal-background);
+  border-radius: var(--modal-radius);
+  border: var(--modal-border-width) solid var(--modal-border-color);
+  padding: var(--size-4-4);
+  position: relative;
+  min-height: 100px;
+  width: var(--dialog-width, 560px);
+  max-width: var(--dialog-max-width, 80vw);
+  max-height: var(--dialog-max-height, 85vh);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+  outline: none;
+}
+
+.modal.mod-narrow {
+  max-width: var(--modal-max-width-narrow);
+}
+
+.modal.mod-sidebar-layout {
+  padding: 0;
+  width: var(--modal-width);
+  height: var(--modal-height);
+  max-width: var(--modal-max-width);
+  max-height: var(--modal-max-height);
+  overflow: hidden;
+}
+
+.modal-close-button {
+  position: absolute;
+  top: var(--size-2-3);
+  inset-inline-end: var(--size-2-3);
+  padding: var(--size-2-2);
+  background: transparent;
+  border: 0;
+  cursor: var(--cursor);
+  color: var(--icon-color);
+  border-radius: var(--radius-s);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (hover: hover) {
+  .modal-close-button:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--icon-color-hover);
+  }
+}
+
+.modal-header {
+  margin-bottom: 0.75em;
+  height: var(--modal-header-height);
+}
+
+.modal-title {
+  font-size: var(--font-ui-large);
+  margin-left: auto;
+  margin-right: auto;
+  font-weight: var(--font-semibold);
+  text-align: start;
+  line-height: var(--line-height-tight);
+}
+
+.modal-title:empty {
+  display: none;
+}
+
+.modal-content {
+  flex: 1 1 auto;
+  font-size: var(--font-ui-medium);
+}
+
+.modal-button-container {
+  margin-top: 1.5em;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--size-4-2);
+  flex-wrap: wrap;
+  font-size: var(--font-ui-medium);
+}
+
+body:not(.is-mobile) .modal-button-container .mod-secondary {
+  margin-inline-end: auto;
+}
+
+/* -------------------------------------------------------------------------- *
+ * Prompt (Command palette / Quick switcher)
+ * -------------------------------------------------------------------------- */
+.prompt {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-l);
+  background-color: var(--prompt-background);
+  box-shadow: var(--shadow-l);
+  backdrop-filter: var(--prompt-backdrop-filter);
+  border: var(--prompt-border-width) solid var(--prompt-border-color);
+  z-index: 1;
+  position: absolute;
+  top: 80px;
+  width: var(--prompt-width);
+  max-width: var(--prompt-max-width);
+  max-height: var(--prompt-max-height);
+  overflow: hidden;
+}
+
+.prompt-input-container {
+  --search-clear-button-size: 17px;
+  display: flex;
+  position: relative;
+}
+
+input.prompt-input {
+  width: 100%;
+  padding: var(--size-4-6);
+  padding-inline-end: var(--size-4-12);
+  background-color: transparent;
+  font-size: var(--font-ui-medium);
+  border: none;
+  height: var(--prompt-input-height);
+  border-radius: 0;
+  border-bottom: var(--border-width) solid var(--background-secondary);
+  color: var(--text-normal);
+  outline: none;
+  font-family: inherit;
+}
+
+input.prompt-input:hover,
+input.prompt-input:focus,
+input.prompt-input:focus-visible {
+  border-bottom: var(--border-width) solid var(--background-secondary);
+  box-shadow: none;
+  background-color: transparent;
+}
+
+input.prompt-input::placeholder {
+  color: var(--input-placeholder-color);
+}
+
+.prompt-results {
+  list-style: none;
+  margin: 0;
+  padding: var(--size-4-3);
+  overflow-y: auto;
+}
+
+.prompt-instructions {
+  border-top: var(--border-width) solid var(--background-secondary);
+  user-select: none;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  padding: var(--size-4-2);
+  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--size-4-3);
+}
+
+.prompt-instruction {
+  display: inline-block;
+}
+
+.prompt-instruction-command {
+  font-weight: var(--bold-weight);
+  margin-inline-end: var(--size-2-2);
+}
+
+/* -------------------------------------------------------------------------- *
+ * Suggestion list
+ * -------------------------------------------------------------------------- */
+.suggestion-item,
+.suggestion-empty {
+  font-size: var(--font-ui-medium);
+  margin-bottom: 1px;
+}
+
+.suggestion-empty {
+  color: var(--text-muted);
+  padding: var(--size-4-3) var(--size-4-2);
+  text-align: center;
+}
+
+.suggestion-item {
+  cursor: var(--cursor);
+  padding: var(--size-2-3) var(--size-4-3);
+  white-space: pre-wrap;
+  border-radius: var(--radius-s);
+}
+
+.suggestion-item.is-selected,
+.suggestion-item.mobile-tap {
+  background-color: var(--background-modifier-hover);
+}
+
+.suggestion-item-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--size-4-2);
+  width: 100%;
+}
+
+.suggestion-item-row.mod-complex {
+  justify-content: space-between;
+}
+
+.suggestion-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.suggestion-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-note {
+  font-size: 0.8em;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggestion-highlight {
+  font-weight: bold;
+  color: var(--text-accent);
+}
+
+.suggestion-hotkey {
+  font-size: var(--font-ui-smaller);
+  font-family: var(--font-interface);
+  padding: 2px 6px;
+  color: var(--text-muted);
+  background-color: var(--background-modifier-hover);
+  border-radius: var(--radius-s);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------------- *
+ * Notice container (toasts) — top-right floating stack
+ * -------------------------------------------------------------------------- */
+.notice-container {
+  z-index: var(--layer-notice);
+  position: fixed;
+  top: 22px;
+  inset-inline-end: 0;
+  padding: 10px;
+  overflow: hidden;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-2);
+  background-color: var(--background-modifier-message);
+  border-radius: var(--radius-m);
+  box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
+  color: #fafafa;
+  font-size: var(--font-ui-small);
+  line-height: var(--line-height-tight);
+  padding: 0.75em 1em;
+  max-width: 300px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  cursor: var(--cursor);
+  pointer-events: auto;
+}
+
+/* -------------------------------------------------------------------------- *
+ * Inputs — base shared rule for every text-shaped input plus textarea.
+ * Source: specs/renderer/inputs.md §1.
+ * -------------------------------------------------------------------------- */
+textarea,
+input[type="date"],
+input[type="datetime-local"],
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="number"] {
+  background: var(--background-modifier-form-field);
+  border: var(--input-border-width) solid var(--background-modifier-border);
+  color: var(--text-normal);
+  font-family: inherit;
+  padding: var(--input-padding);
+  font-size: var(--font-ui-small);
+  border-radius: var(--input-radius);
+  outline: none;
+}
+
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="number"] {
+  height: var(--input-height);
+}
+
+@media (hover: hover) {
+  textarea:hover,
+  input[type="date"]:hover,
+  input[type="datetime-local"]:hover,
+  input[type="text"]:hover,
+  input[type="search"]:hover,
+  input[type="email"]:hover,
+  input[type="password"]:hover,
+  input[type="number"]:hover {
+    border-color: var(--background-modifier-border-hover);
+    transition:
+      box-shadow var(--anim-duration-fast) ease-in-out,
+      border var(--anim-duration-fast) ease-in-out;
+  }
+}
+
+textarea:focus,
+input[type="date"]:focus,
+input[type="datetime-local"]:focus,
+input[type="text"]:focus,
+input[type="search"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+textarea:focus-visible,
+input[type="date"]:focus-visible,
+input[type="datetime-local"]:focus-visible,
+input[type="text"]:focus-visible,
+input[type="search"]:focus-visible,
+input[type="email"]:focus-visible,
+input[type="password"]:focus-visible,
+input[type="number"]:focus-visible {
+  border-color: var(--background-modifier-border-focus);
+  box-shadow: 0 0 0 var(--input-border-width-focus) var(--background-modifier-border-focus);
+  transition:
+    box-shadow 0.15s ease-in-out,
+    border 0.15s ease-in-out;
+}
+
+textarea::placeholder,
+input::placeholder {
+  color: var(--input-placeholder-color);
+}
+
+/* -------------------------------------------------------------------------- *
+ * Buttons (default, mod-cta, mod-warning, mod-destructive)
+ * Source: specs/renderer/buttons.md §1
+ * -------------------------------------------------------------------------- */
+button:not(.clickable-icon):not(.titlebar-button):not(.modal-close-button):not(.workspace-drawer-vault-switcher) {
+  --text-color: var(--text-normal);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  font-size: var(--font-ui-small);
+  border-radius: var(--button-radius);
+  border: 0;
+  padding: var(--size-4-1) var(--size-4-3);
+  height: var(--input-height);
+  font-weight: var(--input-font-weight);
+  cursor: var(--cursor);
+  font-family: inherit;
+  outline: none;
+  user-select: none;
+  white-space: nowrap;
+  background-color: var(--interactive-normal);
+  box-shadow: var(--input-shadow);
+}
+
+@media (hover: hover) {
+  button:not(.clickable-icon):not(.titlebar-button):not(.modal-close-button):not(.workspace-drawer-vault-switcher):hover {
+    background-color: var(--interactive-hover);
+    box-shadow: var(--input-shadow-hover);
+  }
+}
+
+button:focus-visible:not(.clickable-icon):not(.titlebar-button):not(.modal-close-button):not(.workspace-drawer-vault-switcher) {
+  box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
+}
+
+button[disabled],
+button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+button.mod-cta {
+  background-color: var(--interactive-accent);
+  --text-color: var(--text-on-accent);
+  color: var(--text-on-accent);
+}
+
+button.mod-cta:hover {
+  background-color: var(--interactive-accent-hover);
+}
+
+button.mod-warning {
+  background-color: var(--background-modifier-error);
+  --text-color: var(--text-on-accent);
+  color: var(--text-on-accent);
+}
+
+button.mod-destructive {
+  --text-color: var(--text-error);
+  color: var(--text-error);
+}

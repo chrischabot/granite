@@ -9,7 +9,7 @@
 
 ### §24.1 Vault & files
 - [ ] Configurable trash setting (system trash / vault `.trash/` / permanent) — vault/permanent policy and host-hooked system path shipped 2026-05-12; native OS-trash adapter still required for full System trash acceptance
-- [ ] External-edit-detected ≤ 500 ms perf assertion — Phase 14
+- [x] External-edit-detected ≤ 500 ms perf assertion ← _shipped 2026-05-12 external edit sync_
 - [ ] Multi-window simultaneous vaults
 
 ### §24.2 Editor — Phase 12

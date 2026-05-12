@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-12 — External edit sync budget
+
+- **Open-editor refresh** — Markdown editors now subscribe to vault file
+  watcher events and refresh the open document when its backing file changes.
+- **No-clobber guard** — external content is applied only while the editor
+  document still matches the last saved content, so unsaved local edits are not
+  overwritten by a watcher event.
+- **500 ms gate** — the watcher debounce is centralized at 200 ms and tested
+  against the 500 ms acceptance budget.
+
+### Tests
+- Added `src/core/markdown/external-edit.test.ts` for watcher path matching,
+  no-clobber external edit decisions, and the sync budget assertion.
+- Validation: scoped `bunx biome check --write`, targeted external-edit tests,
+  and `bun run typecheck` pass.
+
+---
+
 ## 2026-05-12 — External file drag-and-drop handling
 
 - **Editor file-url modifier** — OS file drops in the editor now honor

@@ -33,6 +33,11 @@ import { noteDirectionFromFrontmatter } from "@core/i18n/direction";
 import { isSupportedAttachmentMime, saveAttachment } from "@core/markdown/attach";
 import { livePreviewDecorations } from "@core/markdown/cm-livepreview-decorations";
 import { unresolvedWikilinkExtension } from "@core/markdown/cm-unresolved-wikilinks";
+import {
+  EXTERNAL_EDIT_SYNC_DEBOUNCE_MS,
+  externalEditTouchesPath,
+  shouldApplyExternalEdit,
+} from "@core/markdown/external-edit";
 import { parseWikilink } from "@core/markdown/renderer";
 import { metadataCache } from "@core/metadata/cache";
 import { useFileMetadata } from "@core/metadata/useMetadata";
@@ -130,6 +135,35 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
     setLoadState("loading");
     setReadError(null);
     allowSaveRef.current = false;
+    let externalWatchCleanup: (() => void) | null = null;
+    let externalWatchTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const applyExternalContent = async () => {
+      const view = editorRef.current;
+      if (!view || cancelled) return;
+      const result = await readSafely(path);
+      if (cancelled || result.state === "error") return;
+      if (result.state === "missing") {
+        setLoadState("missing");
+        return;
+      }
+      const current = view.state.doc.toString();
+      if (!shouldApplyExternalEdit(current, lastSavedRef.current, result.content)) return;
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: result.content },
+      });
+      lastSavedRef.current = result.content;
+      setLoadState("loaded");
+      setStatus("saved");
+      markClean(path);
+    };
+
+    const scheduleExternalRefresh = () => {
+      if (externalWatchTimer) clearTimeout(externalWatchTimer);
+      externalWatchTimer = setTimeout(() => {
+        void applyExternalContent();
+      }, EXTERNAL_EDIT_SYNC_DEBOUNCE_MS);
+    };
 
     const init = async () => {
       const result = await readSafely(path);
@@ -256,6 +290,20 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
         view.dispatch({ effects: restoreFoldEffects });
       }
       view.contentDOM.spellcheck = settings.spellcheck;
+
+      const cleanupExternalWatch = await run(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem;
+          return fs.watch((event) => {
+            if (externalEditTouchesPath(event, path)) scheduleExternalRefresh();
+          });
+        }),
+      );
+      if (cancelled) {
+        cleanupExternalWatch();
+        return;
+      }
+      externalWatchCleanup = cleanupExternalWatch;
 
       const insertAttachment = async (bytes: Uint8Array, mime: string, nameHint?: string) => {
         try {
@@ -709,6 +757,8 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
       window.removeEventListener("granite:insert-block-id", onInsertBlockId);
       attachmentListenersRef.current?.();
       attachmentListenersRef.current = null;
+      externalWatchCleanup?.();
+      if (externalWatchTimer) clearTimeout(externalWatchTimer);
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       if (editorRef.current && allowSaveRef.current) {
         const docText = editorRef.current.state.doc.toString();

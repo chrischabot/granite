@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { metadataCache } from "@core/metadata/cache";
 import { stem } from "@core/fs/path";
+import { metadataCache } from "@core/metadata/cache";
 import { useFileMetadata, useMetadataVersion } from "@core/metadata/useMetadata";
 import { workspaceStore } from "@core/workspace/store";
 import { useWorkspace } from "@core/workspace/useWorkspace";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "../../i18n/useI18n";
 
 interface Neighbor {
   path: string;
@@ -17,6 +18,7 @@ const HOVER_RADIUS = 9;
 const PADDING = 24;
 
 export function LocalGraphView() {
+  const t = useI18n();
   useMetadataVersion();
   const { activeGroupId, groups, leaves } = useWorkspace();
   const activePath = (() => {
@@ -50,9 +52,7 @@ export function LocalGraphView() {
     const map = new Map<string, Neighbor>();
     // Outgoing: from meta.links — collapse to unique path with .md
     for (const link of meta.links) {
-      const candidatePath = link.target.endsWith(".md")
-        ? link.target
-        : `${link.target}.md`;
+      const candidatePath = link.target.endsWith(".md") ? link.target : `${link.target}.md`;
       const cur = map.get(candidatePath);
       if (cur) {
         cur.weight += 1;
@@ -84,11 +84,7 @@ export function LocalGraphView() {
   }, [activePath, meta]);
 
   if (!activePath) {
-    return (
-      <div className="workspace-sidedock-empty-state">
-        Open a note to see its local graph.
-      </div>
-    );
+    return <div className="workspace-sidedock-empty-state">{t("localGraph.empty.noActive")}</div>;
   }
 
   const cx = size.w / 2;
@@ -116,8 +112,8 @@ export function LocalGraphView() {
         }}
       >
         {count === 0
-          ? "No links yet"
-          : `${count} neighbor${count === 1 ? "" : "s"}`}
+          ? t("localGraph.empty.noLinks")
+          : t(count === 1 ? "localGraph.neighbor" : "localGraph.neighbors", { count })}
       </div>
       <svg
         width={size.w}
@@ -125,6 +121,7 @@ export function LocalGraphView() {
         viewBox={`0 0 ${size.w} ${size.h}`}
         style={{ display: "block" }}
       >
+        <title>{t("sidebar.tab.localGraph")}</title>
         {neighbors.map((n, i) => {
           const angle = (i / Math.max(1, count)) * Math.PI * 2 - Math.PI / 2;
           const nx = cx + Math.cos(angle) * radius;
@@ -185,7 +182,23 @@ export function LocalGraphView() {
           const anchor =
             Math.cos(angle) > 0.5 ? "start" : Math.cos(angle) < -0.5 ? "end" : "middle";
           return (
-            <g key={`node-${n.path}`}>
+            <a
+              key={`node-${n.path}`}
+              href={n.path}
+              aria-label={t("localGraph.openNote", { path: n.path })}
+              onMouseEnter={() => setHover(n.path)}
+              onMouseLeave={() => setHover((h) => (h === n.path ? null : h))}
+              onClick={(e) => {
+                e.preventDefault();
+                workspaceStore.openFile(n.path);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  workspaceStore.openFile(n.path);
+                }
+              }}
+            >
               <circle
                 cx={nx}
                 cy={ny}
@@ -194,9 +207,6 @@ export function LocalGraphView() {
                 stroke="var(--background-primary)"
                 strokeWidth={1.5}
                 style={{ cursor: "pointer" }}
-                onMouseEnter={() => setHover(n.path)}
-                onMouseLeave={() => setHover((h) => (h === n.path ? null : h))}
-                onClick={() => workspaceStore.openFile(n.path)}
               />
               <text
                 x={nx + labelDx}
@@ -212,7 +222,7 @@ export function LocalGraphView() {
               >
                 {stem(n.path)}
               </text>
-            </g>
+            </a>
           );
         })}
       </svg>

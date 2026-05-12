@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-12 — Sidebar chrome and local graph i18n ratchet
+
+- **Sidebar tab chrome** — replaced hard-coded sidebar tab labels with
+  `labelKey` entries and resolved them through `useI18n()` in both sidebars.
+- **Sidebar actions** — routed open-in-center, split group, close group, and
+  unavailable-sidebar fallback labels through `t()`.
+- **Local graph** — externalized the no-active-note state, empty state, neighbor
+  count, and node-open accessible labels; added an SVG title and keyboardable
+  node links while touching the graph.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  guard sidebar registry labels, sidebar shell actions, Local Graph labels, and
+  unavailable sidebar fallback text.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Recents, footnotes, and outline i18n ratchet
 
 - **Sidebar utility panes** — routed Recents, Footnotes, and Outline empty

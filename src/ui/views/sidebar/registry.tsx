@@ -30,42 +30,77 @@ export type SidebarSide = "left" | "right";
 
 export interface SidebarTabDefinition {
   readonly id: string;
-  readonly label: string;
+  readonly labelKey: string;
   readonly icon: ReactNode;
   render(): ReactNode;
 }
 
 export const LEFT_SIDEBAR_TABS = [
-  { id: "explorer", label: "Files", icon: <Files />, render: () => <FileExplorerView /> },
-  { id: "search", label: "Search", icon: <Search />, render: () => <SearchView /> },
-  { id: "bookmarks", label: "Bookmarks", icon: <Bookmark />, render: () => <BookmarksView /> },
-  { id: "tags", label: "Tags", icon: <Tag />, render: () => <TagsView /> },
+  {
+    id: "explorer",
+    labelKey: "sidebar.tab.files",
+    icon: <Files />,
+    render: () => <FileExplorerView />,
+  },
+  { id: "search", labelKey: "sidebar.tab.search", icon: <Search />, render: () => <SearchView /> },
+  {
+    id: "bookmarks",
+    labelKey: "sidebar.tab.bookmarks",
+    icon: <Bookmark />,
+    render: () => <BookmarksView />,
+  },
+  { id: "tags", labelKey: "sidebar.tab.tags", icon: <Tag />, render: () => <TagsView /> },
 ] as const satisfies ReadonlyArray<SidebarTabDefinition>;
 
 export const RIGHT_SIDEBAR_TABS = [
   {
     id: "backlinks",
-    label: "Backlinks",
+    labelKey: "sidebar.tab.backlinks",
     icon: <ArrowDownToLine />,
     render: () => <BacklinksView />,
   },
   {
     id: "outgoing",
-    label: "Outgoing links",
+    labelKey: "sidebar.tab.outgoing",
     icon: <ArrowUpFromLine />,
     render: () => <OutgoingLinksView />,
   },
-  { id: "outline", label: "Outline", icon: <ListTree />, render: () => <OutlineView /> },
-  { id: "recents", label: "Recent files", icon: <History />, render: () => <RecentsView /> },
-  { id: "graph", label: "Local graph", icon: <Network />, render: () => <LocalGraphView /> },
-  { id: "properties", label: "File properties", icon: <List />, render: () => <PropertiesView /> },
+  {
+    id: "outline",
+    labelKey: "sidebar.tab.outline",
+    icon: <ListTree />,
+    render: () => <OutlineView />,
+  },
+  {
+    id: "recents",
+    labelKey: "sidebar.tab.recents",
+    icon: <History />,
+    render: () => <RecentsView />,
+  },
+  {
+    id: "graph",
+    labelKey: "sidebar.tab.localGraph",
+    icon: <Network />,
+    render: () => <LocalGraphView />,
+  },
+  {
+    id: "properties",
+    labelKey: "sidebar.tab.fileProperties",
+    icon: <List />,
+    render: () => <PropertiesView />,
+  },
   {
     id: "all-properties",
-    label: "All properties (vault)",
+    labelKey: "sidebar.tab.allProperties",
     icon: <ListChecks />,
     render: () => <AllPropertiesView />,
   },
-  { id: "footnotes", label: "Footnotes", icon: <Hash />, render: () => <FootnotesView /> },
+  {
+    id: "footnotes",
+    labelKey: "sidebar.tab.footnotes",
+    icon: <Hash />,
+    render: () => <FootnotesView />,
+  },
 ] as const satisfies ReadonlyArray<SidebarTabDefinition>;
 
 export function sidebarTabsForSide(side: SidebarSide): ReadonlyArray<SidebarTabDefinition> {

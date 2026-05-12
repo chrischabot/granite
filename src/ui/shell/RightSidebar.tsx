@@ -2,6 +2,7 @@ import { workspaceStore } from "@core/workspace/store";
 import { ExternalLink, SplitSquareVertical, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { ClickableIcon } from "../controls/ClickableIcon";
+import { useI18n } from "../i18n/useI18n";
 import { RIGHT_SIDEBAR_TABS } from "../views/sidebar/registry";
 import {
   type SidebarGroupState,
@@ -13,6 +14,7 @@ import {
 type RightTabId = (typeof RIGHT_SIDEBAR_TABS)[number]["id"];
 
 export function RightSidebar() {
+  const t = useI18n();
   const nextGroupId = useRef(1);
   const [groups, setGroups] = useState<ReadonlyArray<SidebarGroupState<RightTabId>>>([
     { id: "right-0", active: "outline" },
@@ -25,30 +27,31 @@ export function RightSidebar() {
         <div className="workspace-sidebar-groups">
           {groups.map((group, index) => {
             const activeTab = RIGHT_SIDEBAR_TABS.find((t) => t.id === group.active);
+            const activeLabel = activeTab ? t(activeTab.labelKey) : group.active;
             return (
               <div className="workspace-sidebar-group" key={group.id}>
                 {index > 0 && <div className="workspace-leaf-resize-handle mod-sidebar-row" />}
                 <div className="workspace-sidebar-tabs">
-                  {RIGHT_SIDEBAR_TABS.map((t) => (
+                  {RIGHT_SIDEBAR_TABS.map((tab) => (
                     <ClickableIcon
-                      key={t.id}
-                      ariaLabel={t.label}
-                      icon={t.icon}
-                      active={group.active === t.id}
+                      key={tab.id}
+                      ariaLabel={t(tab.labelKey)}
+                      icon={tab.icon}
+                      active={group.active === tab.id}
                       onClick={() =>
-                        setGroups((current) => setSidebarGroupActive(current, group.id, t.id))
+                        setGroups((current) => setSidebarGroupActive(current, group.id, tab.id))
                       }
                     />
                   ))}
                   <ClickableIcon
-                    ariaLabel={`Open ${activeTab?.label ?? group.active} in central area`}
+                    ariaLabel={t("sidebar.openInCenter", { label: activeLabel })}
                     icon={<ExternalLink />}
                     onClick={() =>
                       workspaceStore.openSidebarView("right", group.active, { newTab: true })
                     }
                   />
                   <ClickableIcon
-                    ariaLabel={`Split ${activeTab?.label ?? group.active} sidebar group`}
+                    ariaLabel={t("sidebar.splitGroup", { label: activeLabel })}
                     icon={<SplitSquareVertical />}
                     onClick={() =>
                       setGroups((current) =>
@@ -58,7 +61,7 @@ export function RightSidebar() {
                   />
                   {groups.length > 1 && (
                     <ClickableIcon
-                      ariaLabel={`Close ${activeTab?.label ?? group.active} sidebar group`}
+                      ariaLabel={t("sidebar.closeGroup", { label: activeLabel })}
                       icon={<X />}
                       onClick={() => setGroups((current) => closeSidebarGroup(current, group.id))}
                     />

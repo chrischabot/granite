@@ -58,6 +58,36 @@ const OUTLINE_VIEW_FORBIDDEN_PATTERNS = [
   />\s*No headings match filter\.\s*</,
 ];
 
+const SIDEBAR_REGISTRY_FORBIDDEN_PATTERNS = [
+  /label: "Files"/,
+  /label: "Search"/,
+  /label: "Bookmarks"/,
+  /label: "Tags"/,
+  /label: "Backlinks"/,
+  /label: "Outgoing links"/,
+  /label: "Outline"/,
+  /label: "Recent files"/,
+  /label: "Local graph"/,
+  /label: "File properties"/,
+  /label: "All properties \(vault\)"/,
+  /label: "Footnotes"/,
+];
+
+const SIDEBAR_SHELL_FORBIDDEN_PATTERNS = [
+  /ariaLabel=\{t\.label\}/,
+  /Open \$\{activeTab\?\.label \?\? group\.active\} in central area/,
+  /Split \$\{activeTab\?\.label \?\? group\.active\} sidebar group/,
+  /Close \$\{activeTab\?\.label \?\? group\.active\} sidebar group/,
+];
+
+const LOCAL_GRAPH_VIEW_FORBIDDEN_PATTERNS = [
+  />\s*Open a note to see its local graph\.\s*</,
+  /"No links yet"/,
+  /`\$\{count\} neighbor\$\{count === 1 \? "" : "s"\}`/,
+];
+
+const SIDEBAR_LEAF_VIEW_FORBIDDEN_PATTERNS = [/>\s*Sidebar view is no longer available\.\s*</];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -165,6 +195,83 @@ describe("UI string externalization audit", () => {
     ]) {
       expect(source).toContain(requiredKey);
     }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps sidebar tab registry labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/registry.tsx`, "utf8");
+    const violations = SIDEBAR_REGISTRY_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+    for (const requiredKey of [
+      "sidebar.tab.files",
+      "sidebar.tab.search",
+      "sidebar.tab.bookmarks",
+      "sidebar.tab.tags",
+      "sidebar.tab.backlinks",
+      "sidebar.tab.outgoing",
+      "sidebar.tab.outline",
+      "sidebar.tab.recents",
+      "sidebar.tab.localGraph",
+      "sidebar.tab.fileProperties",
+      "sidebar.tab.allProperties",
+      "sidebar.tab.footnotes",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps sidebar shell action labels routed through i18n keys", () => {
+    const sources = [
+      readFileSync(`${process.cwd()}/src/ui/shell/LeftSidebar.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/shell/RightSidebar.tsx`, "utf8"),
+    ];
+    const violations = sources.flatMap((source) =>
+      SIDEBAR_SHELL_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source)),
+    );
+    for (const source of sources) {
+      for (const requiredKey of [
+        "sidebar.openInCenter",
+        "sidebar.splitGroup",
+        "sidebar.closeGroup",
+      ]) {
+        expect(source).toContain(requiredKey);
+      }
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Local Graph view labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/LocalGraphView.tsx`, "utf8");
+    const violations = LOCAL_GRAPH_VIEW_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+    for (const requiredKey of [
+      "localGraph.empty.noActive",
+      "localGraph.empty.noLinks",
+      "localGraph.neighbor",
+      "localGraph.neighbors",
+      "localGraph.openNote",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps unavailable sidebar leaf fallback routed through i18n keys", () => {
+    const source = readFileSync(
+      `${process.cwd()}/src/ui/views/sidebar/SidebarLeafView.tsx`,
+      "utf8",
+    );
+    const violations = SIDEBAR_LEAF_VIEW_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+    expect(source).toContain("sidebar.unavailable");
 
     expect(violations, violations.join("\n")).toEqual([]);
   });

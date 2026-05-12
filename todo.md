@@ -94,7 +94,7 @@
 
 ### §24.20 Accessibility — Phase 16
 - [ ] Full keyboard-only audit
-- [ ] Screen-reader announcement of tab changes / modal opens / notice content
+- [x] Screen-reader announcement of tab changes / modal opens / notice content ← _shipped 2026-05-12 a11y live announcements_
 - [ ] 4.5:1 contrast assertion
 
 ### §24.21 i18n — Phase 15

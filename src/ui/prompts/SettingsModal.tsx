@@ -103,7 +103,12 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     : null;
 
   return (
-    <Modal open={open} onClose={onClose} modifier="mod-sidebar-layout mod-settings">
+    <Modal
+      open={open}
+      onClose={onClose}
+      ariaLabel="Settings"
+      modifier="mod-sidebar-layout mod-settings"
+    >
       <div className="vertical-tabs-container">
         <div className="vertical-tab-header">
           <div className="settings-search-container">

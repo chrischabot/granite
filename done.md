@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-12 — Accessibility live announcements
+
+- **Shared live region** — added a central polite/atomic screen-reader
+  announcer mounted at the app root.
+- **Tab change announcements** — workspace active-tab changes now announce the
+  focused tab title after the initial render.
+- **Dialog announcements** — modal opens announce their title/label, title-less
+  dialogs get an accessible `ariaLabel`, and the modal shell uses native
+  `<dialog open>` semantics while preserving the existing focus trap.
+- **Notice announcements** — notices announce their content when shown, and the
+  notice store now returns immutable snapshots so `useSyncExternalStore`
+  subscribers re-render reliably.
+
+### Tests
+- Added `core/a11y/announcer.test.ts`, `ui/A11yAnnouncer.test.tsx`,
+  `ui/overlay/Modal.test.tsx`, and `ui/overlay/NoticeContainer.test.tsx`.
+- Extended `core/notices/notice.test.ts` for immutable snapshots and spoken
+  notice content.
+- Validation: scoped `bunx biome check --write`, targeted a11y/notice/modal
+  tests, and `bun run typecheck` pass.
+
+---
+
 ## 2026-05-12 — Bases Map view
 
 - **Map layout** — `.base` files can now use `view: map`, rendering rows with

@@ -1,3 +1,5 @@
+import { a11yAnnouncer } from "@core/a11y/announcer";
+
 export interface Notice {
   readonly id: string;
   readonly message: string;
@@ -12,7 +14,7 @@ export interface Notice {
 }
 
 let counter = 0;
-const notices: Notice[] = [];
+let notices: Notice[] = [];
 const subscribers = new Set<() => void>();
 
 function emit() {
@@ -44,7 +46,9 @@ export const noticeManager = {
       timeoutMs: options.timeoutMs ?? 4000,
       ...(options.onActivate ? { onActivate: options.onActivate } : {}),
     };
-    notices.push(notice);
+    notices = [...notices, notice];
+    const kind = notice.kind.charAt(0).toUpperCase() + notice.kind.slice(1);
+    a11yAnnouncer.announce(`${kind}: ${notice.message}`);
     emit();
     if (notice.timeoutMs > 0) {
       setTimeout(() => this.dismiss(notice.id), notice.timeoutMs);
@@ -53,9 +57,9 @@ export const noticeManager = {
   },
 
   dismiss(id: string): void {
-    const idx = notices.findIndex((n) => n.id === id);
-    if (idx === -1) return;
-    notices.splice(idx, 1);
+    const next = notices.filter((n) => n.id !== id);
+    if (next.length === notices.length) return;
+    notices = next;
     emit();
   },
 

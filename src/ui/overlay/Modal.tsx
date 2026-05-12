@@ -1,10 +1,14 @@
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { a11yAnnouncer } from "@core/a11y/announcer";
+import { X } from "lucide-react";
+import { Children, type ReactNode, isValidElement, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 
 export interface ModalProps {
   open: boolean;
   onClose: () => void;
   title?: ReactNode;
+  /** Accessible label used when the title is not plain text. */
+  ariaLabel?: string;
   /** Modifier classes (e.g. "mod-sidebar-layout", "mod-narrow") */
   modifier?: string;
   /** Whether clicking the backdrop closes the modal. Default true. */
@@ -18,11 +22,20 @@ export interface ModalProps {
   footer?: ReactNode;
 }
 
+function textFromNode(node: ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textFromNode).join(" ");
+  if (isValidElement<{ children?: ReactNode }>(node)) return textFromNode(node.props.children);
+  return Children.toArray(node).map(textFromNode).join(" ");
+}
+
 export function Modal(props: ModalProps) {
   const {
     open,
     onClose,
     title,
+    ariaLabel,
     modifier,
     dismissOnBackdropClick = true,
     dismissOnEsc = true,
@@ -31,12 +44,14 @@ export function Modal(props: ModalProps) {
     footer,
   } = props;
 
-  const modalRef = useRef<HTMLDivElement>(null);
+  const modalRef = useRef<HTMLDialogElement>(null);
   const previousActive = useRef<HTMLElement | null>(null);
   const titleId = useId();
+  const label = (ariaLabel ?? textFromNode(title).trim()) || "Dialog";
 
   useEffect(() => {
     if (!open) return;
+    a11yAnnouncer.announce(`Opened dialog: ${label}`);
     previousActive.current = document.activeElement as HTMLElement | null;
     const el = modalRef.current;
     if (!el) return;
@@ -48,7 +63,7 @@ export function Modal(props: ModalProps) {
     return () => {
       previousActive.current?.focus();
     };
-  }, [open]);
+  }, [open, label]);
 
   useEffect(() => {
     if (!open || !dismissOnEsc) return;
@@ -63,8 +78,9 @@ export function Modal(props: ModalProps) {
           "input, button, select, textarea, [tabindex]:not([tabindex='-1'])",
         );
         if (focusables.length === 0) return;
-        const first = focusables[0]!;
-        const last = focusables[focusables.length - 1]!;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (!first || !last) return;
         if (e.shiftKey && document.activeElement === first) {
           last.focus();
           e.preventDefault();
@@ -82,29 +98,24 @@ export function Modal(props: ModalProps) {
 
   return createPortal(
     <div className="modal-container">
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: Keyboard users can dismiss via Esc or the close button; this backdrop is not focusable. */}
       <div
         className="modal-bg"
         onClick={dismissOnBackdropClick ? onClose : undefined}
         aria-hidden="true"
       />
-      <div
+      <dialog
         ref={modalRef}
         className={`modal ${modifier ?? ""}`.trim()}
-        role="dialog"
+        open
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
+        aria-label={title ? undefined : label}
         tabIndex={-1}
       >
         {showCloseButton && (
-          <button
-            type="button"
-            className="modal-close-button"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M18 6 6 18M6 6l12 12" />
-            </svg>
+          <button type="button" className="modal-close-button" aria-label="Close" onClick={onClose}>
+            <X size={14} aria-hidden="true" />
           </button>
         )}
         {title && (
@@ -116,7 +127,7 @@ export function Modal(props: ModalProps) {
         )}
         <div className="modal-content">{children}</div>
         {footer && <div className="modal-button-container">{footer}</div>}
-      </div>
+      </dialog>
     </div>,
     document.body,
   );

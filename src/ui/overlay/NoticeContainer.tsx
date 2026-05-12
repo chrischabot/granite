@@ -1,7 +1,7 @@
+import { type Notice, noticeManager } from "@core/notices/notice";
 import { X } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { noticeManager, type Notice } from "@core/notices/notice";
 
 function getList(): ReadonlyArray<Notice> {
   return noticeManager.list();
@@ -9,7 +9,13 @@ function getList(): ReadonlyArray<Notice> {
 
 export function NoticeContainer() {
   const notices = useSyncExternalStore(noticeManager.subscribe, getList, getList);
+
   if (notices.length === 0) return null;
+
+  const activateNotice = (notice: Notice) => {
+    if (notice.onActivate) notice.onActivate();
+    else noticeManager.dismiss(notice.id);
+  };
 
   return createPortal(
     <div className="notice-container">
@@ -18,13 +24,24 @@ export function NoticeContainer() {
           key={n.id}
           className={`notice notice-${n.kind}`}
           role="alert"
-          onClick={() => {
-            if (n.onActivate) n.onActivate();
-            else noticeManager.dismiss(n.id);
-          }}
           style={{ display: "flex", alignItems: "center", gap: 12 }}
         >
-          <span style={{ flex: 1, minWidth: 0 }}>{n.message}</span>
+          <button
+            type="button"
+            onClick={() => activateNotice(n)}
+            style={{
+              flex: 1,
+              minWidth: 0,
+              padding: 0,
+              background: "transparent",
+              border: 0,
+              color: "inherit",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            {n.message}
+          </button>
           <button
             type="button"
             aria-label="Dismiss"

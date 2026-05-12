@@ -1,10 +1,12 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { a11yAnnouncer } from "@core/a11y/announcer";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { noticeManager } from "./notice";
 
 beforeEach(() => {
   vi.useFakeTimers();
   // Clear state by dismissing all current notices.
   for (const n of [...noticeManager.list()]) noticeManager.dismiss(n.id);
+  a11yAnnouncer.reset();
 });
 
 afterEach(() => {
@@ -20,16 +22,31 @@ describe("noticeManager", () => {
     const id = noticeManager.show("hello", { kind: "success" });
     const list = noticeManager.list();
     expect(list.length).toBe(1);
-    expect(list[0]!.id).toBe(id);
-    expect(list[0]!.message).toBe("hello");
-    expect(list[0]!.kind).toBe("success");
+    expect(list[0]?.id).toBe(id);
+    expect(list[0]?.message).toBe("hello");
+    expect(list[0]?.kind).toBe("success");
+  });
+
+  it("returns a new list snapshot when notices change", () => {
+    const before = noticeManager.list();
+    const id = noticeManager.show("hello", { timeoutMs: 0 });
+    const afterShow = noticeManager.list();
+    noticeManager.dismiss(id);
+
+    expect(afterShow).not.toBe(before);
+    expect(noticeManager.list()).not.toBe(afterShow);
+  });
+
+  it("announces notice content for screen readers", () => {
+    noticeManager.show("Sync failed", { kind: "error", timeoutMs: 0 });
+    expect(a11yAnnouncer.getSnapshot().message).toBe("Error: Sync failed");
   });
 
   it("defaults kind to 'info' and timeout to 4000", () => {
     noticeManager.show("hi");
-    const n = noticeManager.list()[0]!;
-    expect(n.kind).toBe("info");
-    expect(n.timeoutMs).toBe(4000);
+    const n = noticeManager.list()[0];
+    expect(n?.kind).toBe("info");
+    expect(n?.timeoutMs).toBe(4000);
   });
 
   it("auto-dismisses after the timeout", () => {
@@ -51,7 +68,7 @@ describe("noticeManager", () => {
     noticeManager.dismiss(a);
     const list = noticeManager.list();
     expect(list.length).toBe(1);
-    expect(list[0]!.id).toBe(b);
+    expect(list[0]?.id).toBe(b);
   });
 
   it("dismiss is a no-op for an unknown id", () => {
@@ -75,9 +92,9 @@ describe("noticeManager", () => {
   it("stores onActivate when provided", () => {
     const fn = vi.fn();
     noticeManager.show("clickable", { onActivate: fn, timeoutMs: 0 });
-    const n = noticeManager.list()[0]!;
-    expect(typeof n.onActivate).toBe("function");
-    n.onActivate?.();
+    const n = noticeManager.list()[0];
+    expect(typeof n?.onActivate).toBe("function");
+    n?.onActivate?.();
     expect(fn).toHaveBeenCalledTimes(1);
   });
 });

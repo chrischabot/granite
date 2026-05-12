@@ -1,6 +1,7 @@
 import { useMetadataCache } from "@core/metadata/useMetadata";
 import { bindNativeHistory } from "@core/workspace/native-history";
 import { useCallback, useEffect, useState } from "react";
+import { A11yAnnouncer, WorkspaceA11yAnnouncements } from "./ui/A11yAnnouncer";
 import { CssClassesBinder } from "./ui/CssClassesBinder";
 import { LocaleDirectionBinder } from "./ui/LocaleDirectionBinder";
 import { CommandsBootstrap } from "./ui/commands/CommandsBootstrap";
@@ -68,6 +69,8 @@ export function App() {
           <NativeHistoryBinder />
           <CssClassesBinder />
           <LocaleDirectionBinder />
+          <A11yAnnouncer />
+          <WorkspaceA11yAnnouncements />
           <CommandsBootstrap
             openPalette={openPalette}
             openSwitcher={openSwitcher}

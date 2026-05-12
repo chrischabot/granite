@@ -24,6 +24,23 @@
 
 ---
 
+## 2026-05-12 — Icon-button accessibility audit
+
+- **Static a11y gate** — added `bun run audit:a11y`, including a source-level
+  audit that fails when a `.clickable-icon` button or `ClickableIcon` callsite
+  lacks an accessible label.
+- **Tooltip-label parity** — the audit checks literal tooltip text against
+  literal `aria-label` text for icon-only controls, preventing visual tooltip
+  text from drifting away from assistive-technology text.
+- **Canvas cleanup** — aligned canvas toolbar tooltip text with its accessible
+  labels for snap and delete controls.
+
+### Tests
+- Added `src/core/a11y/icon-buttons.test.ts`.
+- Validation: `bun run audit:a11y` passes.
+
+---
+
 ## 2026-05-12 — Performance budget first pass
 
 - **Quick Switcher keystroke path** — extracted reusable fuzzy indexes and

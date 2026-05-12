@@ -776,7 +776,7 @@ export function CanvasView({ path }: CanvasViewProps) {
           aria-label={snapToGrid ? "Disable snap to grid" : "Enable snap to grid"}
           aria-pressed={snapToGrid}
           onClick={() => setSnapToGrid((v) => !v)}
-          title="Snap to grid"
+          data-tooltip={snapToGrid ? "Disable snap to grid" : "Enable snap to grid"}
         >
           <Magnet size={14} />
         </button>
@@ -852,7 +852,7 @@ export function CanvasView({ path }: CanvasViewProps) {
               className="clickable-icon"
               aria-label="Delete selected"
               onClick={deleteSelected}
-              title="Delete selected (Cmd/Ctrl+Backspace)"
+              title="Delete selected"
               style={{ color: "var(--text-error)" }}
             >
               <Trash2 size={14} />
@@ -865,7 +865,7 @@ export function CanvasView({ path }: CanvasViewProps) {
             className="clickable-icon"
             aria-label="Delete selected"
             onClick={deleteSelected}
-            title="Delete selected (Cmd/Ctrl+Backspace)"
+            title="Delete selected"
             style={{ color: "var(--text-error)" }}
           >
             <Trash2 size={14} />

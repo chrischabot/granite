@@ -8,6 +8,7 @@
     "build": "tsgo --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0 --port 8080",
     "typecheck": "tsgo --noEmit",
+    "audit:a11y": "vitest run src/core/a11y/icon-buttons.test.ts src/core/a11y/announcer.test.ts src/ui/A11yAnnouncer.test.tsx src/ui/overlay/Modal.test.tsx src/ui/overlay/NoticeContainer.test.tsx src/styles/contrast.test.ts",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

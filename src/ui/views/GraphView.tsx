@@ -23,6 +23,7 @@ import { workspaceStore } from "@core/workspace/store";
 import { useWorkspace } from "@core/workspace/useWorkspace";
 import { Plus, Settings2, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useI18n } from "../i18n/useI18n";
 
 interface GraphNode {
   id: string;
@@ -49,6 +50,7 @@ export function GraphView() {
   const metadataVersion = useMetadataVersion();
   useSyncExternalStore(subscribeGraph, getGraphVersion, getGraphVersion);
   const config = getGraphConfig();
+  const t = useI18n();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -359,9 +361,7 @@ export function GraphView() {
           textAlign: "center",
         }}
       >
-        {config.filter || config.localGraph
-          ? "No notes match the current filter."
-          : "Vault has no markdown files yet — create some notes to populate the graph."}
+        {config.filter || config.localGraph ? t("graph.empty.filtered") : t("graph.empty.noNotes")}
       </div>
     );
   }
@@ -411,9 +411,9 @@ export function GraphView() {
         width={size.w}
         height={size.h}
         style={{ display: "block" }}
-        aria-label="Vault graph"
+        aria-label={t("graph.aria")}
       >
-        <title>Vault graph</title>
+        <title>{t("graph.aria")}</title>
         <g ref={viewportRef} transform={`translate(${cx},${cy}) scale(${view.scale})`}>
           {edges.map((e) => {
             const a = byIdRender.get(e.source);
@@ -514,11 +514,16 @@ export function GraphView() {
           pointerEvents: "none",
         }}
       >
-        {nodes.length} nodes · {edges.length} links · drag to pan, scroll to zoom
+        {t("graph.stats", {
+          nodes: nodes.length,
+          nodeLabel: t(nodes.length === 1 ? "graph.node" : "graph.nodes"),
+          links: edges.length,
+          linkLabel: t(edges.length === 1 ? "graph.link" : "graph.links"),
+        })}
       </div>
       <button
         type="button"
-        aria-label={showControls ? "Hide graph controls" : "Show graph controls"}
+        aria-label={t(showControls ? "graph.controls.hide" : "graph.controls.show")}
         onClick={(e) => {
           e.stopPropagation();
           setShowControls((v) => !v);
@@ -548,6 +553,7 @@ export function GraphView() {
 function GraphControlsPanel({ onClose }: { onClose: () => void }) {
   useSyncExternalStore(subscribeGraph, getGraphVersion, getGraphVersion);
   const config = getGraphConfig();
+  const t = useI18n();
   return (
     <div
       onMouseDown={(e) => e.stopPropagation()}
@@ -585,12 +591,12 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
             fontSize: "var(--font-ui-small)",
           }}
         >
-          Graph controls
+          {t("graph.controls.title")}
         </div>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close controls"
+          aria-label={t("graph.controls.close")}
           style={{
             padding: 2,
             background: "transparent",
@@ -605,7 +611,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
         </button>
       </div>
 
-      <ControlBlock title="Filter">
+      <ControlBlock title={t("graph.controls.filter")}>
         <input
           type="text"
           placeholder="tag:project -draft"
@@ -614,12 +620,12 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           style={{ width: "100%" }}
         />
         <p style={{ margin: "var(--size-2-2) 0 0", color: "var(--text-faint)" }}>
-          Search syntax: <code>tag:</code>, <code>path:</code>, <code>file:</code>,{" "}
-          <code>[name]</code>, <code>[name:value]</code>, <code>-term</code>.
+          {t("graph.controls.searchSyntax")} <code>tag:</code>, <code>path:</code>,{" "}
+          <code>file:</code>, <code>[name]</code>, <code>[name:value]</code>, <code>-term</code>.
         </p>
       </ControlBlock>
 
-      <ControlBlock title="Local graph">
+      <ControlBlock title={t("graph.controls.localGraph")}>
         <label
           style={{
             display: "flex",
@@ -633,11 +639,11 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
             checked={config.localGraph}
             onChange={(e) => updateGraphConfig({ localGraph: e.currentTarget.checked })}
           />
-          <span>Show only neighbors of the active file</span>
+          <span>{t("graph.controls.localOnly")}</span>
         </label>
         {config.localGraph && (
           <Slider
-            label="Hops"
+            label={t("graph.controls.hops")}
             min={1}
             max={4}
             step={1}
@@ -647,7 +653,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
         )}
       </ControlBlock>
 
-      <ControlBlock title="Color by">
+      <ControlBlock title={t("graph.controls.colorBy")}>
         <select
           className="dropdown"
           value={config.colorMode}
@@ -656,18 +662,18 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           }
           style={{ width: "100%" }}
         >
-          <option value="none">Neutral</option>
-          <option value="tag">Tag (dominant)</option>
-          <option value="folder">Top-level folder</option>
-          <option value="groups">Groups (below)</option>
+          <option value="none">{t("graph.color.neutral")}</option>
+          <option value="tag">{t("graph.color.tag")}</option>
+          <option value="folder">{t("graph.color.folder")}</option>
+          <option value="groups">{t("graph.color.groups")}</option>
         </select>
       </ControlBlock>
 
-      <ControlBlock title="Groups">
+      <ControlBlock title={t("graph.controls.groups")}>
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-2-3)" }}>
           {config.groups.length === 0 ? (
             <div style={{ color: "var(--text-faint)" }}>
-              No groups yet. Click <kbd>+</kbd> to add one.
+              {t("graph.groups.emptyBefore")} <kbd>+</kbd> {t("graph.groups.emptyAfter")}
             </div>
           ) : (
             config.groups.map((g) => (
@@ -684,7 +690,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
                   type="text"
                   value={g.name}
                   onChange={(e) => updateGraphGroup(g.id, { name: e.currentTarget.value })}
-                  placeholder="Name"
+                  placeholder={t("graph.groups.namePlaceholder")}
                   style={{ width: "100%", minWidth: 0 }}
                 />
                 <input
@@ -702,7 +708,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
                 />
                 <button
                   type="button"
-                  aria-label={`Remove group ${g.name}`}
+                  aria-label={t("graph.groups.remove", { name: g.name })}
                   onClick={() => removeGraphGroup(g.id)}
                   style={{
                     padding: 2,
@@ -723,7 +729,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={() =>
               addGraphGroup({
-                name: "New group",
+                name: t("graph.groups.newName"),
                 query: "",
                 color: colorForStringSafe(`g${config.groups.length + 1}`),
               })
@@ -735,14 +741,14 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
               alignSelf: "flex-start",
             }}
           >
-            <Plus size={12} /> Add group
+            <Plus size={12} /> {t("graph.groups.add")}
           </button>
         </div>
       </ControlBlock>
 
-      <ControlBlock title="Display">
+      <ControlBlock title={t("graph.controls.display")}>
         <Slider
-          label="Node size"
+          label={t("graph.display.nodeSize")}
           min={2}
           max={12}
           step={1}
@@ -750,7 +756,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           onChange={(v) => updateGraphDisplay({ nodeSize: v })}
         />
         <Slider
-          label="Link thickness"
+          label={t("graph.display.linkThickness")}
           min={0.2}
           max={3}
           step={0.1}
@@ -758,7 +764,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           onChange={(v) => updateGraphDisplay({ linkThickness: v })}
         />
         <Slider
-          label="Label size"
+          label={t("graph.display.labelSize")}
           min={8}
           max={20}
           step={1}
@@ -766,7 +772,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           onChange={(v) => updateGraphDisplay({ textSize: v })}
         />
         <Slider
-          label="Label threshold"
+          label={t("graph.display.labelThreshold")}
           min={0.4}
           max={3}
           step={0.1}
@@ -775,9 +781,9 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
         />
       </ControlBlock>
 
-      <ControlBlock title="Forces">
+      <ControlBlock title={t("graph.controls.forces")}>
         <Slider
-          label="Repulsion"
+          label={t("graph.forces.repulsion")}
           min={1000}
           max={15000}
           step={500}
@@ -785,7 +791,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           onChange={(v) => updateGraphForces({ repulsion: v })}
         />
         <Slider
-          label="Edge attraction"
+          label={t("graph.forces.edgeAttraction")}
           min={0.001}
           max={0.05}
           step={0.001}
@@ -793,7 +799,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           onChange={(v) => updateGraphForces({ attraction: v })}
         />
         <Slider
-          label="Link distance"
+          label={t("graph.forces.linkDistance")}
           min={20}
           max={300}
           step={10}
@@ -801,7 +807,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           onChange={(v) => updateGraphForces({ linkDistance: v })}
         />
         <Slider
-          label="Center gravity"
+          label={t("graph.forces.centerGravity")}
           min={0}
           max={0.005}
           step={0.0001}
@@ -818,7 +824,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           }
           style={{ alignSelf: "flex-start", marginTop: "var(--size-2-3)" }}
         >
-          Reset display & forces
+          {t("graph.reset")}
         </button>
       </ControlBlock>
     </div>
@@ -829,7 +835,7 @@ function ControlBlock({
   title,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (

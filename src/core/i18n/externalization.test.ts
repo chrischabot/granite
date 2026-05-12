@@ -261,6 +261,45 @@ const BOOKMARKS_VIEW_FORBIDDEN_PATTERNS = [
   /aria-label="Remove bookmark"/,
 ];
 
+const GRAPH_VIEW_FORBIDDEN_PATTERNS = [
+  /"No notes match the current filter\."/,
+  /"Vault has no markdown files yet — create some notes to populate the graph\."/,
+  /aria-label="Vault graph"/,
+  />Vault graph</,
+  /nodes · \{edges\.length\} links · drag to pan, scroll to zoom/,
+  /"Hide graph controls"/,
+  /"Show graph controls"/,
+  />\s*Graph controls\s*</,
+  /aria-label="Close controls"/,
+  /<ControlBlock title="Filter">/,
+  /Search syntax:/,
+  /<ControlBlock title="Local graph">/,
+  />\s*Show only neighbors of the active file\s*</,
+  /label="Hops"/,
+  /<ControlBlock title="Color by">/,
+  />Neutral</,
+  />Tag \(dominant\)</,
+  />Top-level folder</,
+  />Groups \(below\)</,
+  /<ControlBlock title="Groups">/,
+  /No groups yet\. Click/,
+  /placeholder="Name"/,
+  /`Remove group \$\{g\.name\}`/,
+  /name: "New group"/,
+  />\s*Add group\s*</,
+  /<ControlBlock title="Display">/,
+  /label="Node size"/,
+  /label="Link thickness"/,
+  /label="Label size"/,
+  /label="Label threshold"/,
+  /<ControlBlock title="Forces">/,
+  /label="Repulsion"/,
+  /label="Edge attraction"/,
+  /label="Link distance"/,
+  /label="Center gravity"/,
+  />\s*Reset display & forces\s*</,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -697,6 +736,35 @@ describe("UI string externalization audit", () => {
       "bookmarks.remove",
     ]) {
       expect(bookmarksSource).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Graph view labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/GraphView.tsx`, "utf8");
+    const violations = GRAPH_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of [
+      "graph.empty.filtered",
+      "graph.empty.noNotes",
+      "graph.aria",
+      "graph.stats",
+      "graph.controls.hide",
+      "graph.controls.title",
+      "graph.controls.filter",
+      "graph.controls.localGraph",
+      "graph.controls.colorBy",
+      "graph.color.neutral",
+      "graph.controls.groups",
+      "graph.groups.remove",
+      "graph.groups.add",
+      "graph.controls.display",
+      "graph.display.nodeSize",
+      "graph.controls.forces",
+      "graph.forces.repulsion",
+      "graph.reset",
+    ]) {
+      expect(source).toContain(requiredKey);
     }
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);

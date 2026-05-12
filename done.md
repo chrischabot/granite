@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — Graph view i18n ratchet
+
+- **Graph canvas chrome** — routed empty states, SVG accessible label/title,
+  graph stats text, and controls-toggle labels through `t()`.
+- **Graph controls panel** — routed panel title/close label, section headers,
+  local-graph toggle text, color-mode labels, group empty/add/remove/default
+  names, display slider labels, force slider labels, and reset action through
+  `t()`.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if Graph View's formerly hard-coded English labels return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Utility modal and bookmarks i18n ratchet
 
 - **Modal overlay** — routed the close button label, fallback dialog label, and

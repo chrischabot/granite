@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-12 — Property date and frontmatter round-trip hardening
+
+- **Locale date rendering** — added `core/metadata/property-format.ts` and
+  wired Reading mode property display through it so ISO Date and Date & time
+  values render with `Intl.DateTimeFormat` instead of raw `String(value)`.
+- **No UTC date drift** — YAML date objects at UTC midnight are displayed as
+  date-only local values, avoiding off-by-one display from timezone conversion.
+- **Frontmatter invariants tested** — added regression coverage proving
+  internal wikilinks in Text/List properties remain quoted on save, and
+  JSON-style frontmatter rewrites to YAML when edited.
+
+### Tests
+- Added `core/metadata/property-format.test.ts`.
+- Extended `core/metadata/frontmatter.test.ts`.
+- Validation: scoped `bunx biome check --write` on new/updated metadata tests,
+  `bun run typecheck`, `bun run test` (404 tests / 38 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Tags nested-view toggle
 
 - **Nested tag setting** — added persistent `showNestedTags` user setting,

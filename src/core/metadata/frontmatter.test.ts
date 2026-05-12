@@ -1,10 +1,10 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   parseFrontmatter,
   removeFrontmatterValue,
   renameFrontmatterKey,
-  updateFrontmatterValue,
   splitFrontmatter,
+  updateFrontmatterValue,
 } from "./frontmatter";
 
 describe("splitFrontmatter", () => {
@@ -51,6 +51,31 @@ describe("updateFrontmatterValue", () => {
     expect(next.startsWith("---\n")).toBe(true);
     expect(next).toContain("title: Hi");
     expect(next).toContain("just body");
+  });
+
+  it("keeps internal links in text properties quoted on save", () => {
+    const next = updateFrontmatterValue("---\ntopic: Old\n---\nbody", "topic", "[[Page]]");
+    expect(next).toContain("topic: '[[Page]]'");
+  });
+
+  it("keeps internal links in list properties quoted on save", () => {
+    const next = updateFrontmatterValue("---\naliases: []\n---\nbody", "aliases", [
+      "[[Page]]",
+      "Plain alias",
+    ]);
+    expect(next).toContain("- '[[Page]]'");
+    expect(next).toContain("- Plain alias");
+  });
+
+  it("rewrites JSON-style frontmatter as YAML on save", () => {
+    const next = updateFrontmatterValue(
+      '---\n{"title":"Old","count":1}\n---\nbody',
+      "title",
+      "New",
+    );
+    expect(next).toContain("title: New");
+    expect(next).toContain("count: 1");
+    expect(next).not.toContain('{"title"');
   });
 });
 

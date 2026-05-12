@@ -1,22 +1,23 @@
-import { Effect } from "effect";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { attachHoverPopoverListeners } from "@/ui/overlay/HoverPopover";
+import { parseBaseConfig } from "@core/bases/schema";
+import { parseCanvas } from "@core/canvas/schema";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
-import { renderMarkdown, renderNoteMarkdown } from "@core/markdown/renderer";
-import { renderMermaidIn } from "@core/markdown/mermaid";
-import { workspaceStore } from "@core/workspace/store";
-import { useWorkspace } from "@core/workspace/useWorkspace";
-import { parseBaseConfig } from "@core/bases/schema";
-import { parseCanvas } from "@core/canvas/schema";
-import { extractBlock, extractHeadingSection } from "@core/markdown/extract";
 import { extension, stem } from "@core/fs/path";
+import type { VaultFile, VaultPath } from "@core/fs/types";
+import { extractBlock, extractHeadingSection } from "@core/markdown/extract";
+import { renderMermaidIn } from "@core/markdown/mermaid";
+import { renderMarkdown, renderNoteMarkdown } from "@core/markdown/renderer";
 import { metadataCache } from "@core/metadata/cache";
+import { formatPropertyValue } from "@core/metadata/property-format";
 import { useFileMetadata, useMetadataVersion } from "@core/metadata/useMetadata";
 import { fileMatchesQuery, parseQuery } from "@core/search/query";
 import { settingsStore } from "@core/settings/store";
-import { attachHoverPopoverListeners } from "@/ui/overlay/HoverPopover";
-import type { VaultFile, VaultPath } from "@core/fs/types";
+import { workspaceStore } from "@core/workspace/store";
+import { useWorkspace } from "@core/workspace/useWorkspace";
+import { Effect } from "effect";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface ReadingViewProps {
   path: VaultPath;
@@ -29,27 +30,47 @@ const PDF_EXTS = new Set(["pdf"]);
 
 function mimeForExtension(ext: string): string {
   switch (ext) {
-    case "png": return "image/png";
+    case "png":
+      return "image/png";
     case "jpg":
-    case "jpeg": return "image/jpeg";
-    case "gif": return "image/gif";
-    case "webp": return "image/webp";
-    case "svg": return "image/svg+xml";
-    case "avif": return "image/avif";
-    case "bmp": return "image/bmp";
-    case "mp3": return "audio/mpeg";
-    case "wav": return "audio/wav";
-    case "ogg": return "audio/ogg";
-    case "m4a": return "audio/mp4";
-    case "opus": return "audio/opus";
-    case "flac": return "audio/flac";
-    case "mp4": return "video/mp4";
-    case "mov": return "video/quicktime";
-    case "webm": return "video/webm";
-    case "ogv": return "video/ogg";
-    case "mkv": return "video/x-matroska";
-    case "pdf": return "application/pdf";
-    default: return "application/octet-stream";
+    case "jpeg":
+      return "image/jpeg";
+    case "gif":
+      return "image/gif";
+    case "webp":
+      return "image/webp";
+    case "svg":
+      return "image/svg+xml";
+    case "avif":
+      return "image/avif";
+    case "bmp":
+      return "image/bmp";
+    case "mp3":
+      return "audio/mpeg";
+    case "wav":
+      return "audio/wav";
+    case "ogg":
+      return "audio/ogg";
+    case "m4a":
+      return "audio/mp4";
+    case "opus":
+      return "audio/opus";
+    case "flac":
+      return "audio/flac";
+    case "mp4":
+      return "video/mp4";
+    case "mov":
+      return "video/quicktime";
+    case "webm":
+      return "video/webm";
+    case "ogv":
+      return "video/ogg";
+    case "mkv":
+      return "video/x-matroska";
+    case "pdf":
+      return "application/pdf";
+    default:
+      return "application/octet-stream";
   }
 }
 
@@ -166,9 +187,7 @@ export function ReadingView({ path }: ReadingViewProps) {
         return;
       }
 
-      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>(
-        "a.internal-link",
-      );
+      const target = (e.target as HTMLElement | null)?.closest<HTMLElement>("a.internal-link");
       if (!target) return;
       const href = target.getAttribute("data-href") ?? target.getAttribute("href");
       if (!href) return;
@@ -473,9 +492,7 @@ export function ReadingView({ path }: ReadingViewProps) {
     }
     const handles: BaseHandle[] = [];
 
-    for (const pre of root.querySelectorAll<HTMLElement>(
-      "pre.language-base:not(.is-resolved)",
-    )) {
+    for (const pre of root.querySelectorAll<HTMLElement>("pre.language-base:not(.is-resolved)")) {
       const code = pre.querySelector("code");
       if (!code) continue;
       const yamlText = (code.textContent ?? "").trim();
@@ -526,9 +543,7 @@ export function ReadingView({ path }: ReadingViewProps) {
     const root = containerRef.current;
     if (!root) return;
     let cancelled = false;
-    const blocks = root.querySelectorAll<HTMLElement>(
-      "pre.language-query:not(.is-resolved)",
-    );
+    const blocks = root.querySelectorAll<HTMLElement>("pre.language-query:not(.is-resolved)");
 
     interface QueryHandle {
       wrap: HTMLElement;
@@ -724,11 +739,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       const href = a.getAttribute("href") ?? "";
       if (!href) continue;
       // Skip schemes, anchor-only, and absolute URLs.
-      if (
-        /^[a-z][a-z0-9+.-]*:/i.test(href) ||
-        href.startsWith("//") ||
-        href.startsWith("#")
-      ) {
+      if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//") || href.startsWith("#")) {
         a.classList.add("external-link");
         a.setAttribute("target", "_blank");
         a.setAttribute("rel", "noopener noreferrer");
@@ -791,10 +802,7 @@ export function ReadingView({ path }: ReadingViewProps) {
                 {frontmatterEntries.length > 0 && (
                   <PropertiesStrip path={path} entries={frontmatterEntries} />
                 )}
-                <div
-                  className="markdown-rendered"
-                  dangerouslySetInnerHTML={{ __html: html }}
-                />
+                <div className="markdown-rendered" dangerouslySetInnerHTML={{ __html: html }} />
               </>
             )}
           </div>
@@ -837,13 +845,6 @@ function escapeAttr(s: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
-}
-
-function formatPropertyValue(v: unknown): string {
-  if (v === null || v === undefined) return "—";
-  if (Array.isArray(v)) return v.map((x) => String(x)).join(", ");
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
 }
 
 const propertiesCollapsed = new Map<string, boolean>();
@@ -950,9 +951,7 @@ function isTagKey(key: string): boolean {
 }
 
 function dispatchSearch(query: string): void {
-  window.dispatchEvent(
-    new CustomEvent("granite:set-search-query", { detail: { query } }),
-  );
+  window.dispatchEvent(new CustomEvent("granite:set-search-query", { detail: { query } }));
   window.dispatchEvent(
     new CustomEvent("granite:select-sidebar-tab", {
       detail: { side: "left", id: "search" },
@@ -964,11 +963,11 @@ function PropertyValue({ propKey, value }: { propKey: string; value: unknown }) 
   if (isTagKey(propKey) && Array.isArray(value)) {
     return (
       <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
-        {value.map((tag, i) => {
+        {value.map((tag) => {
           const text = String(tag);
           return (
             <a
-              key={`${text}-${i}`}
+              key={text}
               className="tag"
               href={`#${text}`}
               onClick={(e) => {

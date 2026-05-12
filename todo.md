@@ -25,12 +25,12 @@
 ### §24.4 Linking & metadata
 - [x] `[[##term]]` vault-wide heading search
 - [x] `[[^^term]]` vault-wide block search ← _shipped 2026-05-12 sweep_
-- [ ] Quoted-string preservation inside Text/List properties on save
+- [x] Quoted-string preservation inside Text/List properties on save ← _covered 2026-05-12 property sweep_
 
 ### §24.5 Properties
-- [ ] Date / Date&time locale rendering
+- [x] Date / Date&time locale rendering ← _shipped 2026-05-12 property sweep_
 - [ ] Format Converter migration of legacy `tag`/`alias`/`cssclass` singular keys
-- [ ] JSON-style frontmatter → YAML on save rewrite path
+- [x] JSON-style frontmatter → YAML on save rewrite path ← _covered 2026-05-12 property sweep_
 
 ### §24.6 Tags
 - [ ] Tags from body and YAML are unified in Tags view

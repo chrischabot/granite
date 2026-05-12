@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-12 — Tag metadata case unification
+
+- **Per-note tag unification** — metadata parsing now deduplicates body and
+  YAML tags case-insensitively, preserving the first casing encountered for
+  display.
+- **Vault-wide tag aggregation** — Tags view aggregation now counts tags
+  case-insensitively across files and preserves first display casing instead
+  of splitting `Work` and `work` into separate tags.
+
+### Tests
+- Added `core/metadata/cache.test.ts`.
+- Extended `core/metadata/parser.test.ts` for body/YAML unification.
+- Validation: scoped `bunx biome check --write` for cache changes,
+  `bun run typecheck`, `bun run test` (411 tests / 39 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Format Converter legacy property migration
 
 - **Legacy default-property migration** — Format Converter now includes a

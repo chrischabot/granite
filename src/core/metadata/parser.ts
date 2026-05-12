@@ -236,6 +236,15 @@ export function parseMetadata(src: string): ParsedMetadata {
     tags.push({ name: t, line: 0 });
   }
 
+  const canonicalTags: TagInfo[] = [];
+  const seenTags = new Set<string>();
+  for (const tag of tags) {
+    const key = tag.name.toLocaleLowerCase();
+    if (seenTags.has(key)) continue;
+    seenTags.add(key);
+    canonicalTags.push(tag);
+  }
+
   const footnotes: FootnoteInfo[] = [...footnoteMap.entries()]
     .map(([id, fn]) => ({
       id,
@@ -255,7 +264,7 @@ export function parseMetadata(src: string): ParsedMetadata {
     cssClasses,
     headings,
     links,
-    tags,
+    tags: canonicalTags,
     blocks,
     footnotes,
     isEmpty: body.trim().length === 0,

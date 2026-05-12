@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parseMetadata } from "./parser";
 
 describe("parseMetadata", () => {
@@ -41,6 +41,16 @@ Body`;
     expect(names).toContain("project/work");
     expect(names).toContain("y2024");
     expect(names).not.toContain("1234");
+  });
+
+  it("unifies body and YAML tags case-insensitively while preserving first casing", () => {
+    const src = `---
+tags: [work, Home]
+---
+body #Work and #home`;
+    const m = parseMetadata(src);
+
+    expect(m.tags.map((t) => t.name)).toEqual(["Work", "home"]);
   });
 
   it("captures block IDs", () => {
@@ -88,12 +98,7 @@ Body`;
   });
 
   it("sorts footnotes by definition or first-reference line", () => {
-    const src = [
-      "ref [^z] later",
-      "ref [^a] earlier orphan",
-      "[^z]: zee",
-      "[^a]: aye",
-    ].join("\n");
+    const src = ["ref [^z] later", "ref [^a] earlier orphan", "[^z]: zee", "[^a]: aye"].join("\n");
     const m = parseMetadata(src);
     expect(m.footnotes.map((f) => f.id)).toEqual(["z", "a"]);
   });

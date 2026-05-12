@@ -33,9 +33,9 @@
 - [x] JSON-style frontmatter → YAML on save rewrite path ← _covered 2026-05-12 property sweep_
 
 ### §24.6 Tags
-- [ ] Tags from body and YAML are unified in Tags view
+- [x] Tags from body and YAML are unified in Tags view ← _shipped 2026-05-12 tag metadata sweep_
 - [x] Nested tags display hierarchically when *Show nested tags* is on ← _shipped 2026-05-12 tags sweep_
-- [ ] Case-insensitive matching but case-preserved display
+- [x] Case-insensitive matching but case-preserved display ← _shipped 2026-05-12 tag metadata sweep_
 - [x] All-numeric tags rejected; alphanumeric/Unicode tags accepted
 
 ### §24.7 Search — closed in Phase 10

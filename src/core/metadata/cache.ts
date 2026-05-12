@@ -1,11 +1,11 @@
-import { Effect } from "effect";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
 import { extension, stem } from "@core/fs/path";
-import { settingsStore } from "@core/settings/store";
 import type { VaultFile, VaultPath } from "@core/fs/types";
-import { parseMetadata, type ParsedMetadata } from "./parser";
+import { settingsStore } from "@core/settings/store";
+import { Effect } from "effect";
+import { type ParsedMetadata, parseMetadata } from "./parser";
 
 interface CacheEntry {
   readonly path: VaultPath;
@@ -20,6 +20,24 @@ let inflight = false;
 let unsubFs: (() => void) | null = null;
 let unsubSettings: (() => void) | null = null;
 let lastExcludeRaw = "";
+
+export function aggregateTagCounts(
+  tagLists: Iterable<ReadonlyArray<{ readonly name: string }>>,
+): Array<{ name: string; count: number }> {
+  const counts = new Map<string, { name: string; count: number }>();
+  for (const tags of tagLists) {
+    const seenInFile = new Set<string>();
+    for (const tag of tags) {
+      const key = tag.name.toLocaleLowerCase();
+      if (seenInFile.has(key)) continue;
+      seenInFile.add(key);
+      const existing = counts.get(key);
+      if (existing) existing.count += 1;
+      else counts.set(key, { name: tag.name, count: 1 });
+    }
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
 
 function currentPatterns(): string[] {
   return parseExcludePatterns(settingsStore.getState().excludedFiles);
@@ -146,9 +164,8 @@ export const metadataCache = {
           return yield* fs.listAll({ extensions: ["md"] });
         }),
       );
-      const eligible = patterns.length === 0
-        ? files
-        : files.filter((f) => !isExcluded(f.path, patterns));
+      const eligible =
+        patterns.length === 0 ? files : files.filter((f) => !isExcluded(f.path, patterns));
       const chunks: VaultFile[][] = [];
       const chunkSize = 32;
       for (let i = 0; i < eligible.length; i += chunkSize) {
@@ -189,11 +206,7 @@ export const metadataCache = {
     for (const entry of entries.values()) {
       const matched: number[] = [];
       for (const link of entry.metadata.links) {
-        if (
-          link.target === targetStem ||
-          link.target === target ||
-          link.target === targetNoExt
-        ) {
+        if (link.target === targetStem || link.target === target || link.target === targetNoExt) {
           matched.push(link.line);
         }
       }
@@ -205,18 +218,7 @@ export const metadataCache = {
   },
 
   getAllTags(): Array<{ name: string; count: number }> {
-    const counts = new Map<string, number>();
-    for (const entry of entries.values()) {
-      const seen = new Set<string>();
-      for (const t of entry.metadata.tags) {
-        if (seen.has(t.name)) continue;
-        seen.add(t.name);
-        counts.set(t.name, (counts.get(t.name) ?? 0) + 1);
-      }
-    }
-    return [...counts.entries()]
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count);
+    return aggregateTagCounts([...entries.values()].map((entry) => entry.metadata.tags));
   },
 
   /** Aggregate distinct frontmatter property keys vault-wide. */

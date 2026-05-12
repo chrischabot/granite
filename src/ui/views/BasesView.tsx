@@ -1,26 +1,27 @@
-import { Table } from "lucide-react";
-import { Effect } from "effect";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type BaseConfig,
+  type ColumnKey,
+  DEFAULT_BASE,
+  type SortOrder,
+  parseBaseConfig,
+} from "@core/bases/schema";
+import { type SummaryResult, computeSummaries, groupRowsBy } from "@core/bases/summary";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
-import {
-  DEFAULT_BASE,
-  parseBaseConfig,
-  type BaseConfig,
-  type ColumnKey,
-  type SortOrder,
-} from "@core/bases/schema";
-import { computeSummaries, groupRowsBy, type SummaryResult } from "@core/bases/summary";
+import type { VaultFile, VaultPath } from "@core/fs/types";
 import { metadataCache } from "@core/metadata/cache";
 import { useMetadataVersion } from "@core/metadata/useMetadata";
 import { fileMatchesQuery, parseQuery } from "@core/search/query";
 import { settingsStore } from "@core/settings/store";
-import type { VaultFile, VaultPath } from "@core/fs/types";
-import { computeRow, sortRows, type Row } from "./bases/shared";
-import { BasesTableView } from "./bases/BasesTableView";
-import { BasesListView } from "./bases/BasesListView";
+import { Effect } from "effect";
+import { Table } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { BasesCardsView } from "./bases/BasesCardsView";
+import { BasesListView } from "./bases/BasesListView";
+import { BasesMapView } from "./bases/BasesMapView";
+import { BasesTableView } from "./bases/BasesTableView";
+import { type Row, computeRow, sortRows } from "./bases/shared";
 
 export interface BasesViewProps {
   path: string | undefined;
@@ -82,6 +83,7 @@ export function BasesView({ path }: BasesViewProps) {
   }, [reload]);
 
   useEffect(() => {
+    void path;
     setOverrideSort(null);
   }, [path]);
 
@@ -162,13 +164,7 @@ export function BasesView({ path }: BasesViewProps) {
             continue;
           }
         }
-        if (
-          fileMatchesQuery(
-            query,
-            { file, content, metadata: meta },
-            { matchCase: false },
-          )
-        ) {
+        if (fileMatchesQuery(query, { file, content, metadata: meta }, { matchCase: false })) {
           rows.push(computeRow(file, config));
         }
       }
@@ -233,9 +229,7 @@ export function BasesView({ path }: BasesViewProps) {
         }}
       >
         <Table size={48} style={{ color: "var(--text-muted)", opacity: 0.6 }} />
-        <div style={{ fontSize: "var(--font-ui-large)", color: "var(--text-normal)" }}>
-          Bases
-        </div>
+        <div style={{ fontSize: "var(--font-ui-large)", color: "var(--text-normal)" }}>Bases</div>
         <div style={{ maxWidth: 460, fontSize: "var(--font-ui-small)" }}>
           Open a `.base` YAML file to use this view.
         </div>
@@ -266,7 +260,13 @@ export function BasesView({ path }: BasesViewProps) {
           {config.name}
         </div>
         <div style={{ color: "var(--text-muted)" }}>
-          {config.filter ? <>filter: <code>{config.filter}</code></> : "no filter"}
+          {config.filter ? (
+            <>
+              filter: <code>{config.filter}</code>
+            </>
+          ) : (
+            "no filter"
+          )}
         </div>
         <div style={{ color: "var(--text-faint)", marginInlineStart: "auto" }}>
           {filtered.length} match{filtered.length === 1 ? "" : "es"}
@@ -276,9 +276,7 @@ export function BasesView({ path }: BasesViewProps) {
       </div>
       {error && <div className="message mod-error">{error}</div>}
       {loading ? (
-        <div style={{ padding: "var(--size-4-4)", color: "var(--text-faint)" }}>
-          Loading base…
-        </div>
+        <div style={{ padding: "var(--size-4-4)", color: "var(--text-faint)" }}>Loading base…</div>
       ) : config.view === "list" ? (
         <BasesListView
           config={config}
@@ -295,6 +293,8 @@ export function BasesView({ path }: BasesViewProps) {
           summaries={summaries}
           displayColumns={displayColumns}
         />
+      ) : config.view === "map" ? (
+        <BasesMapView config={config} rows={filtered} grouped={grouped} summaries={summaries} />
       ) : (
         <BasesTableView
           config={config}
@@ -315,17 +315,18 @@ export function BasesView({ path }: BasesViewProps) {
 // command without re-importing yaml directly.
 export async function scaffoldBaseFile(path: string): Promise<void> {
   const cfg = DEFAULT_BASE;
-  const yamlText =
-    "# Granite .base file — minimal example.\n" +
-    "# Filter uses the same syntax as the Search panel: tag:foo path:notes/ -draft\n" +
-    `name: ${cfg.name}\n` +
-    `filter: "${cfg.filter}"\n` +
-    "columns:\n" +
-    cfg.columns.map((c) => `  - ${c}`).join("\n") +
-    "\n" +
-    `sort: ${cfg.sort}\n` +
-    `sortOrder: ${cfg.sortOrder}\n` +
-    `view: ${cfg.view}\n`;
+  const yamlText = `# Granite .base file — minimal example.
+# Filter uses the same syntax as the Search panel: tag:foo path:notes/ -draft
+name: ${cfg.name}
+filter: "${cfg.filter}"
+columns:
+${cfg.columns.map((c) => `  - ${c}`).join("\n")}
+sort: ${cfg.sort}
+sortOrder: ${cfg.sortOrder}
+view: ${cfg.view}
+mapLatitude: ${cfg.mapLatitude}
+mapLongitude: ${cfg.mapLongitude}
+`;
   await run(
     Effect.gen(function* () {
       const fs = yield* FileSystem;

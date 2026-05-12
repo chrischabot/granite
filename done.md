@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-05-12 — Bases Map view
+
+- **Map layout** — `.base` files can now use `view: map`, rendering rows with
+  valid latitude/longitude properties as pins on a deterministic coordinate
+  plane.
+- **Coordinate configuration** — Base configs now persist `mapLatitude` and
+  `mapLongitude` column names, defaulting to `lat` / `lng`.
+- **Row materialization** — map coordinate columns are included when rows are
+  computed, even if they are not visible table/card columns.
+- **Empty state** — Map view reports when no rows have valid coordinates
+  instead of silently rendering an empty surface.
+
+### Tests
+- Extended `core/bases/schema.test.ts` for map config parsing and round-trip.
+- Added `ui/views/bases/BasesMapView.test.ts` for coordinate projection and
+  invalid-coordinate filtering.
+- Validation: scoped `bunx biome check --write`, targeted Bases tests, and
+  `bun run typecheck`, `bun run test` (445 tests / 47 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — RTL locale and per-note direction
 
 - **Hebrew demo locale** — added a built-in `he` locale for the currently

@@ -1,14 +1,14 @@
-import type { ReactNode } from "react";
+import { type FormulaValue, tryEvaluateFormula } from "@core/bases/formula";
 import {
-  columnLabel as schemaColumnLabel,
   type BaseConfig,
   type ColumnKey,
   type SortOrder,
+  columnLabel as schemaColumnLabel,
 } from "@core/bases/schema";
 import { stem } from "@core/fs/path";
-import { metadataCache } from "@core/metadata/cache";
-import { tryEvaluateFormula, type FormulaValue } from "@core/bases/formula";
 import type { VaultFile, VaultPath } from "@core/fs/types";
+import { metadataCache } from "@core/metadata/cache";
+import type { ReactNode } from "react";
 
 export interface Row {
   readonly file: VaultFile;
@@ -81,6 +81,8 @@ export function computeRow(
   const cells: Record<string, unknown> = {};
   const allKeys = new Set<string>([...config.columns]);
   if (config.groupBy) allKeys.add(config.groupBy);
+  allKeys.add(config.mapLatitude);
+  allKeys.add(config.mapLongitude);
   for (const sum of config.summaries) allKeys.add(sum.column);
   for (const key of allKeys) {
     cells[key] = cellForBuiltin(file, key, tagsArr, frontmatter);
@@ -101,7 +103,7 @@ export function computeRow(
       fm: frontmatter as Record<string, FormulaValue>,
     };
     if (thisContext) {
-      bindings["this"] = thisContext as unknown as FormulaValue;
+      Reflect.set(bindings, "this", thisContext as unknown as FormulaValue);
     }
     for (const [k, v] of Object.entries(frontmatter)) {
       // Treat non-conflicting frontmatter keys as top-level variables so
@@ -111,7 +113,8 @@ export function computeRow(
       }
     }
     for (const key of formulaKeys) {
-      cells[key] = tryEvaluateFormula(config.formulas[key]!, bindings);
+      const source = config.formulas[key];
+      if (source !== undefined) cells[key] = tryEvaluateFormula(source, bindings);
     }
   }
   return { file, cells };

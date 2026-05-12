@@ -33,6 +33,8 @@ sortOrder: desc
     expect(c.sort).toBe("file.modified");
     expect(c.sortOrder).toBe("desc");
     expect(c.view).toBe("table");
+    expect(c.mapLatitude).toBe("lat");
+    expect(c.mapLongitude).toBe("lng");
     expect(c.summaries).toEqual([]);
     expect(c.formulas).toEqual({});
     expect(c.groupBy).toBeUndefined();
@@ -46,6 +48,8 @@ sortOrder: desc
     expect(c.sort).toBe(DEFAULT_BASE.sort);
     expect(c.sortOrder).toBe(DEFAULT_BASE.sortOrder);
     expect(c.view).toBe(DEFAULT_BASE.view);
+    expect(c.mapLatitude).toBe(DEFAULT_BASE.mapLatitude);
+    expect(c.mapLongitude).toBe(DEFAULT_BASE.mapLongitude);
   });
 
   it("ignores invalid types", () => {
@@ -68,6 +72,8 @@ columns: ["file.name", "status"]
 sort: file.name
 sortOrder: asc
 view: cards
+mapLatitude: latitude
+mapLongitude: longitude
 groupBy: status
 summaries:
   - { column: file.name, op: count, label: "Total" }
@@ -77,6 +83,8 @@ formulas:
 `;
     const c = parseBaseConfig(src);
     expect(c.view).toBe("cards");
+    expect(c.mapLatitude).toBe("latitude");
+    expect(c.mapLongitude).toBe("longitude");
     expect(c.groupBy).toBe("status");
     expect(c.summaries).toHaveLength(2);
     expect(c.summaries[0]).toEqual({ column: "file.name", op: "count", label: "Total" });
@@ -110,6 +118,8 @@ describe("serializeBaseConfig", () => {
       sort: "file.name",
       sortOrder: "desc",
       view: "table",
+      mapLatitude: "lat",
+      mapLongitude: "lng",
       summaries: [],
       formulas: {},
     };
@@ -125,6 +135,8 @@ describe("serializeBaseConfig", () => {
       sort: "file.name",
       sortOrder: "asc",
       view: "list",
+      mapLatitude: "lat",
+      mapLongitude: "lng",
       groupBy: "status",
       summaries: [{ column: "file.name", op: "count" }],
       formulas: { excerpt: "lower(file.name)" },

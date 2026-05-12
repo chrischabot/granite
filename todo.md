@@ -52,7 +52,7 @@
 - [x] Formula evaluator + summaries + group-by
 - [x] `this` context resolution ← _shipped 2026-05-12 sweep_
 - [x] ` ```base ` fenced markdown block ← _shipped 2026-05-12 sweep_
-- [ ] Map view (deferred)
+- [x] Map view ← _shipped 2026-05-12 bases map sweep_
 
 ### §24.12 Sidebars
 - [ ] Pop-out sidebar tabs into the central area

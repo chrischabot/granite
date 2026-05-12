@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-12 — Tags nested-view toggle
+
+- **Nested tag setting** — added persistent `showNestedTags` user setting,
+  surfaced in Settings → Files & links and directly in the Tags sidebar.
+- **Flat vs hierarchical model** — extracted `ui/views/sidebar/tags-model.ts`
+  so Tags view rendering can switch between slash-separated hierarchy and a
+  flat full-tag list without duplicating UI logic.
+- **Tags pane controls** — tag rows keep filter/search behavior, while nested
+  rows get explicit expand/collapse buttons.
+
+### Tests
+- Added `ui/views/sidebar/tags-model.test.ts` covering hierarchical nesting,
+  flat slash-tag rendering, and deterministic sort order.
+- Validation: scoped `bunx biome check --write`, `bun run typecheck`,
+  `bun run test` (396 tests / 37 files), and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Configurable delete policy
 
 - **Trash settings surfaced** — Settings → Files & links now exposes Confirm

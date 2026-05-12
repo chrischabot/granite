@@ -32,6 +32,12 @@
 - [ ] Format Converter migration of legacy `tag`/`alias`/`cssclass` singular keys
 - [ ] JSON-style frontmatter → YAML on save rewrite path
 
+### §24.6 Tags
+- [ ] Tags from body and YAML are unified in Tags view
+- [x] Nested tags display hierarchically when *Show nested tags* is on ← _shipped 2026-05-12 tags sweep_
+- [ ] Case-insensitive matching but case-preserved display
+- [x] All-numeric tags rejected; alphanumeric/Unicode tags accepted
+
 ### §24.7 Search — closed in Phase 10
 
 ### §24.8 Graph — closed in Phase 11

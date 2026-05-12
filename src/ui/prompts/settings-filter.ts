@@ -39,7 +39,7 @@ export const BUILTIN_SETTINGS_SECTIONS: ReadonlyArray<SettingsSectionInfo> = [
     title: "Files & links",
     group: "options",
     searchText:
-      "files links default folder new notes attachments folder deleted files confirm deletion trash system vault permanent excluded files wikilinks metadata cache",
+      "files links default folder new notes attachments folder deleted files confirm deletion trash system vault permanent excluded files wikilinks metadata cache tags nested",
   },
   {
     id: "hotkeys",

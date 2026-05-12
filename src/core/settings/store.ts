@@ -20,6 +20,7 @@ export interface UserSettings {
   attachmentsFolder: string;
   confirmFileDeletion: boolean;
   deletedFiles: DeletedFilesMode;
+  showNestedTags: boolean;
   /** Newline-separated glob list — patterns hide matching files from every
    *  vault listing (file explorer, switcher, search, metadata cache, graph). */
   excludedFiles: string;
@@ -49,6 +50,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   attachmentsFolder: "attachments",
   confirmFileDeletion: true,
   deletedFiles: "system",
+  showNestedTags: true,
   excludedFiles: "",
   spellcheck: false,
   livePreview: true,

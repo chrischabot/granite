@@ -82,6 +82,29 @@
   outline-offset: -2px;
 }
 
+.tag-pane-options {
+  align-items: center;
+  color: var(--text-muted);
+  display: flex;
+  font-size: var(--font-ui-smaller);
+  gap: var(--size-4-2);
+  padding: var(--size-4-1) var(--size-4-2) var(--size-4-2);
+}
+
+.tag-pane-tag .collapse-icon,
+.tag-pane-tag-button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+}
+
+.tag-pane-tag-button {
+  cursor: var(--cursor);
+  text-align: start;
+}
+
 .tree-item-self .collapse-icon {
   display: flex;
   align-items: center;

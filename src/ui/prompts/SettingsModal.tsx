@@ -427,6 +427,16 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
+                  name="Show nested tags"
+                  desc="Display slash-separated tags as a hierarchy in the Tags sidebar."
+                  control={
+                    <Toggle
+                      checked={settings.showNestedTags}
+                      onChange={(v) => settingsStore.update({ showNestedTags: v })}
+                    />
+                  }
+                />
+                <SettingItem
                   name="Excluded files"
                   desc={
                     "One pattern per line. A bare name (e.g. `archive`) matches any segment; `**` crosses directories. Comment lines start with `#`. Excluded files don't appear in the file explorer, switcher, search, or metadata cache."

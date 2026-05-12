@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — Live Preview block and table marker coverage
+
+- **Block markers** — inactive Live Preview lines now hide heading hashes and
+  task checkbox source markers while preserving the visible heading/task text.
+- **Table markers** — valid GFM table rows hide unescaped cell pipes, and
+  separator rows are replaced as table structure instead of raw Markdown.
+- **Block comment edges** — multiline Obsidian comments that start or end on a
+  content-bearing line now hide delimiters and avoid decorating comment body
+  text.
+
+### Tests
+- Extended `src/core/markdown/cm-livepreview-decorations.test.ts` with heading,
+  task, GFM table, cursor-line table, and multiline comment edge cases.
+- Validation: scoped `bunx biome check --write`, targeted Live Preview
+  decoration tests, full `bun run test`, `bun run build`, and
+  `git diff --check` pass.
+
+---
+
 ## 2026-05-12 — Multi-window vault bootstrap
 
 - **Vault window URLs** — added a dedicated `?vaultWindow=1&vaultId=...`

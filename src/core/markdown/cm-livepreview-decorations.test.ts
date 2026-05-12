@@ -125,6 +125,11 @@ describe("computeLivePreviewRanges", () => {
     expect(hiddenSlices(text, -1)).toEqual(["%%", "%%", "**", "**"]);
   });
 
+  it("hides multiline comment delimiters when they share lines with content", () => {
+    const text = "before %% hidden\n**private**\nend %% after\n**public**";
+    expect(hiddenSlices(text, -1)).toEqual(["%%", "%%", "**", "**"]);
+  });
+
   it("hides inline math delimiters", () => {
     const slices = hiddenSlices("Euler $e^{i\\pi}+1=0$ identity", -1);
     expect(slices).toEqual(["$", "$"]);
@@ -138,6 +143,34 @@ describe("computeLivePreviewRanges", () => {
   it("hides callout type and fold marker while keeping title text", () => {
     const slices = hiddenSlices("> [!warning]+ Careful", -1);
     expect(slices).toEqual(["[!warning]+"]);
+  });
+
+  it("hides heading markers on non-cursor lines", () => {
+    expect(hiddenSlices("### Heading", -1)).toEqual(["### "]);
+  });
+
+  it("hides task checkbox markers while keeping the list marker", () => {
+    expect(hiddenSlices("- [ ] open\n1. [x] done", -1)).toEqual(["[ ]", "[x]"]);
+  });
+
+  it("hides GFM table pipes and separator rows", () => {
+    const text = "| A | B |\n| -- | :--: |\n| **x** | y \\| z |";
+    expect(hiddenSlices(text, -1)).toEqual([
+      "|",
+      "|",
+      "|",
+      "| -- | :--: |",
+      "|",
+      "**",
+      "**",
+      "|",
+      "|",
+    ]);
+  });
+
+  it("leaves table markers raw on the cursor line", () => {
+    const text = "| A | B |\n| -- | -- |\n| x | y |";
+    expect(hiddenSlices(text, 1)).toEqual(["|", "|", "|", "|", "|", "|"]);
   });
 
   it("returns ranges in ascending order", () => {

@@ -21,6 +21,8 @@ const MARKDOWN_LINK_RE = /(!?)\[([^\]\n]+)\]\(([^)\n]+)\)/g;
 const COMMENT_RE = /%%([^%\n]+)%%/g;
 const INLINE_MATH_RE = /(?<!\$)\$([^$\n]+)\$(?!\$)/g;
 const CALLOUT_RE = /^(\s*>+\s*)\[!([^\]\n]+)\]([+-])?/;
+const HEADING_RE = /^(\s{0,3})(#{1,6})(\s+)/;
+const TASK_RE = /^(\s*(?:[-*+]|\d+[.)])\s+)\[[^\]\n]\](\s+)/;
 
 const replaceDeco = Decoration.replace({});
 
@@ -31,6 +33,49 @@ function forEachMatch(re: RegExp, line: string, visit: (match: RegExpExecArray) 
     visit(match);
     match = re.exec(line);
   }
+}
+
+function unescapedPipeIndexes(line: string): number[] {
+  const indexes: number[] = [];
+  for (let i = 0; i < line.length; i++) {
+    if (line[i] !== "|") continue;
+    let slashCount = 0;
+    for (let j = i - 1; j >= 0 && line[j] === "\\"; j--) slashCount += 1;
+    if (slashCount % 2 === 0) indexes.push(i);
+  }
+  return indexes;
+}
+
+function tableCells(line: string): string[] {
+  const pipeIndexes = unescapedPipeIndexes(line);
+  if (pipeIndexes.length === 0) return [];
+  const cells: string[] = [];
+  let start = 0;
+  for (const pipeIndex of pipeIndexes) {
+    cells.push(line.slice(start, pipeIndex));
+    start = pipeIndex + 1;
+  }
+  cells.push(line.slice(start));
+  if (cells[0]?.trim() === "") cells.shift();
+  if (cells[cells.length - 1]?.trim() === "") cells.pop();
+  return cells;
+}
+
+function isTableSeparatorLine(line: string): boolean {
+  const cells = tableCells(line);
+  return cells.length >= 2 && cells.every((cell) => /^:?-{2,}:?$/.test(cell.trim()));
+}
+
+function isTableRow(lines: ReadonlyArray<string>, lineIndex: number): boolean {
+  const line = lines[lineIndex] ?? "";
+  if (unescapedPipeIndexes(line).length === 0) return false;
+  if (isTableSeparatorLine(line)) return true;
+  const prev = lineIndex > 0 ? lines[lineIndex - 1] : undefined;
+  const next = lineIndex < lines.length - 1 ? lines[lineIndex + 1] : undefined;
+  return (
+    (prev !== undefined && isTableSeparatorLine(prev)) ||
+    (next !== undefined && isTableSeparatorLine(next))
+  );
 }
 
 /**
@@ -97,6 +142,13 @@ export function computeLivePreviewRanges(
     }
 
     if (inBlockMath || inBlockComment) {
+      if (inBlockComment) {
+        const commentEnd = line.indexOf("%%");
+        if (commentEnd !== -1) {
+          addReplace(commentEnd, commentEnd + 2);
+          inBlockComment = false;
+        }
+      }
       offset = lineStart + line.length + 1;
       continue;
     }
@@ -118,6 +170,20 @@ export function computeLivePreviewRanges(
     const overlapsCode = (start: number, end: number): boolean =>
       codeSpans.some(([s, e]) => start < e && end > s);
 
+    const headingMatch = line.match(HEADING_RE);
+    if (headingMatch) {
+      const prefixLen = headingMatch[1]?.length ?? 0;
+      const markerLen = headingMatch[2]?.length ?? 0;
+      const spaceLen = headingMatch[3]?.length ?? 0;
+      addReplace(prefixLen, prefixLen + markerLen + spaceLen);
+    }
+
+    const taskMatch = line.match(TASK_RE);
+    if (taskMatch) {
+      const prefixLen = taskMatch[1]?.length ?? 0;
+      addReplace(prefixLen, prefixLen + 3);
+    }
+
     // Callouts: > [!note]+ Title — hide the Obsidian type marker/fold sign,
     // keeping the blockquote marker and human title visible.
     const calloutMatch = line.match(CALLOUT_RE);
@@ -125,6 +191,24 @@ export function computeLivePreviewRanges(
       const prefixLen = calloutMatch[1]?.length ?? 0;
       const markerLen = calloutMatch[0].length - prefixLen;
       addReplace(prefixLen, prefixLen + markerLen);
+    }
+
+    if (isTableRow(lines, lineIdx)) {
+      if (isTableSeparatorLine(line)) {
+        const firstContent = line.search(/\S/);
+        if (firstContent !== -1) addReplace(firstContent, line.length);
+        offset = lineStart + line.length + 1;
+        continue;
+      }
+      for (const pipeIndex of unescapedPipeIndexes(line)) addReplace(pipeIndex, pipeIndex + 1);
+    }
+
+    const blockCommentStart = line.indexOf("%%");
+    if (blockCommentStart !== -1 && line.indexOf("%%", blockCommentStart + 2) === -1) {
+      addReplace(blockCommentStart, blockCommentStart + 2);
+      inBlockComment = true;
+      offset = lineStart + line.length + 1;
+      continue;
     }
 
     // Bold+italic: ***text*** / ___text___ — hide the combined markers.

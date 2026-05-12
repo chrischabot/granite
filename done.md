@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-12 — Performance budget first pass
+
+- **Quick Switcher keystroke path** — extracted reusable fuzzy indexes and
+  changed the prompt to reuse the index across query changes. Quick Switcher no
+  longer rebuilds its item list just to append the "create note" row.
+- **Search scan throughput** — global search now scans 128-file chunks instead
+  of 16-file chunks, reducing async and render churn for large vault regex
+  searches while preserving progressive result updates.
+- **Graph pan path** — graph drag now updates the SVG viewport transform
+  imperatively during mousemove and commits React state once at drag end, so
+  panning does not rerender every node and edge per pointer event.
+
+### Tests
+- Extended `src/core/search/fuzzy.test.ts` with a 10k-item reusable-index
+  keystroke budget assertion under 16 ms.
+- Extended `src/core/search/query.test.ts` with a 10k-note regex scan budget
+  assertion under 500 ms.
+- Validation: scoped `bunx biome check --write`, targeted search performance
+  tests, and `bun run typecheck` pass. Browser FPS validation remains open for
+  the graph item.
+
+---
+
 ## 2026-05-12 — Community plugin registry browser
 
 - **Official registry browse** — the install modal now loads the Obsidian

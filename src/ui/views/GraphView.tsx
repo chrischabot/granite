@@ -1,13 +1,11 @@
-import { Plus, Settings2, Trash2, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { metadataCache } from "@core/metadata/cache";
-import { useMetadataVersion } from "@core/metadata/useMetadata";
 import { stem } from "@core/fs/path";
-import { workspaceStore } from "@core/workspace/store";
-import { useWorkspace } from "@core/workspace/useWorkspace";
+import type { VaultFile } from "@core/fs/types";
+import { colorForString, folderColorForPath, tagColorForFile } from "@core/graph/colors";
+import { firstMatchingGroup } from "@core/graph/groups";
 import {
-  addGraphGroup,
   DEFAULT_GRAPH_CONFIG,
+  type GraphColorMode,
+  addGraphGroup,
   getGraphConfig,
   getGraphVersion,
   hydrateGraphConfig,
@@ -17,12 +15,14 @@ import {
   updateGraphDisplay,
   updateGraphForces,
   updateGraphGroup,
-  type GraphColorMode,
 } from "@core/graph/store";
-import { colorForString, folderColorForPath, tagColorForFile } from "@core/graph/colors";
-import { firstMatchingGroup } from "@core/graph/groups";
+import { metadataCache } from "@core/metadata/cache";
+import { useMetadataVersion } from "@core/metadata/useMetadata";
 import { fileMatchesQuery, parseQuery } from "@core/search/query";
-import type { VaultFile } from "@core/fs/types";
+import { workspaceStore } from "@core/workspace/store";
+import { useWorkspace } from "@core/workspace/useWorkspace";
+import { Plus, Settings2, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 interface GraphNode {
   id: string;
@@ -52,8 +52,10 @@ export function GraphView() {
 
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
+  const viewportRef = useRef<SVGGElement>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
+  const viewRef = useRef(view);
   const [hover, setHover] = useState<string | null>(null);
   const [showControls, setShowControls] = useState(true);
   const [, forceTick] = useState(0);
@@ -64,6 +66,20 @@ export function GraphView() {
     viewY: number;
   } | null>(null);
   const { groups: wsGroups, activeGroupId, leaves } = useWorkspace();
+
+  const applyViewportTransform = useCallback(
+    (next = viewRef.current) => {
+      const cx = size.w / 2 + next.x;
+      const cy = size.h / 2 + next.y;
+      viewportRef.current?.setAttribute("transform", `translate(${cx},${cy}) scale(${next.scale})`);
+    },
+    [size],
+  );
+
+  useEffect(() => {
+    viewRef.current = view;
+    applyViewportTransform(view);
+  }, [view, applyViewportTransform]);
 
   // Hydrate config from disk once on mount.
   useEffect(() => {
@@ -79,14 +95,13 @@ export function GraphView() {
   // Build the graph from the metadata cache. Re-runs when metadata changes
   // or when the user's filter / local-graph settings change.
   const { nodes, edges, neighbors } = useMemo(() => {
+    void metadataVersion;
     const out: {
       nodes: GraphNode[];
       edges: GraphEdge[];
       neighbors: Map<string, Set<string>>;
     } = { nodes: [], edges: [], neighbors: new Map() };
-    const fileEntries = metadataCache
-      .getAllSwitcherEntries()
-      .filter((e) => e.alias === null);
+    const fileEntries = metadataCache.getAllSwitcherEntries().filter((e) => e.alias === null);
 
     // Apply the user's filter (content-free — only path/stem/tags/properties).
     const parsedFilter = config.filter.trim() ? parseQuery(config.filter) : null;
@@ -158,7 +173,7 @@ export function GraphView() {
         if (seenTargets.has(candidate)) continue;
         seenTargets.add(candidate);
         out.edges.push({ source: node.id, target: candidate });
-        out.neighbors.get(node.id)!.add(candidate);
+        out.neighbors.get(node.id)?.add(candidate);
         out.neighbors.get(candidate)?.add(node.id);
       }
     }
@@ -235,8 +250,9 @@ export function GraphView() {
       // Repulsion (pairwise; O(n^2) is fine up to a few hundred nodes).
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
-          const a = nodes[i]!;
-          const b = nodes[j]!;
+          const a = nodes[i];
+          const b = nodes[j];
+          if (!a || !b) continue;
           let dx = b.x - a.x;
           let dy = b.y - a.y;
           let dist2 = dx * dx + dy * dy;
@@ -298,26 +314,34 @@ export function GraphView() {
     draggingRef.current = {
       startX: e.clientX,
       startY: e.clientY,
-      viewX: view.x,
-      viewY: view.y,
+      viewX: viewRef.current.x,
+      viewY: viewRef.current.y,
     };
   };
   const onMouseMove = (e: React.MouseEvent) => {
     const drag = draggingRef.current;
     if (!drag) return;
-    setView((v) => ({
-      ...v,
+    viewRef.current = {
+      ...viewRef.current,
       x: drag.viewX + (e.clientX - drag.startX),
       y: drag.viewY + (e.clientY - drag.startY),
-    }));
+    };
+    applyViewportTransform();
   };
   const onMouseUp = () => {
+    if (draggingRef.current) {
+      setView(viewRef.current);
+    }
     draggingRef.current = null;
   };
   const onWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const factor = e.deltaY > 0 ? 0.9 : 1.1;
-    setView((v) => ({ ...v, scale: Math.max(0.2, Math.min(3, v.scale * factor)) }));
+    setView((v) => {
+      const next = { ...v, scale: Math.max(0.2, Math.min(3, v.scale * factor)) };
+      viewRef.current = next;
+      return next;
+    });
   };
 
   if (nodes.length === 0) {
@@ -382,9 +406,16 @@ export function GraphView() {
       onMouseLeave={onMouseUp}
       onWheel={onWheel as unknown as React.WheelEventHandler}
     >
-      <svg ref={svgRef} width={size.w} height={size.h} style={{ display: "block" }}>
-        <g transform={`translate(${cx},${cy}) scale(${view.scale})`}>
-          {edges.map((e, i) => {
+      <svg
+        ref={svgRef}
+        width={size.w}
+        height={size.h}
+        style={{ display: "block" }}
+        aria-label="Vault graph"
+      >
+        <title>Vault graph</title>
+        <g ref={viewportRef} transform={`translate(${cx},${cy}) scale(${view.scale})`}>
+          {edges.map((e) => {
             const a = byIdRender.get(e.source);
             const b = byIdRender.get(e.target);
             if (!a || !b) return null;
@@ -396,7 +427,7 @@ export function GraphView() {
               !neighbors.get(hover)?.has(b.id);
             return (
               <line
-                key={`e-${i}`}
+                key={`${e.source}->${e.target}`}
                 x1={a.x}
                 y1={a.y}
                 x2={b.x}
@@ -412,8 +443,7 @@ export function GraphView() {
             const isNeighbor = !!hover && neighbors.get(hover)?.has(n.id);
             const dim = !!hover && !isHover && !isNeighbor;
             const radius =
-              config.display.nodeSize *
-                Math.max(0.6, Math.min(2.2, Math.sqrt(n.weight) * 0.6)) /
+              (config.display.nodeSize * Math.max(0.6, Math.min(2.2, Math.sqrt(n.weight) * 0.6))) /
               Math.max(0.7, view.scale);
             const fontScale = 1 / Math.max(0.7, view.scale);
             const fill = isHover ? "var(--text-accent)" : colorFor(n);
@@ -421,8 +451,17 @@ export function GraphView() {
               <g
                 key={n.id}
                 style={{ cursor: "pointer" }}
+                tabIndex={0}
                 onMouseEnter={() => setHover(n.id)}
                 onMouseLeave={() => setHover((h) => (h === n.id ? null : h))}
+                onKeyDown={(ev) => {
+                  if (ev.key === "Enter" || ev.key === " ") {
+                    ev.preventDefault();
+                    workspaceStore.openFile(n.path, {
+                      newTab: ev.metaKey || ev.ctrlKey,
+                    });
+                  }
+                }}
                 onClick={(ev) => {
                   ev.stopPropagation();
                   workspaceStore.openFile(n.path, {
@@ -501,9 +540,7 @@ export function GraphView() {
       >
         <Settings2 size={14} />
       </button>
-      {showControls && (
-        <GraphControlsPanel onClose={() => setShowControls(false)} />
-      )}
+      {showControls && <GraphControlsPanel onClose={() => setShowControls(false)} />}
     </div>
   );
 }
@@ -660,9 +697,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
                 <input
                   type="color"
                   value={hslToHex(g.color) ?? "#7c52ed"}
-                  onChange={(e) =>
-                    updateGraphGroup(g.id, { color: e.currentTarget.value })
-                  }
+                  onChange={(e) => updateGraphGroup(g.id, { color: e.currentTarget.value })}
                   style={{ width: 36, padding: 0 }}
                 />
                 <button

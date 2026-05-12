@@ -296,8 +296,15 @@
 }
 
 .search-result-file-match {
+  background: transparent;
+  border: 0;
   cursor: var(--cursor);
+  color: inherit;
+  display: block;
+  font: inherit;
   padding: var(--size-2-2) var(--size-4-2);
+  text-align: start;
+  width: 100%;
   border-bottom: var(--border-width) solid var(--background-modifier-border);
 }
 

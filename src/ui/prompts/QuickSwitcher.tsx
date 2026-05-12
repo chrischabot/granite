@@ -1,17 +1,17 @@
-import { Effect } from "effect";
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
 import { join, normalize, stem } from "@core/fs/path";
 import type { VaultFile } from "@core/fs/types";
-import { run } from "@core/effect/runtime";
-import { highlightMatches } from "@core/search/fuzzy";
 import { metadataCache } from "@core/metadata/cache";
 import { useMetadataVersion } from "@core/metadata/useMetadata";
+import { noticeManager } from "@core/notices/notice";
+import { highlightMatches } from "@core/search/fuzzy";
 import { settingsStore } from "@core/settings/store";
 import { listRecents, subscribeRecents } from "@core/workspace/recents";
 import { workspaceStore } from "@core/workspace/store";
-import { noticeManager } from "@core/notices/notice";
+import { Effect } from "effect";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Prompt } from "../overlay/Prompt";
 import { useVault } from "../vault/VaultContext";
 
@@ -47,7 +47,6 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
   const { activeVault } = useVault();
   const [files, setFiles] = useState<ReadonlyArray<VaultFile>>([]);
   const [loading, setLoading] = useState(false);
-  const [query, setQuery] = useState("");
 
   useMetadataVersion();
   const recents = useSyncExternalStore(subscribeRecents, listRecents, listRecents);
@@ -59,7 +58,6 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
 
   useEffect(() => {
     if (!open || !activeVault) return;
-    setQuery("");
     setLoading(true);
     void run(
       Effect.gen(function* () {
@@ -111,26 +109,8 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
       }
     }
 
-    const trimmed = query.trim();
-    if (trimmed.length > 0) {
-      const exact = out.some(
-        (item) => item.displayName.toLowerCase() === trimmed.toLowerCase(),
-      );
-      if (!exact) {
-        const folder = normalize(settingsStore.getState().newNoteFolder);
-        const name = trimmed.endsWith(".md") ? trimmed : `${trimmed}.md`;
-        const newPath = folder ? join(folder, name) : name;
-        out.push({
-          displayName: `Create new note: ${trimmed}`,
-          path: newPath,
-          alias: null,
-          recent: false,
-          kind: "create",
-        });
-      }
-    }
     return out;
-  }, [files, recents, query, excludedRaw]);
+  }, [files, recents, excludedRaw]);
 
   if (!activeVault) return null;
 
@@ -152,10 +132,9 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
         workspaceStore.openFile(item.path, { newTab: mods.newTab });
       }
     } catch (err) {
-      noticeManager.show(
-        err instanceof Error ? err.message : "Could not open note",
-        { kind: "error" },
-      );
+      noticeManager.show(err instanceof Error ? err.message : "Could not open note", {
+        kind: "error",
+      });
     }
   };
 
@@ -166,20 +145,45 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
       placeholder={loading ? "Loading vault..." : "Find or create a note..."}
       items={items}
       toSearchText={(item) => item.displayName}
-      onQueryChange={setQuery}
+      extraQueryItems={(rawQuery, baseItems) => {
+        const trimmed = rawQuery.trim();
+        if (!trimmed) return [];
+        const exact = baseItems.some(
+          (item) => item.displayName.toLowerCase() === trimmed.toLowerCase(),
+        );
+        if (exact) return [];
+        const folder = normalize(settingsStore.getState().newNoteFolder);
+        const name = trimmed.endsWith(".md") ? trimmed : `${trimmed}.md`;
+        const newPath = folder ? join(folder, name) : name;
+        return [
+          {
+            displayName: `Create new note: ${trimmed}`,
+            path: newPath,
+            alias: null,
+            recent: false,
+            kind: "create",
+          },
+        ];
+      }}
       renderItem={(item, match) => {
         const segments = highlightMatches(item.displayName, match?.indices);
+        let segmentOffset = 0;
+        const keyedSegments = segments.map((s) => {
+          const key = `${s.matched ? "matched" : "plain"}-${segmentOffset}-${s.text}`;
+          segmentOffset += s.text.length;
+          return { ...s, key };
+        });
         return (
           <div className="suggestion-item-row mod-complex">
             <div className="suggestion-content">
               <div className="suggestion-title">
-                {segments.map((s, i) =>
+                {keyedSegments.map((s) =>
                   s.matched ? (
-                    <span key={i} className="suggestion-highlight">
+                    <span key={s.key} className="suggestion-highlight">
                       {s.text}
                     </span>
                   ) : (
-                    <span key={i}>{s.text}</span>
+                    <span key={s.key}>{s.text}</span>
                   ),
                 )}
                 {item.kind === "alias" && (

@@ -1,15 +1,15 @@
+import { type FuzzyMatch, createFuzzyIndex, rankFuzzyIndex } from "@core/search/fuzzy";
 import {
+  type KeyboardEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useId,
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent,
-  type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { fuzzyRank, type FuzzyMatch } from "@core/search/fuzzy";
 
 export interface PromptInstruction {
   /** Symbol shown in bold at the start of the hint, e.g. "↵". */
@@ -35,6 +35,8 @@ export interface PromptProps<T> {
   instructions?: ReadonlyArray<PromptInstruction>;
   /** Optional callback fired whenever the typed query changes. */
   onQueryChange?: (query: string) => void;
+  /** Optional synthetic rows appended after fuzzy matches for the current query. */
+  extraQueryItems?: (query: string, baseItems: ReadonlyArray<T>) => ReadonlyArray<T>;
 }
 
 export function Prompt<T>(props: PromptProps<T>) {
@@ -49,6 +51,7 @@ export function Prompt<T>(props: PromptProps<T>) {
     emptyQueryItems,
     instructions,
     onQueryChange,
+    extraQueryItems,
   } = props;
 
   const [query, setQuery] = useState("");
@@ -56,19 +59,30 @@ export function Prompt<T>(props: PromptProps<T>) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const listId = useId();
+  const fuzzyIndex = useMemo(() => createFuzzyIndex(items, toSearchText), [items, toSearchText]);
 
   const ranked = useMemo<ReadonlyArray<{ item: T; match: FuzzyMatch | null }>>(() => {
     const trimmed = query.trim();
     if (!trimmed) {
       return (emptyQueryItems ?? items).map((item) => ({ item, match: null }));
     }
-    return fuzzyRank(items, trimmed, toSearchText).map((r) => ({
+    const matches = rankFuzzyIndex(fuzzyIndex, trimmed).map((r) => ({
       item: r.item,
       match: { score: r.score, indices: r.indices },
     }));
-  }, [items, query, emptyQueryItems, toSearchText]);
+    const synthetic = extraQueryItems?.(trimmed, items) ?? [];
+    if (synthetic.length === 0) return matches;
+    return [
+      ...matches,
+      ...synthetic.map((item) => ({
+        item,
+        match: null,
+      })),
+    ];
+  }, [items, query, emptyQueryItems, fuzzyIndex, extraQueryItems]);
 
   // Reset selection when the result list changes.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: query changes define the list reset boundary.
   useEffect(() => {
     setSelected(0);
   }, [query]);
@@ -133,7 +147,9 @@ export function Prompt<T>(props: PromptProps<T>) {
 
   return createPortal(
     <div className="modal-container">
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: the input handles Escape; backdrop is pointer-only and hidden from assistive tech. */}
       <div className="modal-bg" onClick={onClose} aria-hidden="true" />
+      {/* biome-ignore lint/a11y/useSemanticElements: prompt follows the app's modal div structure and ARIA contract. */}
       <div className="prompt" role="dialog" aria-modal="true">
         <div className="prompt-input-container">
           <input
@@ -156,19 +172,31 @@ export function Prompt<T>(props: PromptProps<T>) {
             autoComplete="off"
           />
         </div>
-        <div ref={listRef} id={listId} className="prompt-results" role="listbox">
+        {/* biome-ignore lint/a11y/useSemanticElements: custom virtual listbox with controlled active descendant. */}
+        <div ref={listRef} id={listId} className="prompt-results" role="listbox" tabIndex={-1}>
           {ranked.length === 0 ? (
             <div className="suggestion-empty">No matches.</div>
           ) : (
             ranked.map(({ item, match }, i) => (
               <div
-                key={i}
+                key={toSearchText(item)}
                 className={`suggestion-item${i === selected ? " is-selected" : ""}`}
-                role="option"
+                {...{ role: "option" }}
                 aria-selected={i === selected}
+                tabIndex={-1}
                 data-row-index={i}
                 id={`${listId}-row-${i}`}
                 onMouseEnter={() => setSelected(i)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onActivate(item, {
+                      shift: e.shiftKey,
+                      ctrl: e.ctrlKey || e.metaKey,
+                      alt: e.altKey,
+                    });
+                  }
+                }}
                 onClick={(e) =>
                   onActivate(item, {
                     shift: e.shiftKey,
@@ -184,8 +212,8 @@ export function Prompt<T>(props: PromptProps<T>) {
         </div>
         {instructions && instructions.length > 0 && (
           <div className="prompt-instructions">
-            {instructions.map((ins, i) => (
-              <span key={i} className="prompt-instruction">
+            {instructions.map((ins) => (
+              <span key={String(ins.command)} className="prompt-instruction">
                 <span className="prompt-instruction-command">{ins.command}</span>
                 {ins.description}
               </span>

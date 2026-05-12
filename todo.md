@@ -87,9 +87,9 @@
 
 ### §24.19 Performance — Phase 14
 - [ ] 10 k-note cold start < 3 s
-- [ ] Quick-switcher keystroke update < 16 ms
-- [ ] 10 k search regex < 500 ms
-- [ ] 10 k graph pan ≥ 30 fps
+- [x] Quick-switcher keystroke update < 16 ms ← _shipped 2026-05-12 reusable fuzzy index_
+- [x] 10 k search regex < 500 ms ← _shipped 2026-05-12 in-memory regex budget test + larger scan chunks_
+- [ ] 10 k graph pan ≥ 30 fps (imperative transform shipped; browser FPS verification remains)
 - [ ] Save round-trip < 50 ms
 
 ### §24.20 Accessibility — Phase 16

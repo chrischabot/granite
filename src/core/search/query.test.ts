@@ -274,6 +274,28 @@ describe("fileMatchesQuery — regex", () => {
       }),
     ).toBe(true);
   });
+
+  it("keeps 10k-note regex scans under the 500 ms performance budget", () => {
+    const q = parseQuery("/target-[0-9]+/");
+    const files = Array.from({ length: 10_000 }, (_, i) => ({
+      file: { ...file, path: `Folder/Note ${i}.md`, name: `Note ${i}.md` },
+      content:
+        i % 250 === 0
+          ? `# Note ${i}\nThis line contains target-${i} for the regex scan.`
+          : `# Note ${i}\nThis note has ordinary searchable body text.`,
+      metadata: emptyMeta,
+    }));
+    const first = files[0];
+    if (!first) throw new Error("missing performance fixture");
+    fileMatchesQuery(q, first);
+
+    const start = performance.now();
+    const matches = files.filter((ctx) => fileMatchesQuery(q, ctx));
+    const elapsed = performance.now() - start;
+
+    expect(matches).toHaveLength(40);
+    expect(elapsed).toBeLessThan(500);
+  });
 });
 
 describe("fileMatchesQuery — property constraints", () => {

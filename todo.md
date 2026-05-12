@@ -107,7 +107,8 @@
 - [x] File-recovery restore UI ← _shipped 2026-05-12 crash-safety sweep_
 
 ### §24.23 Compatibility round-trip
-- [ ] Obsidian vault round-trip fixture (Phase 14)
+- [x] Obsidian vault round-trip core fixture ← _shipped 2026-05-12 parser/canvas/base fixture_
+- [ ] Obsidian vault browser/manual round-trip over a large real vault fixture
 - [ ] Community theme cross-render
 
 ---

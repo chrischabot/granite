@@ -41,6 +41,24 @@
 
 ---
 
+## 2026-05-12 — Obsidian compatibility core fixture
+
+- **Fixture vault** — added an Obsidian-style vault fixture in
+  `src/core/compat/obsidian-roundtrip.test.ts` with `.obsidian/` config,
+  Markdown aliases/tags/callouts/math/embeds/block IDs/footnotes, a JSON Canvas
+  board, and a `.base` file.
+- **No-mutation read path** — the test indexes the fixture through the real
+  metadata cache and asserts no filesystem writes occur, including no writes to
+  `.obsidian/` config.
+- **Semantic round-trips** — the fixture canvas and base file parse and
+  serialize back to semantically equivalent Granite structures.
+
+### Tests
+- Added `src/core/compat/obsidian-roundtrip.test.ts`.
+- Validation: targeted compatibility test passes.
+
+---
+
 ## 2026-05-12 — Performance budget first pass
 
 - **Quick Switcher keystroke path** — extracted reusable fuzzy indexes and

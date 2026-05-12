@@ -10,8 +10,8 @@ import {
   resetHotkeysForTests,
 } from "./hotkeys";
 
-function press(key: string): void {
-  document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+function press(key: string, code = key): void {
+  document.dispatchEvent(new KeyboardEvent("keydown", { key, code, bubbles: true }));
 }
 
 describe("custom hotkeys", () => {
@@ -67,6 +67,25 @@ describe("custom hotkeys", () => {
 
     press("F8");
     press("F9");
+
+    expect(calls).toBe(1);
+  });
+
+  it("dispatches from physical key code while displaying US-layout keys", () => {
+    clearUserHotkey("test:multi-hotkey");
+    addUserHotkey("test:multi-hotkey", { modifiers: [], key: "Q" });
+
+    press("A", "KeyQ");
+    press("Q", "KeyA");
+
+    expect(calls).toBe(1);
+  });
+
+  it("normalizes top-row punctuation from physical key code", () => {
+    clearUserHotkey("test:multi-hotkey");
+    addUserHotkey("test:multi-hotkey", { modifiers: [], key: "`" });
+
+    press("²", "Backquote");
 
     expect(calls).toBe(1);
   });

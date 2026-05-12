@@ -2,13 +2,37 @@ import { type Hotkey, commandRegistry } from "./CommandRegistry";
 
 const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 
+const US_CODE_KEY: Readonly<Record<string, string>> = {
+  Backquote: "`",
+  Minus: "-",
+  Equal: "=",
+  BracketLeft: "[",
+  BracketRight: "]",
+  Backslash: "\\",
+  Semicolon: ";",
+  Quote: "'",
+  Comma: ",",
+  Period: ".",
+  Slash: "/",
+};
+
+function codeToUsKey(code: string): string | null {
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit[0-9]$/.test(code)) return code.slice(5);
+  return US_CODE_KEY[code] ?? null;
+}
+
+function eventKeyForHotkey(e: KeyboardEvent): string {
+  return codeToUsKey(e.code) ?? e.key;
+}
+
 function eventToHotkey(e: KeyboardEvent): Hotkey {
   const modifiers: Hotkey["modifiers"][number][] = [];
   if (isMac && e.metaKey) modifiers.push("Mod");
   if (!isMac && e.ctrlKey) modifiers.push("Mod");
   if (e.altKey) modifiers.push("Alt");
   if (e.shiftKey) modifiers.push("Shift");
-  return { modifiers, key: e.key };
+  return { modifiers, key: eventKeyForHotkey(e) };
 }
 
 function normalizeKey(key: string): string {

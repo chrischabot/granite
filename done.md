@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-12 — Hotkey physical-key normalization
+
+- **US-layout normalization** — hotkey capture and dispatch now normalize
+  `KeyboardEvent.code` for physical letter, digit, and punctuation keys to
+  US-layout labels before matching stored hotkeys.
+- **Physical-key dispatch** — bindings fire from the intended physical key
+  position even when `KeyboardEvent.key` reports a different character on a
+  non-US keyboard layout.
+
+### Tests
+- Extended `core/commands/hotkeys.test.ts` for physical letter-key dispatch
+  and top-row punctuation normalization.
+- Validation: scoped `bunx biome check --write`, `bun run typecheck`,
+  targeted hotkey tests, `bun run test` (426 tests / 42 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Hotkey multi-binding
 
 - **Multiple custom bindings** — commands can now store and dispatch multiple

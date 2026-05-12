@@ -65,7 +65,7 @@
 
 ### §24.14 Hotkeys
 - [x] Multi-binding per command ← _shipped 2026-05-12 hotkeys sweep_
-- [ ] US-layout normalization with physical-key trigger
+- [x] US-layout normalization with physical-key trigger ← _shipped 2026-05-12 hotkeys sweep_
 
 ### §24.15 Settings — Phase 16
 - [x] Live filter input ← _shipped 2026-05-12 settings sweep_

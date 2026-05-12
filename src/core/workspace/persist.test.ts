@@ -1,6 +1,11 @@
 import type { VaultPath } from "@core/fs/types";
 import { beforeEach, describe, expect, it } from "vitest";
-import { bindPersistence, clearPersistedFor, restoreFor } from "./persist";
+import {
+  bindPersistence,
+  clearPersistedFor,
+  flushWorkspacePersistence,
+  restoreFor,
+} from "./persist";
 import { workspaceStore } from "./store";
 import type { LeafState } from "./types";
 
@@ -21,6 +26,13 @@ function expectPresent<T>(value: T | null | undefined, label: string): T {
   expect(value, label).not.toBeNull();
   if (value === null || value === undefined) throw new Error(`Missing ${label}`);
   return value;
+}
+
+function markdownPaths(): string[] {
+  return [...workspaceStore.getState().leaves.values()]
+    .map((leaf) => leaf.state)
+    .filter((state) => state.type === "markdown")
+    .map((state) => state.path);
 }
 
 describe("workspace persistence", () => {
@@ -134,6 +146,58 @@ describe("workspace persistence", () => {
     expect(localStorage.getItem(`granite.workspace.last.${VAULT_ID}`)).not.toBeNull();
     clearPersistedFor(VAULT_ID);
     expect(localStorage.getItem(`granite.workspace.last.${VAULT_ID}`)).toBeNull();
+    unbind();
+  });
+
+  it("flushes a pending debounced workspace snapshot when unbound", () => {
+    const unbind = bindPersistence(VAULT_ID);
+    workspaceStore.openFile("Fast-close.md" as VaultPath);
+
+    unbind();
+    workspaceStore.reset();
+
+    expect(restoreFor(VAULT_ID)).toBe(true);
+    expect(markdownPaths()).toContain("Fast-close.md");
+  });
+
+  it("flushes a pending debounced workspace snapshot before unload", () => {
+    const unbind = bindPersistence(VAULT_ID);
+    workspaceStore.openFile("Before-unload.md" as VaultPath);
+
+    window.dispatchEvent(new Event("beforeunload"));
+    unbind();
+    workspaceStore.reset();
+
+    expect(restoreFor(VAULT_ID)).toBe(true);
+    expect(markdownPaths()).toContain("Before-unload.md");
+  });
+
+  it("survives 100 kill-and-restart workspace cycles without losing the latest note", () => {
+    let unbind = bindPersistence(VAULT_ID);
+
+    for (let cycle = 0; cycle < 100; cycle += 1) {
+      const path = `Cycle-${cycle}.md` as VaultPath;
+      const leafId = workspaceStore.openFile(path, {
+        newTab: cycle > 0,
+        mode: cycle % 2 === 0 ? "source" : "live-preview",
+      });
+      if (cycle % 5 === 0) {
+        workspaceStore.setMarkdownFolds(leafId, [{ from: cycle, to: cycle + 10 }]);
+      }
+      if (cycle % 11 === 0) {
+        workspaceStore.splitLeaf(leafId, cycle % 22 === 0 ? "right" : "down");
+      }
+
+      flushWorkspacePersistence();
+      unbind();
+      workspaceStore.reset();
+
+      expect(restoreFor(VAULT_ID), `restore cycle ${cycle}`).toBe(true);
+      expect(markdownPaths(), `restored markdown leaves cycle ${cycle}`).toContain(path);
+
+      unbind = bindPersistence(VAULT_ID);
+    }
+
     unbind();
   });
 });

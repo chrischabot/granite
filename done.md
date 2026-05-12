@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — Workspace crash-restart persistence
+
+- **Fast-close flush** — workspace persistence now flushes any pending
+  debounced snapshot when persistence is unbound, so a quick close cannot drop
+  the latest layout.
+- **Before-unload flush** — bound persistence installs a `beforeunload` handler
+  that writes the current workspace snapshot before the window exits.
+- **Empty-state guard retained** — transient single-empty-leaf states still do
+  not clear the disk snapshot, preserving the prior recovery behavior.
+
+### Tests
+- Extended `src/core/workspace/persist.test.ts` with fast-close,
+  before-unload, and 100-cycle kill-and-restart workspace restoration coverage.
+- Validation: scoped `bunx biome check --write`, targeted workspace
+  persistence tests, full `bun run test`, `bun run build`, and
+  `git diff --check` pass.
+
+---
+
 ## 2026-05-12 — External edit sync budget
 
 - **Open-editor refresh** — Markdown editors now subscribe to vault file

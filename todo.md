@@ -103,7 +103,7 @@
 - [x] Per-note `dir: rtl` frontmatter property ← _shipped 2026-05-12 i18n/RTL sweep_
 
 ### §24.22 Crash safety
-- [ ] 100-cycle kill-and-restart fixture (Phase 14)
+- [x] 100-cycle kill-and-restart fixture (Phase 14) ← _shipped 2026-05-12 workspace persistence flush_
 - [x] File-recovery restore UI ← _shipped 2026-05-12 crash-safety sweep_
 
 ### §24.23 Compatibility round-trip

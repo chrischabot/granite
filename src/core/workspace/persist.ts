@@ -1,9 +1,6 @@
+import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
 import { workspaceStore } from "./store";
 import type { LeafState, WorkspaceState } from "./types";
-import {
-  readConfigJson,
-  writeConfigJson,
-} from "@core/vault/granite-config";
 
 const KEY_PREFIX = "granite.workspace.last.";
 const SAVE_DEBOUNCE_MS = 500;
@@ -56,12 +53,8 @@ function snapshotState(state: WorkspaceState): SerializedColumnsSnapshot | null 
   }
   if (columns.length === 0) return null;
   // Skip persisting a workspace that's just the initial single empty leaf.
-  if (
-    columns.length === 1 &&
-    columns[0]!.length === 1 &&
-    columns[0]![0]!.leaves.length === 1 &&
-    columns[0]![0]!.leaves[0]!.type === "empty"
-  ) {
+  const onlyGroup = columns.length === 1 ? columns[0]?.[0] : null;
+  if (columns.length === 1 && columns[0]?.length === 1 && onlyGroup?.leaves[0]?.type === "empty") {
     return null;
   }
   let flatIdx = 0;
@@ -78,6 +71,7 @@ function snapshotState(state: WorkspaceState): SerializedColumnsSnapshot | null 
 let activeVaultId: string | null = null;
 let unsub: (() => void) | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let beforeUnloadBound = false;
 
 function flushSave(): void {
   saveTimer = null;
@@ -99,6 +93,26 @@ function flushSave(): void {
   void writeConfigJson(DISK_CONFIG_NAME, snap).catch(() => {});
 }
 
+export function flushWorkspacePersistence(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  flushSave();
+}
+
+function bindBeforeUnload(): void {
+  if (beforeUnloadBound || typeof window === "undefined") return;
+  window.addEventListener("beforeunload", flushWorkspacePersistence);
+  beforeUnloadBound = true;
+}
+
+function unbindBeforeUnload(): void {
+  if (!beforeUnloadBound || typeof window === "undefined") return;
+  window.removeEventListener("beforeunload", flushWorkspacePersistence);
+  beforeUnloadBound = false;
+}
+
 /**
  * Begin persisting the workspace for the given vault id. Subsequent calls
  * replace the previous binding. Returns a function that stops persistence.
@@ -108,16 +122,17 @@ export function bindPersistence(vaultId: string): () => void {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = null;
   activeVaultId = vaultId;
+  bindBeforeUnload();
   unsub = workspaceStore.subscribe(() => {
     if (!activeVaultId) return;
     if (saveTimer) clearTimeout(saveTimer);
     saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
   });
   return () => {
+    flushWorkspacePersistence();
     if (unsub) unsub();
     unsub = null;
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = null;
+    unbindBeforeUnload();
     activeVaultId = null;
   };
 }

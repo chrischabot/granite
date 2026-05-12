@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-12 — Shared error reporting channel
+
+- **Sentry-style reporter** — added a small app error reporter that normalizes
+  unknown thrown values, stores the latest report, and publishes captured
+  errors by source (`react`, `window`, `promise`, `effect`, `manual`).
+- **Boundary integration** — `ErrorBoundary` now subscribes to the reporter,
+  handles global `error` / `unhandledrejection` events, and renders async
+  reports with their source instead of only catching React render failures.
+- **Effect fire-and-forget coverage** — `runFork()` now taps Effect causes and
+  reports failures through the shared channel before the fiber failure
+  continues.
+
+### Tests
+- Added `src/core/errors/reporter.test.ts`, `src/core/effect/runtime.test.ts`,
+  and `src/ui/overlay/ErrorBoundary.test.tsx`.
+- Validation: scoped `bunx biome check --write`, targeted reporter/runtime/
+  boundary tests, and `bun run typecheck` pass.
+
+---
+
 ## 2026-05-12 — Performance budget first pass
 
 - **Quick Switcher keystroke path** — extracted reusable fuzzy indexes and

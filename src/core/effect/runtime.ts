@@ -1,6 +1,6 @@
-import type { Effect } from "effect";
-import { Layer, ManagedRuntime } from "effect";
-import { FileSystem } from "@core/fs/FileSystem";
+import { reportCapturedError } from "@core/errors/reporter";
+import type { FileSystem } from "@core/fs/FileSystem";
+import { Effect, Layer, ManagedRuntime } from "effect";
 
 /**
  * Layer requirement provided by the runtime. As we add services (metadata
@@ -31,7 +31,13 @@ export function run<A, E>(effect: Effect.Effect<A, E, AppServices>): Promise<A> 
 
 /** Fire-and-forget. */
 export function runFork<A, E>(effect: Effect.Effect<A, E, AppServices>): void {
-  getRuntime().runFork(effect);
+  getRuntime().runFork(
+    effect.pipe(
+      Effect.tapCause((cause) =>
+        Effect.sync(() => reportCapturedError(cause, { source: "effect" })),
+      ),
+    ),
+  );
 }
 
 /** Tear down the runtime (tests / hot-reload / vault swap). */

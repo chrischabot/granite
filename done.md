@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-12 — Settings persisted to `.granite/`
+
+- **Disk-backed user settings** — vault activation now binds Settings to
+  `.granite/settings.json`, hydrating disk settings before workspace restore.
+- **Default persistence** — opening a vault with no settings file writes the
+  full default settings document into `.granite/`.
+- **Legacy migration** — existing `granite.settings.v1` localStorage settings
+  are used only when disk settings are missing, then written to `.granite/`;
+  disk settings win when both exist.
+- **Live updates** — Settings changes still update subscribers immediately and
+  now also write the active vault's `.granite/settings.json`.
+
+### Tests
+- Added `core/settings/store.test.ts` for default disk writes, disk precedence,
+  localStorage migration, and update persistence.
+- Validation: scoped `bunx biome check --write`, scoped settings/config tests,
+  `bun run typecheck`, `bun run test` (430 tests / 43 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Hotkey physical-key normalization
 
 - **US-layout normalization** — hotkey capture and dispatch now normalize

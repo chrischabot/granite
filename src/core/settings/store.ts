@@ -1,6 +1,8 @@
 import type { DeletedFilesMode } from "@core/fs/trash";
+import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
 
 const STORAGE_KEY = "granite.settings.v1";
+const DISK_CONFIG_NAME = "settings";
 
 export type FileExplorerSort =
   | "name-asc"
@@ -78,6 +80,7 @@ function saveToStorage(s: UserSettings) {
 }
 
 let state: UserSettings = loadFromStorage();
+let diskBound = false;
 const subscribers = new Set<() => void>();
 
 function emit() {
@@ -90,6 +93,41 @@ function applyDocumentSideEffects(s: UserSettings) {
 }
 
 applyDocumentSideEffects(state);
+
+function normalizeSettings(s: Partial<UserSettings> | null | undefined): UserSettings {
+  return { ...DEFAULT_SETTINGS, ...(s ?? {}) };
+}
+
+function persistDiskSettings(s: UserSettings): void {
+  if (!diskBound) return;
+  void writeConfigJson(DISK_CONFIG_NAME, s).catch(() => {
+    /* localStorage remains the fallback when disk persistence is unavailable */
+  });
+}
+
+export async function bindSettings(): Promise<void> {
+  const onDisk = await readConfigJson<Partial<UserSettings>>(DISK_CONFIG_NAME);
+  diskBound = true;
+  state = normalizeSettings(onDisk ?? loadFromStorage());
+  saveToStorage(state);
+  await writeConfigJson(DISK_CONFIG_NAME, state).catch(() => {
+    /* keep hydrated in memory even if disk write fails */
+  });
+  applyDocumentSideEffects(state);
+  emit();
+}
+
+export function unbindSettings(): void {
+  diskBound = false;
+}
+
+export function resetSettingsForTests(next: UserSettings = DEFAULT_SETTINGS): void {
+  diskBound = false;
+  state = next;
+  saveToStorage(state);
+  applyDocumentSideEffects(state);
+  emit();
+}
 
 export const settingsStore = {
   getState(): UserSettings {
@@ -105,6 +143,7 @@ export const settingsStore = {
   update(patch: Partial<UserSettings>) {
     state = { ...state, ...patch };
     saveToStorage(state);
+    persistDiskSettings(state);
     applyDocumentSideEffects(state);
     emit();
   },

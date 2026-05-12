@@ -1,14 +1,4 @@
-import { Layer } from "effect";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { type AppServices, disposeRuntime, setAppLayer } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import {
   fsaSupported,
@@ -17,22 +7,33 @@ import {
   opfsSupported,
   pickDirectoryFSA,
 } from "@core/fs/handle-adapter";
-import { setAppLayer, disposeRuntime, type AppServices } from "@core/effect/runtime";
+import { bindTypeRegistry, unbindTypeRegistry } from "@core/metadata/type-registry";
+import { noticeManager } from "@core/notices/notice";
+import { bindPlugins, unbindPlugins } from "@core/plugins/loader";
+import { bindSettings, unbindSettings } from "@core/settings/store";
+import { bindSnippets, unbindSnippets } from "@core/snippets/loader";
+import { bindThemes, unbindThemes } from "@core/themes/loader";
 import {
+  type VaultEntry,
   freshVaultId,
   listVaults,
   loadHandle,
   persistVault,
   removeVault as removeVaultEntry,
-  type VaultEntry,
 } from "@core/vault/registry";
-import { workspaceStore } from "@core/workspace/store";
 import { bindPersistence, restoreFor, restoreForAsync } from "@core/workspace/persist";
-import { bindSnippets, unbindSnippets } from "@core/snippets/loader";
-import { bindThemes, unbindThemes } from "@core/themes/loader";
-import { bindPlugins, unbindPlugins } from "@core/plugins/loader";
-import { bindTypeRegistry, unbindTypeRegistry } from "@core/metadata/type-registry";
-import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
+import { Layer } from "effect";
+import {
+  type ReactNode,
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 interface ActiveVault {
   readonly entry: VaultEntry;
@@ -166,10 +167,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
             onActivate: () => {
               noticeManager.dismiss(noticeId);
               void reopen(recent.id).catch((err) => {
-                noticeManager.show(
-                  err instanceof Error ? err.message : "Could not reopen vault",
-                  { kind: "error" },
-                );
+                noticeManager.show(err instanceof Error ? err.message : "Could not reopen vault", {
+                  kind: "error",
+                });
               });
             },
           },
@@ -189,6 +189,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       (window as unknown as { __graniteActiveVaultId?: string }).__graniteActiveVaultId = entry.id;
       await persistVault({ ...entry, lastOpenedMs: Date.now() }, handle);
       await refreshList();
+      await bindSettings();
       workspaceStore.reset();
       // Disk-first restore; falls back to localStorage and migrates on hit.
       const restoredFromDisk = await restoreForAsync(entry.id).catch(() => false);
@@ -228,9 +229,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const openOpfs = useCallback(
     async (name: string) => {
       // De-duplicate by name: reuse existing OPFS entry if present.
-      const existing = (await listVaults()).find(
-        (v) => v.kind === "opfs" && v.name === name,
-      );
+      const existing = (await listVaults()).find((v) => v.kind === "opfs" && v.name === name);
       const root = await openOPFS();
       const handle = await root.getDirectoryHandle(name, { create: true });
       const entry: VaultEntry = existing
@@ -283,10 +282,12 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     unbindSnippets();
     unbindThemes();
     unbindTypeRegistry();
+    unbindSettings();
     await unbindPlugins();
     await rebuildLayer(null);
     setActiveVault(null);
-    delete (window as unknown as { __graniteActiveVaultId?: string }).__graniteActiveVaultId;
+    (window as unknown as { __graniteActiveVaultId: string | undefined }).__graniteActiveVaultId =
+      undefined;
     workspaceStore.reset();
   }, []);
 

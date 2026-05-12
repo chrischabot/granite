@@ -28,11 +28,13 @@ import { FileSystem } from "@core/fs/FileSystem";
 import { stem } from "@core/fs/path";
 import { type FsError, FsNotFound } from "@core/fs/types";
 import type { VaultPath } from "@core/fs/types";
+import { noteDirectionFromFrontmatter } from "@core/i18n/direction";
 import { isSupportedAttachmentMime, saveAttachment } from "@core/markdown/attach";
 import { livePreviewDecorations } from "@core/markdown/cm-livepreview-decorations";
 import { unresolvedWikilinkExtension } from "@core/markdown/cm-unresolved-wikilinks";
 import { parseWikilink } from "@core/markdown/renderer";
 import { metadataCache } from "@core/metadata/cache";
+import { useFileMetadata } from "@core/metadata/useMetadata";
 import { noticeManager } from "@core/notices/notice";
 import { useSettings } from "@core/settings/useSettings";
 import { markClean, markDirty } from "@core/workspace/dirty";
@@ -113,6 +115,8 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
   const allowSaveRef = useRef(false);
   const attachmentListenersRef = useRef<(() => void) | null>(null);
   const initialFoldsRef = useRef(folds);
+  const fileMeta = useFileMetadata(path);
+  const noteDirection = noteDirectionFromFrontmatter(fileMeta?.frontmatter);
 
   useEffect(() => {
     initialFoldsRef.current = folds;
@@ -757,7 +761,8 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
         </div>
         <div
           ref={containerRef}
-          className={`cm-host markdown-source-view mod-cm6${settings.livePreview ? " is-live-preview" : ""}`}
+          className={`cm-host markdown-source-view mod-cm6${settings.livePreview ? " is-live-preview" : ""}${noteDirection ? ` ${noteDirection}` : ""}`}
+          dir={noteDirection ?? undefined}
           style={{
             display: loadState === "loaded" || loadState === "missing" ? "block" : "none",
             flex: "1 1 auto",

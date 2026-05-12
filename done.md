@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-12 — RTL locale and per-note direction
+
+- **Hebrew demo locale** — added a built-in `he` locale for the currently
+  externalized app/settings/search strings.
+- **Locale direction binding** — locale changes now update
+  `document.documentElement.dir` and body RTL classes so chrome can flip from
+  the active UI locale.
+- **Per-note direction** — `dir: rtl` / `dir: ltr` frontmatter is read from
+  note metadata and applied to Reading mode `.markdown-rendered` and Source
+  mode CodeMirror hosts.
+- **RTL CSS hooks** — markdown surfaces now set explicit direction classes and
+  preserve `unicode-bidi: plaintext` for mixed-direction note content.
+
+### Tests
+- Added `core/i18n/direction.test.ts` for locale and note direction helpers.
+- Extended `core/i18n/index.test.ts` for the Hebrew built-in locale.
+- Added `ui/LocaleDirectionBinder.test.tsx` for document/body direction state.
+- Extended `ui/views/ReadingView.test.tsx` for `dir: rtl` frontmatter.
+- Validation: scoped `bunx biome check --write`, focused i18n/ReadingView
+  tests, `bun run typecheck`, `bun run test` (443 tests / 46 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — GFM parser coverage
 
 - **Autolink coverage** — renderer tests now prove bare URL, bare email, and

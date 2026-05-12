@@ -88,6 +88,7 @@ async function settle(): Promise<void> {
 describe("ReadingView canvas embeds", () => {
   let host: HTMLDivElement;
   let root: Root;
+  let files: Map<VaultPath, string>;
 
   beforeEach(async () => {
     await disposeRuntime();
@@ -98,7 +99,7 @@ describe("ReadingView canvas embeds", () => {
     document.body.appendChild(host);
     root = createRoot(host);
 
-    const files = new Map<VaultPath, string>([
+    files = new Map<VaultPath, string>([
       ["Host.md", "# Host\n\n![[board.canvas]]"],
       [
         "board.canvas",
@@ -130,5 +131,17 @@ describe("ReadingView canvas embeds", () => {
     expect(embed?.querySelector(".canvas-view")).toBeTruthy();
     expect(embed?.textContent).toContain("board · 1 node · 0 edges");
     expect(host.querySelector(".base-embed")).toBeNull();
+  });
+
+  it("applies per-note RTL direction from frontmatter", async () => {
+    files.set("Host.md", "---\ndir: rtl\n---\n# שלום");
+
+    await act(async () => root.render(<ReadingView path="Host.md" />));
+    await settle();
+    await settle();
+
+    const rendered = host.querySelector<HTMLElement>(".markdown-rendered");
+    expect(rendered?.classList.contains("rtl")).toBe(true);
+    expect(rendered?.dir).toBe("rtl");
   });
 });

@@ -99,8 +99,8 @@
 
 ### §24.21 i18n — Phase 15
 - [ ] String externalisation across UI
-- [ ] RTL demo locale
-- [ ] Per-note `dir: rtl` frontmatter property
+- [x] RTL demo locale ← _shipped 2026-05-12 i18n/RTL sweep_
+- [x] Per-note `dir: rtl` frontmatter property ← _shipped 2026-05-12 i18n/RTL sweep_
 
 ### §24.22 Crash safety
 - [ ] 100-cycle kill-and-restart fixture (Phase 14)

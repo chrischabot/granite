@@ -2,6 +2,7 @@ import { useMetadataCache } from "@core/metadata/useMetadata";
 import { bindNativeHistory } from "@core/workspace/native-history";
 import { useCallback, useEffect, useState } from "react";
 import { CssClassesBinder } from "./ui/CssClassesBinder";
+import { LocaleDirectionBinder } from "./ui/LocaleDirectionBinder";
 import { CommandsBootstrap } from "./ui/commands/CommandsBootstrap";
 import { ErrorBoundary } from "./ui/overlay/ErrorBoundary";
 import { HoverPopoverHost } from "./ui/overlay/HoverPopover";
@@ -66,6 +67,7 @@ export function App() {
           <MetadataCacheBinder />
           <NativeHistoryBinder />
           <CssClassesBinder />
+          <LocaleDirectionBinder />
           <CommandsBootstrap
             openPalette={openPalette}
             openSwitcher={openSwitcher}

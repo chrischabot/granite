@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getLocale, registerLocale, setLocale, subscribeI18n, t } from "./index";
 
 beforeEach(() => {
@@ -46,5 +46,11 @@ describe("i18n", () => {
     expect(getLocale()).toBe("fr");
     setLocale("en");
     expect(getLocale()).toBe("en");
+  });
+
+  it("includes Hebrew as a built-in RTL demo locale", () => {
+    setLocale("he");
+    expect(t("settings.editor")).toBe("עורך");
+    expect(t("app.empty.noFile")).toBe("אין קובץ פתוח");
   });
 });

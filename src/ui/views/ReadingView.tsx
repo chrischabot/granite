@@ -6,6 +6,7 @@ import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
 import { extension, stem } from "@core/fs/path";
 import type { VaultFile, VaultPath } from "@core/fs/types";
+import { noteDirectionFromFrontmatter } from "@core/i18n/direction";
 import { extractBlock, extractHeadingSection } from "@core/markdown/extract";
 import { renderMermaidIn } from "@core/markdown/mermaid";
 import { renderMarkdown, renderNoteMarkdown } from "@core/markdown/renderer";
@@ -152,6 +153,7 @@ export function ReadingView({ path }: ReadingViewProps) {
     if (!fileMeta) return [] as Array<[string, unknown]>;
     return Object.entries(fileMeta.frontmatter);
   }, [fileMeta]);
+  const noteDirection = noteDirectionFromFrontmatter(fileMeta?.frontmatter);
 
   // Click-to-navigate on internal links / embeds. Heading/block suffixes are
   // resolved within the rendered DOM when the link points to the same file,
@@ -234,6 +236,7 @@ export function ReadingView({ path }: ReadingViewProps) {
 
   // Resolve image embeds.
   useEffect(() => {
+    void html;
     const root = containerRef.current;
     if (!root) return;
 
@@ -316,6 +319,7 @@ export function ReadingView({ path }: ReadingViewProps) {
   }, [html]);
 
   useEffect(() => {
+    void html;
     const root = containerRef.current;
     if (!root) return;
     let cancelled = false;
@@ -442,6 +446,7 @@ export function ReadingView({ path }: ReadingViewProps) {
 
   // Resolve markdown embeds (`![[Note]]`, `![[Note#Heading]]`, `![[Note#^block]]`).
   useEffect(() => {
+    void html;
     const root = containerRef.current;
     if (!root) return;
     let cancelled = false;
@@ -531,6 +536,7 @@ export function ReadingView({ path }: ReadingViewProps) {
 
   // Resolve embedded base blocks: ```base …``` → live filtered table.
   useEffect(() => {
+    void html;
     const root = containerRef.current;
     if (!root) return;
     let cancelled = false;
@@ -590,6 +596,7 @@ export function ReadingView({ path }: ReadingViewProps) {
 
   // Resolve embedded query blocks: ```query …``` → live result list.
   useEffect(() => {
+    void html;
     const root = containerRef.current;
     if (!root) return;
     let cancelled = false;
@@ -704,6 +711,7 @@ export function ReadingView({ path }: ReadingViewProps) {
   // Resolve embedded `backlinks` fences into a live list of incoming links
   // for the current file.
   useEffect(() => {
+    void html;
     const root = containerRef.current;
     if (!root) return;
     let cancelled = false;
@@ -761,6 +769,7 @@ export function ReadingView({ path }: ReadingViewProps) {
 
   // After rendering, if the active leaf has a fragment, scroll to it.
   useEffect(() => {
+    void html;
     if (!fragment || loading) return;
     const root = containerRef.current;
     if (!root) return;
@@ -771,6 +780,7 @@ export function ReadingView({ path }: ReadingViewProps) {
   // Tag plain markdown-form internal anchors so click/hover handlers apply,
   // and render mermaid diagrams.
   useEffect(() => {
+    void html;
     const root = containerRef.current;
     if (!root) return;
 
@@ -804,6 +814,8 @@ export function ReadingView({ path }: ReadingViewProps) {
   }, [html]);
 
   useEffect(() => {
+    void html;
+    void metadataVersion;
     const root = containerRef.current;
     if (!root) return;
     for (const a of root.querySelectorAll<HTMLAnchorElement>("a.internal-link")) {
@@ -852,7 +864,12 @@ export function ReadingView({ path }: ReadingViewProps) {
                 {frontmatterEntries.length > 0 && (
                   <PropertiesStrip path={path} entries={frontmatterEntries} />
                 )}
-                <div className="markdown-rendered" dangerouslySetInnerHTML={{ __html: html }} />
+                <div
+                  className={`markdown-rendered${noteDirection ? ` ${noteDirection}` : ""}`}
+                  dir={noteDirection ?? undefined}
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: Markdown is rendered with html disabled and then post-processed for trusted app embeds.
+                  dangerouslySetInnerHTML={{ __html: html }}
+                />
               </>
             )}
           </div>

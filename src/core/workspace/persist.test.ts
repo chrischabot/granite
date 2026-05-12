@@ -139,6 +139,23 @@ describe("workspace persistence", () => {
     }
   });
 
+  it("round-trips central sidebar leaves via restoreFor", async () => {
+    const unbind = bindPersistence(VAULT_ID);
+    workspaceStore.openSidebarView("right", "outline");
+    await flushBindDebounce();
+
+    unbind();
+    workspaceStore.reset();
+
+    expect(restoreFor(VAULT_ID)).toBe(true);
+    expect(markdownPaths()).toEqual([]);
+    const restoredSidebarLeaves = [...workspaceStore.getState().leaves.values()].filter(
+      (leaf) =>
+        leaf.state.type === "sidebar" && leaf.state.side === "right" && leaf.state.id === "outline",
+    );
+    expect(restoredSidebarLeaves.length).toBe(1);
+  });
+
   it("clearPersistedFor wipes the saved snapshot", async () => {
     const unbind = bindPersistence(VAULT_ID);
     workspaceStore.openFile("A.md" as VaultPath);

@@ -18,6 +18,7 @@ import { GraphView } from "../views/GraphView";
 import { MarkdownView } from "../views/MarkdownView";
 import { ReadingView } from "../views/ReadingView";
 import { WebViewerView } from "../views/WebViewerView";
+import { SidebarLeafView } from "../views/sidebar/SidebarLeafView";
 
 export interface LeafBodyProps {
   leaf: Leaf;
@@ -101,6 +102,8 @@ function ViewBody({ leaf }: { leaf: Leaf }) {
       return <CanvasView path={s.path} />;
     case "bases":
       return <BasesView path={s.path} />;
+    case "sidebar":
+      return <SidebarLeafView side={s.side} id={s.id} />;
     case "empty":
       return <EmptyLeafBody />;
     case "file-explorer":

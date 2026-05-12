@@ -27,7 +27,8 @@ export type LeafState =
   | { readonly type: "webviewer"; readonly url: string }
   | { readonly type: "graph" }
   | { readonly type: "canvas"; readonly path?: string }
-  | { readonly type: "bases"; readonly path?: string };
+  | { readonly type: "bases"; readonly path?: string }
+  | { readonly type: "sidebar"; readonly side: "left" | "right"; readonly id: string };
 
 export interface Leaf {
   readonly id: LeafId;
@@ -91,6 +92,11 @@ export function leafTitle(leaf: Leaf): string {
             .pop()
             ?.replace(/\.base$/i, "") ?? "Base")
         : "Base";
+    case "sidebar":
+      return s.id
+        .split("-")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
     case "empty":
       return "New tab";
   }

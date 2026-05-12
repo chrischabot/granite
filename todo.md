@@ -55,7 +55,7 @@
 - [x] Map view ← _shipped 2026-05-12 bases map sweep_
 
 ### §24.12 Sidebars
-- [ ] Pop-out sidebar tabs into the central area
+- [x] Pop-out sidebar tabs into the central area ← _shipped 2026-05-12 sidebar workspace leaves_
 - [ ] Multiple vertical tab groups within a sidebar
 
 ### §24.13 Status bar

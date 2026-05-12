@@ -1,36 +1,10 @@
-import {
-  ArrowDownToLine,
-  ArrowUpFromLine,
-  Hash,
-  History,
-  List,
-  ListChecks,
-  ListTree,
-  Network,
-} from "lucide-react";
+import { workspaceStore } from "@core/workspace/store";
+import { ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { ClickableIcon } from "../controls/ClickableIcon";
-import { AllPropertiesView } from "../views/sidebar/AllPropertiesView";
-import { BacklinksView } from "../views/sidebar/BacklinksView";
-import { FootnotesView } from "../views/sidebar/FootnotesView";
-import { LocalGraphView } from "../views/sidebar/LocalGraphView";
-import { OutgoingLinksView } from "../views/sidebar/OutgoingLinksView";
-import { OutlineView } from "../views/sidebar/OutlineView";
-import { PropertiesView } from "../views/sidebar/PropertiesView";
-import { RecentsView } from "../views/sidebar/RecentsView";
+import { RIGHT_SIDEBAR_TABS } from "../views/sidebar/registry";
 
-const SIDEBAR_TABS = [
-  { id: "backlinks", label: "Backlinks", icon: <ArrowDownToLine /> },
-  { id: "outgoing", label: "Outgoing links", icon: <ArrowUpFromLine /> },
-  { id: "outline", label: "Outline", icon: <ListTree /> },
-  { id: "recents", label: "Recent files", icon: <History /> },
-  { id: "graph", label: "Local graph", icon: <Network /> },
-  { id: "properties", label: "File properties", icon: <List /> },
-  { id: "all-properties", label: "All properties (vault)", icon: <ListChecks /> },
-  { id: "footnotes", label: "Footnotes", icon: <Hash /> },
-] as const;
-
-type RightTabId = (typeof SIDEBAR_TABS)[number]["id"];
+type RightTabId = (typeof RIGHT_SIDEBAR_TABS)[number]["id"];
 
 export function RightSidebar() {
   const [active, setActive] = useState<RightTabId>("outline");
@@ -40,7 +14,7 @@ export function RightSidebar() {
       <div className="workspace-leaf-resize-handle" />
       <div className="workspace-sidebar-inner">
         <div className="workspace-sidebar-tabs">
-          {SIDEBAR_TABS.map((t) => (
+          {RIGHT_SIDEBAR_TABS.map((t) => (
             <ClickableIcon
               key={t.id}
               ariaLabel={t.label}
@@ -49,16 +23,14 @@ export function RightSidebar() {
               onClick={() => setActive(t.id)}
             />
           ))}
+          <ClickableIcon
+            ariaLabel={`Open ${RIGHT_SIDEBAR_TABS.find((t) => t.id === active)?.label ?? active} in central area`}
+            icon={<ExternalLink />}
+            onClick={() => workspaceStore.openSidebarView("right", active, { newTab: true })}
+          />
         </div>
         <div className="workspace-sidebar-content" data-active-tab={active}>
-          {active === "outline" && <OutlineView />}
-          {active === "backlinks" && <BacklinksView />}
-          {active === "outgoing" && <OutgoingLinksView />}
-          {active === "recents" && <RecentsView />}
-          {active === "graph" && <LocalGraphView />}
-          {active === "properties" && <PropertiesView />}
-          {active === "all-properties" && <AllPropertiesView />}
-          {active === "footnotes" && <FootnotesView />}
+          {RIGHT_SIDEBAR_TABS.find((t) => t.id === active)?.render()}
         </div>
       </div>
     </div>

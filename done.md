@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — Sidebar tabs as central workspace leaves
+
+- **Sidebar leaf state** — workspace leaves now support a `sidebar` state with
+  side and tab id, so sidebar views can be opened, focused, persisted, and
+  restored in the central workspace like other tabs.
+- **Shared sidebar registry** — left/right sidebar definitions now share one
+  registry with the central leaf renderer, avoiding duplicated view routing.
+- **Pop into center** — both sidebars expose an icon-only action to open the
+  active sidebar tab in the central area.
+
+### Tests
+- Added `src/core/workspace/sidebar-view.test.ts` covering central sidebar
+  leaves and duplicate-focus behavior.
+- Validation: scoped `bunx biome check --write`, targeted sidebar workspace
+  and persistence tests, `bun run typecheck`, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-12 — Live Preview block and table marker coverage
 
 - **Block markers** — inactive Live Preview lines now hide heading hashes and

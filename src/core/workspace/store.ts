@@ -284,6 +284,46 @@ export const workspaceStore = {
     return id;
   },
 
+  openSidebarView(side: "left" | "right", tabId: string, opts: { newTab?: boolean } = {}): LeafId {
+    const groupId = state.activeGroupId;
+    if (!groupId) throw new Error("Workspace has no active group");
+    const group = state.groups.get(groupId);
+    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
+    const desired: LeafState = { type: "sidebar", side, id: tabId };
+
+    for (const id of group.leafIds) {
+      const leaf = state.leaves.get(id);
+      if (leaf?.state.type === "sidebar" && leaf.state.side === side && leaf.state.id === tabId) {
+        setState({
+          ...state,
+          groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
+        });
+        return id;
+      }
+    }
+
+    const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
+    const canReplace = !opts.newTab && activeLeaf?.state.type === "empty";
+    if (canReplace && activeLeaf) {
+      const updated: Leaf = { id: activeLeaf.id, state: desired };
+      setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
+      return updated.id;
+    }
+
+    const id = newId("l");
+    const leaf: Leaf = { id, state: desired };
+    const leaves = new Map(state.leaves);
+    leaves.set(id, leaf);
+    const groups = new Map(state.groups);
+    groups.set(group.id, {
+      ...group,
+      leafIds: [...group.leafIds, id],
+      activeLeafId: id,
+    });
+    setState({ ...state, leaves, groups });
+    return id;
+  },
+
   openCanvas(opts: { newTab?: boolean; path?: string } = {}): LeafId {
     const groupId = state.activeGroupId;
     if (!groupId) throw new Error("Workspace has no active group");

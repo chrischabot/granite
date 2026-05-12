@@ -1,20 +1,11 @@
-import { Bookmark, Files, Search, Tag } from "lucide-react";
+import { workspaceStore } from "@core/workspace/store";
+import { ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ClickableIcon } from "../controls/ClickableIcon";
-import { FileExplorerView } from "../views/file-explorer/FileExplorerView";
-import { BookmarksView } from "../views/sidebar/BookmarksView";
-import { SearchView } from "../views/sidebar/SearchView";
-import { TagsView } from "../views/sidebar/TagsView";
+import { LEFT_SIDEBAR_TABS } from "../views/sidebar/registry";
 import { VaultProfile } from "./VaultProfile";
 
-const SIDEBAR_TABS = [
-  { id: "explorer", label: "Files", icon: <Files /> },
-  { id: "search", label: "Search", icon: <Search /> },
-  { id: "bookmarks", label: "Bookmarks", icon: <Bookmark /> },
-  { id: "tags", label: "Tags", icon: <Tag /> },
-] as const;
-
-type SidebarTabId = (typeof SIDEBAR_TABS)[number]["id"];
+type SidebarTabId = (typeof LEFT_SIDEBAR_TABS)[number]["id"];
 
 export function LeftSidebar() {
   const [active, setActive] = useState<SidebarTabId>("explorer");
@@ -23,7 +14,7 @@ export function LeftSidebar() {
     const onSelect = (e: Event) => {
       const ce = e as CustomEvent<{ side: "left" | "right"; id: string }>;
       if (ce.detail.side !== "left") return;
-      const matching = SIDEBAR_TABS.find((t) => t.id === ce.detail.id);
+      const matching = LEFT_SIDEBAR_TABS.find((t) => t.id === ce.detail.id);
       if (matching) setActive(matching.id);
     };
     window.addEventListener("granite:select-sidebar-tab", onSelect);
@@ -34,7 +25,7 @@ export function LeftSidebar() {
     <div className="workspace-split mod-left-split mod-horizontal">
       <div className="workspace-sidebar-inner">
         <div className="workspace-sidebar-tabs">
-          {SIDEBAR_TABS.map((t) => (
+          {LEFT_SIDEBAR_TABS.map((t) => (
             <ClickableIcon
               key={t.id}
               ariaLabel={t.label}
@@ -43,12 +34,14 @@ export function LeftSidebar() {
               onClick={() => setActive(t.id)}
             />
           ))}
+          <ClickableIcon
+            ariaLabel={`Open ${LEFT_SIDEBAR_TABS.find((t) => t.id === active)?.label ?? active} in central area`}
+            icon={<ExternalLink />}
+            onClick={() => workspaceStore.openSidebarView("left", active, { newTab: true })}
+          />
         </div>
         <div className="workspace-sidebar-content" data-active-tab={active}>
-          {active === "explorer" && <FileExplorerView />}
-          {active === "search" && <SearchView />}
-          {active === "bookmarks" && <BookmarksView />}
-          {active === "tags" && <TagsView />}
+          {LEFT_SIDEBAR_TABS.find((t) => t.id === active)?.render()}
         </div>
         <VaultProfile />
       </div>

@@ -1,9 +1,10 @@
-import { openDB, type IDBPDatabase } from "idb";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
-import { workspaceStore } from "@core/workspace/store";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
+import { type IDBPDatabase, openDB } from "idb";
 
-interface Snapshot {
+export interface RecoverySnapshot {
+  readonly id: number;
   readonly path: string;
   readonly mtimeMs: number;
   readonly content: string;
@@ -50,24 +51,61 @@ function db() {
   return dbPromise;
 }
 
-async function takeSnapshot(snap: Snapshot): Promise<void> {
+async function takeSnapshot(snap: Omit<RecoverySnapshot, "id">): Promise<void> {
   const conn = await db();
   await conn.put(STORE, snap);
 }
 
-async function listSnapshots(path: string): Promise<Array<Snapshot & { id: number }>> {
+export async function listRecoverySnapshots(path: string): Promise<RecoverySnapshot[]> {
   const conn = await db();
   const tx = conn.transaction(STORE, "readonly");
   const idx = tx.store.index("by-path");
-  const out: Array<Snapshot & { id: number }> = [];
+  const out: RecoverySnapshot[] = [];
   let cursor = await idx.openCursor(IDBKeyRange.only(path));
   while (cursor) {
-    out.push({ ...(cursor.value as Snapshot), id: cursor.primaryKey as number });
+    out.push({
+      ...(cursor.value as Omit<RecoverySnapshot, "id">),
+      id: cursor.primaryKey as number,
+    });
     cursor = await cursor.continue();
   }
   await tx.done;
   out.sort((a, b) => b.mtimeMs - a.mtimeMs);
   return out;
+}
+
+export async function clearRecoverySnapshots(path?: string): Promise<void> {
+  const conn = await db();
+  if (!path) {
+    await conn.clear(STORE);
+    return;
+  }
+  const tx = conn.transaction(STORE, "readwrite");
+  const idx = tx.store.index("by-path");
+  let cursor = await idx.openCursor(IDBKeyRange.only(path));
+  while (cursor) {
+    await cursor.delete();
+    cursor = await cursor.continue();
+  }
+  await tx.done;
+}
+
+export async function restoreRecoverySnapshot(snapshot: RecoverySnapshot): Promise<void> {
+  const { run } = await import("@core/effect/runtime");
+  const { Effect } = await import("effect");
+  const { FileSystem } = await import("@core/fs/FileSystem");
+  await run(
+    Effect.gen(function* () {
+      const fs = yield* FileSystem;
+      yield* fs.writeText(snapshot.path, snapshot.content);
+    }),
+  );
+}
+
+export async function saveRecoverySnapshotForTests(
+  snap: Omit<RecoverySnapshot, "id">,
+): Promise<void> {
+  await takeSnapshot(snap);
 }
 
 async function pruneOld(): Promise<void> {
@@ -124,7 +162,7 @@ async function tryAutoSnapshot(): Promise<void> {
   }
 }
 
-export function registerFileRecoveryPlugin(): () => void {
+export function registerFileRecoveryPlugin(openRecoveryUi?: (path: string) => void): () => void {
   const registrations: Array<() => void> = [];
   const register = (cmd: Command) => {
     registrations.push(commandRegistry.register(cmd));
@@ -142,43 +180,35 @@ export function registerFileRecoveryPlugin(): () => void {
         noticeManager.show("Open a markdown note first.", { kind: "warning" });
         return;
       }
-      const list = await listSnapshots(leaf.state.path);
+      if (openRecoveryUi) {
+        openRecoveryUi(leaf.state.path);
+        return;
+      }
+      const list = await listRecoverySnapshots(leaf.state.path);
       if (list.length === 0) {
         noticeManager.show("No snapshots yet for this file.", { kind: "info" });
         return;
       }
       const labels = list
         .map(
-          (s, i) =>
-            `${i + 1}. ${new Date(s.mtimeMs).toLocaleString()} (${s.content.length} bytes)`,
+          (s, i) => `${i + 1}. ${new Date(s.mtimeMs).toLocaleString()} (${s.content.length} bytes)`,
         )
         .join("\n");
-      const pick = prompt(
-        `Restore which snapshot?\n${labels}\n\nEnter number to view contents:`,
-      );
-      const n = pick ? parseInt(pick, 10) - 1 : -1;
+      const pick = prompt(`Restore which snapshot?\n${labels}\n\nEnter number to view contents:`);
+      const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
       const chosen = list[n];
       if (!chosen) return;
       const restoreOk = confirm(
         `Restore this snapshot? Current contents will be overwritten.\n\n--- Preview ---\n${chosen.content.slice(0, 500)}${chosen.content.length > 500 ? "\n..." : ""}`,
       );
       if (!restoreOk) return;
-      const { run } = await import("@core/effect/runtime");
-      const { Effect } = await import("effect");
-      const { FileSystem } = await import("@core/fs/FileSystem");
       try {
-        await run(
-          Effect.gen(function* () {
-            const fs = yield* FileSystem;
-            yield* fs.writeText(chosen.path, chosen.content);
-          }),
-        );
+        await restoreRecoverySnapshot(chosen);
         noticeManager.show("Snapshot restored.", { kind: "success" });
       } catch (err) {
-        noticeManager.show(
-          err instanceof Error ? err.message : "Restore failed",
-          { kind: "error" },
-        );
+        noticeManager.show(err instanceof Error ? err.message : "Restore failed", {
+          kind: "error",
+        });
       }
     },
   });

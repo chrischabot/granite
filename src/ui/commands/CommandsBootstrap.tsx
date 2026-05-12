@@ -1,26 +1,26 @@
-import { useEffect } from "react";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { initHotkeyDispatcher } from "@core/commands/hotkeys";
 import { registerAudioRecorderPlugin } from "@core/plugins-core/audio-recorder";
+import { registerBasesScaffoldPlugin } from "@core/plugins-core/bases-scaffold";
+import { registerCopyLinkPlugin } from "@core/plugins-core/copy-link";
 import { registerDailyNotesPlugin } from "@core/plugins-core/daily-notes";
 import { registerFileRecoveryPlugin } from "@core/plugins-core/file-recovery";
 import { registerFormatConverterPlugin } from "@core/plugins-core/format-converter";
 import { registerNoteComposerPlugin } from "@core/plugins-core/note-composer";
+import { registerPluginReloadPlugin } from "@core/plugins-core/plugin-reload";
 import { registerRandomNotePlugin } from "@core/plugins-core/random-note";
 import { registerRandomWalkPlugin } from "@core/plugins-core/random-walk";
 import { registerTagRenamePlugin } from "@core/plugins-core/tag-rename";
 import { registerTemplatesPlugin } from "@core/plugins-core/templates";
-import { registerUniqueNotePlugin } from "@core/plugins-core/unique-note";
 import { registerTourPlugin } from "@core/plugins-core/tour";
+import { registerUniqueNotePlugin } from "@core/plugins-core/unique-note";
+import { registerVaultFindReplacePlugin } from "@core/plugins-core/vault-find-replace";
 import { registerVaultStatsPlugin } from "@core/plugins-core/vault-stats";
 import { registerWebViewerPlugin } from "@core/plugins-core/web-viewer";
-import { registerCopyLinkPlugin } from "@core/plugins-core/copy-link";
-import { registerPluginReloadPlugin } from "@core/plugins-core/plugin-reload";
-import { registerVaultFindReplacePlugin } from "@core/plugins-core/vault-find-replace";
-import { registerBasesScaffoldPlugin } from "@core/plugins-core/bases-scaffold";
 import { registerWorkspacesPlugin } from "@core/plugins-core/workspaces";
 import { showUpdateCheckNotices } from "@core/plugins/update-check";
 import { workspaceStore } from "@core/workspace/store";
+import { useEffect } from "react";
 
 interface CommandsBootstrapProps {
   openPalette: () => void;
@@ -29,6 +29,7 @@ interface CommandsBootstrapProps {
   openSettings: () => void;
   openHelp: () => void;
   openInstallPlugin: () => void;
+  openFileRecovery: (path: string) => void;
 }
 
 export function CommandsBootstrap({
@@ -38,6 +39,7 @@ export function CommandsBootstrap({
   openSettings,
   openHelp,
   openInstallPlugin,
+  openFileRecovery,
 }: CommandsBootstrapProps) {
   useEffect(() => {
     const dispose = initHotkeyDispatcher();
@@ -325,7 +327,7 @@ export function CommandsBootstrap({
     const disposeRandomWalk = registerRandomWalkPlugin();
     const disposeTagRename = registerTagRenamePlugin();
     const disposeWorkspaces = registerWorkspacesPlugin();
-    const disposeFileRecovery = registerFileRecoveryPlugin();
+    const disposeFileRecovery = registerFileRecoveryPlugin(openFileRecovery);
     const disposeUniqueNote = registerUniqueNotePlugin();
     const disposeNoteComposer = registerNoteComposerPlugin();
     const disposeAudio = registerAudioRecorderPlugin();
@@ -359,7 +361,15 @@ export function CommandsBootstrap({
       disposeVaultFindReplace();
       for (const fn of registrations) fn();
     };
-  }, [openPalette, openSwitcher, openVaultPicker, openSettings, openHelp, openInstallPlugin]);
+  }, [
+    openPalette,
+    openSwitcher,
+    openVaultPicker,
+    openSettings,
+    openHelp,
+    openInstallPlugin,
+    openFileRecovery,
+  ]);
 
   return null;
 }

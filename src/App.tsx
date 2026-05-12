@@ -1,28 +1,29 @@
-import { useCallback, useEffect, useState } from "react";
-import { ThemeProvider } from "./ui/theme/ThemeProvider";
-import { VaultProvider } from "./ui/vault/VaultContext";
-import { Titlebar } from "./ui/shell/Titlebar";
-import { Ribbon } from "./ui/shell/Ribbon";
-import { LeftSidebar } from "./ui/shell/LeftSidebar";
-import { RightSidebar } from "./ui/shell/RightSidebar";
-import { Workspace } from "./ui/shell/Workspace";
-import { StatusBar } from "./ui/shell/StatusBar";
-import { CommandsBootstrap } from "./ui/commands/CommandsBootstrap";
-import { CommandPalette } from "./ui/prompts/CommandPalette";
-import { QuickSwitcher } from "./ui/prompts/QuickSwitcher";
-import { VaultPicker } from "./ui/prompts/VaultPicker";
-import { SettingsModal } from "./ui/prompts/SettingsModal";
-import { HelpModal } from "./ui/prompts/HelpModal";
-import { InstallPluginModal } from "./ui/prompts/InstallPluginModal";
-import { TemplatePicker } from "./ui/prompts/TemplatePicker";
-import { NoticeContainer } from "./ui/overlay/NoticeContainer";
-import { TooltipHost } from "./ui/overlay/Tooltip";
-import { MenuHost } from "./ui/overlay/Menu";
-import { HoverPopoverHost } from "./ui/overlay/HoverPopover";
-import { ErrorBoundary } from "./ui/overlay/ErrorBoundary";
 import { useMetadataCache } from "@core/metadata/useMetadata";
 import { bindNativeHistory } from "@core/workspace/native-history";
+import { useCallback, useEffect, useState } from "react";
 import { CssClassesBinder } from "./ui/CssClassesBinder";
+import { CommandsBootstrap } from "./ui/commands/CommandsBootstrap";
+import { ErrorBoundary } from "./ui/overlay/ErrorBoundary";
+import { HoverPopoverHost } from "./ui/overlay/HoverPopover";
+import { MenuHost } from "./ui/overlay/Menu";
+import { NoticeContainer } from "./ui/overlay/NoticeContainer";
+import { TooltipHost } from "./ui/overlay/Tooltip";
+import { CommandPalette } from "./ui/prompts/CommandPalette";
+import { FileRecoveryModal } from "./ui/prompts/FileRecoveryModal";
+import { HelpModal } from "./ui/prompts/HelpModal";
+import { InstallPluginModal } from "./ui/prompts/InstallPluginModal";
+import { QuickSwitcher } from "./ui/prompts/QuickSwitcher";
+import { SettingsModal } from "./ui/prompts/SettingsModal";
+import { TemplatePicker } from "./ui/prompts/TemplatePicker";
+import { VaultPicker } from "./ui/prompts/VaultPicker";
+import { LeftSidebar } from "./ui/shell/LeftSidebar";
+import { Ribbon } from "./ui/shell/Ribbon";
+import { RightSidebar } from "./ui/shell/RightSidebar";
+import { StatusBar } from "./ui/shell/StatusBar";
+import { Titlebar } from "./ui/shell/Titlebar";
+import { Workspace } from "./ui/shell/Workspace";
+import { ThemeProvider } from "./ui/theme/ThemeProvider";
+import { VaultProvider } from "./ui/vault/VaultContext";
 
 function MetadataCacheBinder() {
   useMetadataCache();
@@ -41,6 +42,7 @@ export function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [installPluginOpen, setInstallPluginOpen] = useState(false);
+  const [fileRecoveryPath, setFileRecoveryPath] = useState<string | null>(null);
 
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
@@ -54,6 +56,8 @@ export function App() {
   const closeHelp = useCallback(() => setHelpOpen(false), []);
   const openInstallPlugin = useCallback(() => setInstallPluginOpen(true), []);
   const closeInstallPlugin = useCallback(() => setInstallPluginOpen(false), []);
+  const openFileRecovery = useCallback((path: string) => setFileRecoveryPath(path), []);
+  const closeFileRecovery = useCallback(() => setFileRecoveryPath(null), []);
 
   return (
     <ErrorBoundary>
@@ -69,6 +73,7 @@ export function App() {
             openSettings={openSettings}
             openHelp={openHelp}
             openInstallPlugin={openInstallPlugin}
+            openFileRecovery={openFileRecovery}
           />
           <Titlebar />
           <div className="app-container">
@@ -92,6 +97,7 @@ export function App() {
           <SettingsModal open={settingsOpen} onClose={closeSettings} />
           <HelpModal open={helpOpen} onClose={closeHelp} />
           <InstallPluginModal open={installPluginOpen} onClose={closeInstallPlugin} />
+          <FileRecoveryModal path={fileRecoveryPath} onClose={closeFileRecovery} />
           <TemplatePicker />
 
           <NoticeContainer />

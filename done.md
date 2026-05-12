@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — File recovery restore UI
+
+- **Recovery modal** — the File recovery command now opens a modal for the
+  active markdown note instead of relying on prompt/confirm dialogs.
+- **Snapshot inspection** — the modal lists snapshots newest-first, supports a
+  filename/time filter, previews the selected snapshot, and can toggle between
+  raw snapshot text and a line-level change view against the current file.
+- **Recovery actions** — users can copy a snapshot, restore it through the
+  active vault `FileSystem`, or clear recovery snapshots after confirmation.
+
+### Tests
+- Added `core/plugins-core/file-recovery.test.ts` for snapshot filtering/order,
+  restoring through the vault filesystem, and clearing recovery storage.
+- Validation: scoped `bunx biome check --write`, targeted file-recovery tests,
+  `bun run typecheck`, `bun run test` (433 tests / 44 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Settings persisted to `.granite/`
 
 - **Disk-backed user settings** — vault activation now binds Settings to

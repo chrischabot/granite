@@ -104,7 +104,7 @@
 
 ### §24.22 Crash safety
 - [ ] 100-cycle kill-and-restart fixture (Phase 14)
-- [ ] File-recovery restore UI
+- [x] File-recovery restore UI ← _shipped 2026-05-12 crash-safety sweep_
 
 ### §24.23 Compatibility round-trip
 - [ ] Obsidian vault round-trip fixture (Phase 14)

@@ -82,6 +82,7 @@ const CALLOUT_ALIASES: Record<string, string> = {
 };
 
 let cachedMd: MarkdownIt | null = null;
+let cachedCommonMarkMd: MarkdownIt | null = null;
 
 function buildMd(): MarkdownIt {
   const md = new MarkdownIt({
@@ -430,6 +431,22 @@ export function getMarkdownRenderer(): MarkdownIt {
 
 export function renderMarkdown(source: string): string {
   return getMarkdownRenderer().render(source);
+}
+
+export function getCommonMarkRenderer(): MarkdownIt {
+  if (!cachedCommonMarkMd) {
+    cachedCommonMarkMd = new MarkdownIt("commonmark", {
+      html: true,
+      linkify: false,
+      typographer: false,
+      breaks: false,
+    });
+  }
+  return cachedCommonMarkMd;
+}
+
+export function renderCommonMark(source: string): string {
+  return getCommonMarkRenderer().render(source);
 }
 
 export function slugify(text: string): string {

@@ -19,7 +19,7 @@
 - [ ] Full live-preview decoration replacement (expanded in Phase 12 sweep; table cells, nested/block-level edge cases, and browser verification remain)
 
 ### §24.3 Parser fidelity — Phase 14
-- [ ] CommonMark conformance harness
+- [x] CommonMark conformance harness ← _shipped 2026-05-12 official 0.31.2 suite_
 - [x] GFM autolink coverage tests ← _shipped 2026-05-12 parser sweep_
 
 ### §24.4 Linking & metadata

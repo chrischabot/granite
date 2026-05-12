@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — CommonMark conformance harness
+
+- **Official fixture** — added the CommonMark 0.31.2 JSON examples from
+  `https://spec.commonmark.org/0.31.2/spec.json` as a checked-in regression
+  fixture.
+- **Base CommonMark renderer** — added `renderCommonMark()` using the
+  `markdown-it` CommonMark preset with raw HTML enabled and extension linkify
+  disabled.
+- **99% gate** — the conformance test asserts the official suite stays at or
+  above the acceptance threshold while keeping Granite's GFM/Obsidian
+  extension renderer separate.
+
+### Tests
+- Added `src/core/markdown/commonmark-conformance.test.ts`.
+- Validation: scoped `bunx biome check --write`, targeted CommonMark and
+  renderer tests, and `bun run typecheck` pass.
+
+---
+
 ## 2026-05-12 — Theme body-text contrast assertion
 
 - **Contrast gate** — added a token-level WCAG AA assertion for

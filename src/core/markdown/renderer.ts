@@ -1,8 +1,8 @@
+import { splitFrontmatter } from "@core/metadata/frontmatter";
+import markdownItKatex from "@vscode/markdown-it-katex";
 import MarkdownIt from "markdown-it";
 // @ts-expect-error — markdown-it-footnote ships JS without types
 import markdownItFootnote from "markdown-it-footnote";
-import markdownItKatex from "@vscode/markdown-it-katex";
-import { splitFrontmatter } from "@core/metadata/frontmatter";
 import { highlightSync } from "./highlight";
 
 /** Convert "[[Target|Display]]" → resolved object. */
@@ -109,12 +109,7 @@ function buildMd(): MarkdownIt {
     for (let i = 0; i < state.tokens.length - 1; i++) {
       const open = state.tokens[i];
       const inline = state.tokens[i + 1];
-      if (
-        !open ||
-        !inline ||
-        !open.type.startsWith("heading_open") ||
-        inline.type !== "inline"
-      )
+      if (!open || !inline || !open.type.startsWith("heading_open") || inline.type !== "inline")
         continue;
       const text = inline.content;
       const base = slugify(text);
@@ -166,8 +161,10 @@ function buildMd(): MarkdownIt {
     return true;
   });
 
+  // biome-ignore lint/complexity/useLiteralKeys: MarkdownIt rules are index-signature typed.
   md.renderer.rules["wikilink"] = (tokens, idx) => {
-    const t = tokens[idx]!;
+    const t = tokens[idx];
+    if (!t) return "";
     const target = t.attrGet("target") ?? "";
     const display = t.attrGet("display") ?? target;
     const heading = t.attrGet("heading");
@@ -178,8 +175,10 @@ function buildMd(): MarkdownIt {
     return `<a class="internal-link" data-href="${escapeHtml(target + suffix)}" href="${escapeHtml(target + suffix)}">${escapeHtml(display)}</a>`;
   };
 
+  // biome-ignore lint/complexity/useLiteralKeys: MarkdownIt rules are index-signature typed.
   md.renderer.rules["wikilink_embed"] = (tokens, idx) => {
-    const t = tokens[idx]!;
+    const t = tokens[idx];
+    if (!t) return "";
     const target = t.attrGet("target") ?? "";
     const display = t.attrGet("display") ?? target;
     const heading = t.attrGet("heading");
@@ -226,8 +225,9 @@ function buildMd(): MarkdownIt {
     return true;
   });
 
+  // biome-ignore lint/complexity/useLiteralKeys: MarkdownIt rules are index-signature typed.
   md.renderer.rules["hashtag"] = (tokens, idx) => {
-    const tag = tokens[idx]!.attrGet("tag") ?? "";
+    const tag = tokens[idx]?.attrGet("tag") ?? "";
     return `<a class="tag" data-tag="${escapeHtml(tag)}" href="#${escapeHtml(tag)}">#${escapeHtml(tag)}</a>`;
   };
 
@@ -268,14 +268,14 @@ function buildMd(): MarkdownIt {
 
   // ---- Comments: %% ... %% (block, multi-line) ------------------------
   md.block.ruler.before("paragraph", "obsidian_comment_block", (state, startLine, endLine) => {
-    const start = state.bMarks[startLine]! + state.tShift[startLine]!;
-    const max = state.eMarks[startLine]!;
+    const start = (state.bMarks[startLine] ?? 0) + (state.tShift[startLine] ?? 0);
+    const max = state.eMarks[startLine] ?? start;
     const line = state.src.slice(start, max);
     if (!line.startsWith("%%")) return false;
     let close = -1;
     for (let i = startLine + 1; i < endLine; i++) {
-      const lineStart = state.bMarks[i]! + state.tShift[i]!;
-      const lineEnd = state.eMarks[i]!;
+      const lineStart = (state.bMarks[i] ?? 0) + (state.tShift[i] ?? 0);
+      const lineEnd = state.eMarks[i] ?? lineStart;
       const text = state.src.slice(lineStart, lineEnd);
       if (text.startsWith("%%")) {
         close = i;
@@ -287,7 +287,7 @@ function buildMd(): MarkdownIt {
     return true;
   });
 
-  // ---- Task lists: [ ] / [x] -------------------------------------------
+  // ---- Task lists: [ ] / [x] / [?] -------------------------------------
   md.core.ruler.push("task_list", (state) => {
     for (let i = 0; i < state.tokens.length - 2; i++) {
       const t = state.tokens[i];
@@ -295,24 +295,25 @@ function buildMd(): MarkdownIt {
       const p = state.tokens[i + 1];
       const inline = state.tokens[i + 2];
       if (!p || !inline || p.type !== "paragraph_open" || inline.type !== "inline") continue;
-      const m = inline.content.match(/^\[( |x|X)\] /);
+      const m = inline.content.match(/^\[([^\]\n])\] /);
       if (!m) continue;
-      const checked = m[1] !== " ";
+      const marker = m[1] ?? " ";
+      const checked = marker !== " ";
       const children = inline.children;
       if (!children) continue;
       inline.content = inline.content.slice(m[0].length);
       if (children[0]?.type === "text") {
-        children[0].content = children[0].content.replace(/^\[( |x|X)\] /, "");
+        children[0].content = children[0].content.replace(/^\[([^\]\n])\] /, "");
       }
       const klass = (t.attrGet("class") ?? "").split(" ").filter(Boolean);
       klass.push("task-list-item");
       t.attrSet("class", klass.join(" "));
-      t.attrSet("data-task", checked ? "x" : " ");
+      t.attrSet("data-task", marker);
       const line = t.map ? t.map[0] : null;
       const Token = state.Token;
       const checkbox = new Token("html_inline", "", 0);
       const lineAttr = line !== null ? ` data-line="${line}"` : "";
-      checkbox.content = `<input type="checkbox" class="task-list-item-checkbox"${lineAttr} data-checked="${checked ? "x" : " "}"${checked ? " checked" : ""}> `;
+      checkbox.content = `<input type="checkbox" class="task-list-item-checkbox"${lineAttr} data-checked="${escapeHtml(marker)}"${checked ? " checked" : ""}> `;
       children.unshift(checkbox);
     }
   });
@@ -330,7 +331,8 @@ function buildMd(): MarkdownIt {
       let depth = 1;
       let close = -1;
       for (let j = i + 1; j < tokens.length; j++) {
-        const t = tokens[j]!;
+        const t = tokens[j];
+        if (!t) continue;
         if (t.type === "blockquote_open") depth += 1;
         else if (t.type === "blockquote_close") {
           depth -= 1;
@@ -363,9 +365,13 @@ function buildMd(): MarkdownIt {
 
       // Mutate the blockquote tokens to a callout structure.
       open.tag = "div";
-      open.attrSet("class", `callout${fold ? ` is-collapsible${fold === "-" ? " is-collapsed" : ""}` : ""}`);
+      open.attrSet(
+        "class",
+        `callout${fold ? ` is-collapsible${fold === "-" ? " is-collapsed" : ""}` : ""}`,
+      );
       open.attrSet("data-callout", canonical);
-      const closeToken = tokens[close]!;
+      const closeToken = tokens[close];
+      if (!closeToken) continue;
       closeToken.tag = "div";
 
       // Replace the first paragraph with title + content wrapper.
@@ -391,7 +397,8 @@ function buildMd(): MarkdownIt {
       let depth2 = 1;
       let closeAfter = -1;
       for (let j = i + 2; j < tokens.length; j++) {
-        const t = tokens[j]!;
+        const t = tokens[j];
+        if (!t) continue;
         if (t.type === "blockquote_open") depth2 += 1;
         else if (t.type === "blockquote_close") {
           depth2 -= 1;
@@ -413,7 +420,7 @@ function buildMd(): MarkdownIt {
 }
 
 function capitalize(s: string): string {
-  return s.length > 0 ? s[0]!.toUpperCase() + s.slice(1) : s;
+  return s.length > 0 ? (s[0]?.toUpperCase() ?? "") + s.slice(1) : s;
 }
 
 export function getMarkdownRenderer(): MarkdownIt {
@@ -429,7 +436,7 @@ export function slugify(text: string): string {
   return text
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\p{Mark}/gu, "")
     .replace(/[^a-z0-9\s-]/g, "")
     .trim()
     .replace(/\s+/g, "-");

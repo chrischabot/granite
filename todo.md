@@ -20,7 +20,7 @@
 
 ### §24.3 Parser fidelity — Phase 14
 - [ ] CommonMark conformance harness
-- [ ] GFM autolink coverage tests
+- [x] GFM autolink coverage tests ← _shipped 2026-05-12 parser sweep_
 
 ### §24.4 Linking & metadata
 - [x] `[[##term]]` vault-wide heading search

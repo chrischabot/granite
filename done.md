@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-12 — GFM parser coverage
+
+- **Autolink coverage** — renderer tests now prove bare URL, bare email, and
+  angle-bracket autolinks render correctly without absorbing trailing
+  punctuation.
+- **GFM coverage** — added explicit tests for table alignment and
+  strikethrough so the GFM acceptance item has direct regression coverage.
+- **Task state fix** — custom task markers such as `[?]` and `[-]` now render
+  as task-list checkboxes with the marker preserved in `data-task` /
+  `data-checked`, matching the product syntax.
+- **Renderer lint cleanup** — removed non-null assertions and tightened
+  renderer rule guards in the touched markdown renderer path.
+
+### Tests
+- Extended `core/markdown/renderer.test.ts` from 27 to 32 cases.
+- Validation: scoped `bunx biome check --write`, targeted renderer tests, and
+  `bun run typecheck`, `bun run test` (438 tests / 44 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — File recovery restore UI
 
 - **Recovery modal** — the File recovery command now opens a modal for the

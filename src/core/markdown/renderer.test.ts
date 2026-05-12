@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { parseWikilink, renderMarkdown, renderNoteMarkdown, slugify } from "./renderer";
 
 describe("parseWikilink", () => {
@@ -97,6 +97,41 @@ describe("renderMarkdown — custom rules", () => {
     expect(html).toContain('data-checked="x"');
     expect(html).toContain('data-line="0"');
     expect(html).toContain('data-line="1"');
+  });
+
+  it("preserves custom task markers as completed-style task states", () => {
+    const html = renderMarkdown("- [?] waiting\n- [-] cancelled");
+    expect(html).toContain('data-task="?"');
+    expect(html).toContain('data-checked="?" checked');
+    expect(html).toContain('data-task="-"');
+    expect(html).toContain('data-checked="-" checked');
+    expect(html).not.toContain("[?] waiting");
+    expect(html).not.toContain("[-] cancelled");
+  });
+
+  it("renders GFM strikethrough", () => {
+    expect(renderMarkdown("~~removed~~")).toContain("<s>removed</s>");
+  });
+
+  it("renders GFM tables with alignment", () => {
+    const html = renderMarkdown("| A | B |\n| :-- | --: |\n| 1 | 2 |");
+    expect(html).toContain("<table>");
+    expect(html).toContain('<th style="text-align:left">A</th>');
+    expect(html).toContain('<th style="text-align:right">B</th>');
+    expect(html).toContain('<td style="text-align:left">1</td>');
+    expect(html).toContain('<td style="text-align:right">2</td>');
+  });
+
+  it("renders GFM bare URL and email autolinks", () => {
+    const html = renderMarkdown("Visit https://example.com/a_(b). Email test@example.com.");
+    expect(html).toContain('<a href="https://example.com/a_(b)">https://example.com/a_(b)</a>.');
+    expect(html).toContain('<a href="mailto:test@example.com">test@example.com</a>.');
+  });
+
+  it("renders CommonMark angle autolinks without linkifying trailing punctuation", () => {
+    const html = renderMarkdown("<https://example.com?q=1>, <user@example.com>.");
+    expect(html).toContain('<a href="https://example.com?q=1">https://example.com?q=1</a>,');
+    expect(html).toContain('<a href="mailto:user@example.com">user@example.com</a>.');
   });
 
   it("renders a callout with data-callout = canonical type", () => {

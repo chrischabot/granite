@@ -576,6 +576,94 @@
 }
 
 /* -------------------------------------------------------------------------- *
+ * Embedded base fenced block (```base) — rendered into a `.bases-fence`
+ * wrapper. Distinct from `.base-embed` (the click-to-open card preview for
+ * `![[file.base]]`).
+ * -------------------------------------------------------------------------- */
+.markdown-rendered .bases-fence {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  background: var(--background-primary-alt);
+  margin: var(--p-spacing) 0;
+  overflow: hidden;
+}
+.markdown-rendered .bases-fence-header {
+  padding: var(--size-2-3) var(--size-4-3);
+  background: var(--background-secondary);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.markdown-rendered .bases-fence-header .bases-fence-name {
+  color: var(--text-normal);
+  font-weight: var(--font-semibold);
+}
+.markdown-rendered .bases-fence-header .bases-fence-filter {
+  font-family: var(--font-monospace);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--text-accent);
+}
+.markdown-rendered .bases-fence-body {
+  padding: 0;
+}
+.markdown-rendered .bases-fence-body .message.mod-error {
+  margin: var(--size-4-3);
+}
+.markdown-rendered .bases-fence-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-ui-small);
+  margin: 0;
+}
+.markdown-rendered .bases-fence-table thead th {
+  text-align: start;
+  padding: var(--size-2-3) var(--size-4-3);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  border: 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-weight: var(--font-medium);
+  font-size: var(--font-ui-smaller);
+  min-width: 0;
+}
+.markdown-rendered .bases-fence-table tbody td {
+  padding: var(--size-2-3) var(--size-4-3);
+  border: 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-normal);
+  min-width: 0;
+}
+.markdown-rendered .bases-fence-table tbody tr.bases-fence-group td {
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: var(--font-semibold);
+}
+.markdown-rendered .bases-fence-table tbody td.bases-fence-empty {
+  text-align: center;
+  color: var(--text-faint);
+  padding: var(--size-4-4);
+}
+.markdown-rendered .bases-fence-table tfoot td.bases-fence-summary {
+  padding: var(--size-2-3) var(--size-4-3);
+  background: var(--background-secondary);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  border: 0;
+  border-top: 1px solid var(--background-modifier-border);
+}
+.markdown-rendered .bases-fence-table tfoot td.bases-fence-summary strong {
+  color: var(--text-normal);
+}
+.markdown-rendered .bases-fence-table tbody tr[data-path]:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* -------------------------------------------------------------------------- *
  * Images
  * -------------------------------------------------------------------------- */
 .markdown-rendered img {

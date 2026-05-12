@@ -293,6 +293,22 @@ export const metadataCache = {
     return out;
   },
 
+  /** Build a flat list of every block id (`^id`) across the vault. Used by
+   *  the `[[^^query]]` autocomplete to do vault-wide block search. */
+  getAllBlocks(): Array<{
+    path: VaultPath;
+    id: string;
+    line: number;
+  }> {
+    const out: Array<{ path: VaultPath; id: string; line: number }> = [];
+    for (const entry of entries.values()) {
+      for (const b of entry.metadata.blocks) {
+        out.push({ path: entry.path, id: b.id, line: b.line });
+      }
+    }
+    return out;
+  },
+
   subscribe(listener: () => void): () => void {
     listeners.add(listener);
     return () => {

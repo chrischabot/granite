@@ -31,7 +31,9 @@ export function fuzzyRank<T>(
   // inference; we cast through unknown to bypass the strict tuple signature.
   // biome-ignore lint/suspicious/noExplicitAny: justified above.
   const Ctor = Fzf as any;
-  const fzf = new Ctor(items, opts) as { find: (q: string) => Array<{ item: T; score: number; positions: Set<number> }> };
+  const fzf = new Ctor(items, opts) as {
+    find: (q: string) => Array<{ item: T; score: number; positions: Set<number> }>;
+  };
   const results = fzf.find(query);
   return results.map((r) => ({
     item: r.item,

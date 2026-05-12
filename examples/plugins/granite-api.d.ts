@@ -99,16 +99,77 @@ export interface WorkspaceStoreApi {
   splitLeaf(leafId: string, direction?: "right" | "down"): string;
 }
 
+export interface PluginStatusBarItemHandle {
+  setText(text: string): void;
+  setTooltip(text: string | null): void;
+  setOnClick(fn: (() => void) | null): void;
+  remove(): void;
+}
+
+export interface PluginStatusBarApi {
+  add(opts?: {
+    text?: string;
+    tooltip?: string;
+    onClick?: () => void;
+  }): PluginStatusBarItemHandle;
+}
+
+export type PluginEventName = "file-open" | "active-leaf-change" | "layout-change" | "file-rename";
+
+export interface PluginEventMap {
+  "file-open": { path: string };
+  "active-leaf-change": { leafId: string | null; path: string | null };
+  "layout-change": Record<string, never>;
+  "file-rename": { from: string; to: string };
+}
+
+export interface PluginEventsApi {
+  on<E extends PluginEventName>(event: E, listener: (data: PluginEventMap[E]) => void): () => void;
+}
+
+export interface PluginMetadataCacheApi {
+  getFileCache(path: string): unknown | null;
+  getBacklinks(path: string): Array<{ source: string; lines: number[] }>;
+  getAllTags(): Array<{ name: string; count: number }>;
+  getAllProperties(): Array<{
+    name: string;
+    count: number;
+    samples: ReadonlyArray<unknown>;
+  }>;
+}
+
+export interface PluginSettingsTabSpec {
+  readonly name: string;
+  readonly render: (container: HTMLElement) => void | (() => void);
+}
+
 export interface PluginApi {
   readonly commands: CommandRegistry;
   readonly workspace: WorkspaceStoreApi;
   readonly notice: NoticeManager;
   readonly vault: PluginVaultApi;
   readonly granite: PluginGraniteApi;
+  readonly statusBar: PluginStatusBarApi;
+  readonly events: PluginEventsApi;
+  readonly metadataCache: PluginMetadataCacheApi;
+  loadData<T = unknown>(): Promise<T | null>;
+  saveData(data: unknown): Promise<void>;
+  addSettingsTab(spec: PluginSettingsTabSpec): () => void;
   log(...args: unknown[]): void;
 }
 
 export interface PluginExports {
   onLoad?: (api: PluginApi) => void | Promise<void>;
   onUnload?: (api: PluginApi) => void | Promise<void>;
+}
+
+export interface PluginManifest {
+  readonly id: string;
+  readonly name: string;
+  readonly version: string;
+  readonly description?: string;
+  readonly author?: string;
+  readonly main?: string;
+  readonly manifestUrl?: string;
+  readonly minAppVersion?: string;
 }

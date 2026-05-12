@@ -1,4 +1,10 @@
-import { useState, useSyncExternalStore, type ReactNode } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { Modal } from "../overlay/Modal";
 import { useTheme, type ThemeMode } from "../theme/ThemeProvider";
 import { useSettings } from "@core/settings/useSettings";
@@ -23,6 +29,11 @@ import {
   setPluginEnabled,
   subscribe as subscribePlugins,
 } from "@core/plugins/loader";
+import {
+  listSettingsTabs,
+  subscribeSettingsTabs,
+  type SettingsTabSpec,
+} from "@core/plugins/host-registries";
 import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
 import {
   captureHotkey,
@@ -33,7 +44,7 @@ import {
   subscribeHotkeys,
 } from "@core/commands/hotkeys";
 
-type Section =
+type BuiltinSection =
   | "appearance"
   | "editor"
   | "files"
@@ -42,13 +53,16 @@ type Section =
   | "hotkeys"
   | "plugins";
 
+/** Either a builtin section id, or `plugin:<tabId>` for a plugin-supplied tab. */
+type SectionId = BuiltinSection | `plugin:${string}`;
+
 export interface SettingsModalProps {
   open: boolean;
   onClose: () => void;
 }
 
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
-  const [section, setSection] = useState<Section>("appearance");
+  const [section, setSection] = useState<SectionId>("appearance");
   const settings = useSettings();
   const theme = useTheme();
   const [dailyNotes, setDailyNotes] = useState(() => getDailyNotesSettings());
@@ -61,6 +75,11 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     () => activeThemePath(),
   );
   const plugins = useSyncExternalStore(subscribePlugins, listPlugins, listPlugins);
+  const pluginSettingsTabs = useSyncExternalStore(
+    subscribeSettingsTabs,
+    listSettingsTabs,
+    listSettingsTabs,
+  );
   const commands = useSyncExternalStore(
     (listener) => commandRegistry.subscribe(listener),
     () => commandRegistry.list(),
@@ -72,6 +91,16 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     getHotkeyVersion,
   );
 
+  // If the user is sitting on a plugin tab that just unregistered, fall back
+  // to the appearance tab so the content area never points at nothing.
+  useEffect(() => {
+    if (!section.startsWith("plugin:")) return;
+    const stillExists = pluginSettingsTabs.some(
+      (t) => `plugin:${t.id}` === section,
+    );
+    if (!stillExists) setSection("appearance");
+  }, [pluginSettingsTabs, section]);
+
   const updateDaily = (patch: Partial<typeof dailyNotes>) => {
     const next = { ...dailyNotes, ...patch };
     setDailyNotes(next);
@@ -82,6 +111,10 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     setTemplates(next);
     setTemplatesSettings(next);
   };
+
+  const activePluginTab = section.startsWith("plugin:")
+    ? pluginSettingsTabs.find((t) => `plugin:${t.id}` === section) ?? null
+    : null;
 
   return (
     <Modal open={open} onClose={onClose} modifier="mod-sidebar-layout mod-settings">
@@ -116,6 +149,16 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
               <SettingsTab id="templates" current={section} onChange={setSection}>
                 Templates
               </SettingsTab>
+              {pluginSettingsTabs.map((tab) => (
+                <SettingsTab
+                  key={tab.id}
+                  id={`plugin:${tab.id}`}
+                  current={section}
+                  onChange={setSection}
+                >
+                  {tab.name}
+                </SettingsTab>
+              ))}
             </div>
           </div>
         </div>
@@ -405,13 +448,26 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   toggle to enable. Disabling a plugin calls its{" "}
                   <code>onUnload</code> hook.
                 </p>
-                <div style={{ marginBottom: "var(--size-4-3)" }}>
+                <div
+                  style={{
+                    marginBottom: "var(--size-4-3)",
+                    display: "flex",
+                    gap: "var(--size-4-2)",
+                    flexWrap: "wrap",
+                  }}
+                >
                   <button
                     type="button"
                     className="mod-cta"
                     onClick={() => void commandRegistry.run("plugins:install-from-url")}
                   >
                     Install plugin from URL…
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void commandRegistry.run("plugins:check-updates")}
+                  >
+                    Check for updates
                   </button>
                 </div>
                 {plugins.length === 0 ? (
@@ -519,10 +575,45 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 />
               </>
             )}
+            {activePluginTab && <PluginSettingsTabHost spec={activePluginTab} />}
           </div>
         </div>
       </div>
     </Modal>
+  );
+}
+
+function PluginSettingsTabHost({ spec }: { spec: SettingsTabSpec }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.innerHTML = "";
+    let cleanup: void | (() => void);
+    try {
+      cleanup = spec.render(el);
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error(`[granite] settings tab "${spec.name}" render failed:`, err);
+      el.textContent = `Error rendering tab: ${err instanceof Error ? err.message : String(err)}`;
+    }
+    return () => {
+      if (typeof cleanup === "function") {
+        try {
+          cleanup();
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error(`[granite] settings tab "${spec.name}" cleanup failed:`, err);
+        }
+      }
+      el.innerHTML = "";
+    };
+  }, [spec]);
+  return (
+    <>
+      <h2>{spec.name}</h2>
+      <div ref={ref} />
+    </>
   );
 }
 
@@ -622,9 +713,9 @@ function SettingsTab({
   onChange,
   children,
 }: {
-  id: Section;
-  current: Section;
-  onChange: (s: Section) => void;
+  id: SectionId;
+  current: SectionId;
+  onChange: (s: SectionId) => void;
   children: ReactNode;
 }) {
   return (

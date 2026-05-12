@@ -1,13 +1,35 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Settings2, Trash2, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { metadataCache } from "@core/metadata/cache";
 import { useMetadataVersion } from "@core/metadata/useMetadata";
 import { stem } from "@core/fs/path";
 import { workspaceStore } from "@core/workspace/store";
+import { useWorkspace } from "@core/workspace/useWorkspace";
+import {
+  addGraphGroup,
+  DEFAULT_GRAPH_CONFIG,
+  getGraphConfig,
+  getGraphVersion,
+  hydrateGraphConfig,
+  removeGraphGroup,
+  subscribeGraph,
+  updateGraphConfig,
+  updateGraphDisplay,
+  updateGraphForces,
+  updateGraphGroup,
+  type GraphColorMode,
+} from "@core/graph/store";
+import { colorForString, folderColorForPath, tagColorForFile } from "@core/graph/colors";
+import { firstMatchingGroup } from "@core/graph/groups";
+import { fileMatchesQuery, parseQuery } from "@core/search/query";
+import type { VaultFile } from "@core/fs/types";
 
 interface GraphNode {
   id: string;
   path: string;
   display: string;
+  tags: string[];
+  frontmatter: Record<string, unknown>;
   x: number;
   y: number;
   vx: number;
@@ -20,35 +42,93 @@ interface GraphEdge {
   target: string;
 }
 
-const REPULSION = 6000;
-const ATTRACTION = 0.005;
-const DAMPING = 0.85;
-const CENTER_FORCE = 0.0008;
 const MIN_VELOCITY = 0.05;
+const DAMPING = 0.85;
 
 export function GraphView() {
   const metadataVersion = useMetadataVersion();
+  useSyncExternalStore(subscribeGraph, getGraphVersion, getGraphVersion);
+  const config = getGraphConfig();
+
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
   const [hover, setHover] = useState<string | null>(null);
-  const [, force] = useState(0);
-  const draggingRef = useRef<{ startX: number; startY: number; viewX: number; viewY: number } | null>(
-    null,
-  );
+  const [showControls, setShowControls] = useState(true);
+  const [, forceTick] = useState(0);
+  const draggingRef = useRef<{
+    startX: number;
+    startY: number;
+    viewX: number;
+    viewY: number;
+  } | null>(null);
+  const { groups: wsGroups, activeGroupId, leaves } = useWorkspace();
 
-  // Build the graph from the metadata cache. Re-runs when metadata changes.
+  // Hydrate config from disk once on mount.
+  useEffect(() => {
+    void hydrateGraphConfig();
+  }, []);
+
+  const activePath = useMemo(() => {
+    const g = activeGroupId ? wsGroups.get(activeGroupId) : null;
+    const leaf = g?.activeLeafId ? leaves.get(g.activeLeafId) : null;
+    return leaf?.state.type === "markdown" ? leaf.state.path : null;
+  }, [activeGroupId, wsGroups, leaves]);
+
+  // Build the graph from the metadata cache. Re-runs when metadata changes
+  // or when the user's filter / local-graph settings change.
   const { nodes, edges, neighbors } = useMemo(() => {
-    const out: { nodes: GraphNode[]; edges: GraphEdge[]; neighbors: Map<string, Set<string>> } = {
-      nodes: [],
-      edges: [],
-      neighbors: new Map(),
+    const out: {
+      nodes: GraphNode[];
+      edges: GraphEdge[];
+      neighbors: Map<string, Set<string>>;
+    } = { nodes: [], edges: [], neighbors: new Map() };
+    const fileEntries = metadataCache
+      .getAllSwitcherEntries()
+      .filter((e) => e.alias === null);
+
+    // Apply the user's filter (content-free — only path/stem/tags/properties).
+    const parsedFilter = config.filter.trim() ? parseQuery(config.filter) : null;
+    const filterMatches = (path: string, tags: string[], fm: Record<string, unknown>) => {
+      if (!parsedFilter) return true;
+      const fakeFile: VaultFile = {
+        type: "file",
+        path,
+        name: path.split("/").pop() ?? path,
+        size: 0,
+        mtimeMs: 0,
+        ctimeMs: 0,
+        extension: "md",
+      } as VaultFile;
+      return fileMatchesQuery(
+        parsedFilter,
+        {
+          file: fakeFile,
+          content: "",
+          metadata: {
+            frontmatter: fm,
+            aliases: [],
+            cssClasses: [],
+            headings: [],
+            links: [],
+            tags: tags.map((t, line) => ({ name: t, line })),
+            blocks: [],
+            footnotes: [],
+            isEmpty: false,
+          },
+        },
+        { matchCase: false },
+      );
     };
-    const fileEntries = metadataCache.getAllSwitcherEntries().filter((e) => e.alias === null);
+
     const nodeIds = new Set<string>();
     const stemToId = new Map<string, string>();
     for (const e of fileEntries) {
+      const meta = metadataCache.getMetadata(e.path);
+      const tags = meta ? [...new Set(meta.tags.map((t) => t.name))] : [];
+      const fm = meta ? meta.frontmatter : {};
+      if (!filterMatches(e.path, tags, fm)) continue;
       const id = e.path;
       nodeIds.add(id);
       stemToId.set(stem(e.path).toLowerCase(), id);
@@ -56,6 +136,8 @@ export function GraphView() {
         id,
         path: e.path,
         display: stem(e.path),
+        tags,
+        frontmatter: fm,
         x: 0,
         y: 0,
         vx: 0,
@@ -80,6 +162,40 @@ export function GraphView() {
         out.neighbors.get(candidate)?.add(node.id);
       }
     }
+
+    // Local-graph trim: keep only nodes within `localHops` of the active path.
+    if (config.localGraph && activePath) {
+      const keep = new Set<string>();
+      const seedId = activePath;
+      if (nodeIds.has(seedId)) {
+        let frontier = new Set([seedId]);
+        keep.add(seedId);
+        for (let h = 0; h < Math.max(1, config.localHops); h++) {
+          const next = new Set<string>();
+          for (const id of frontier) {
+            for (const n of out.neighbors.get(id) ?? []) {
+              if (!keep.has(n)) {
+                keep.add(n);
+                next.add(n);
+              }
+            }
+          }
+          frontier = next;
+          if (frontier.size === 0) break;
+        }
+      }
+      out.nodes = out.nodes.filter((n) => keep.has(n.id));
+      const keptIds = new Set(out.nodes.map((n) => n.id));
+      out.edges = out.edges.filter((e) => keptIds.has(e.source) && keptIds.has(e.target));
+      const newNeighbors = new Map<string, Set<string>>();
+      for (const id of keptIds) {
+        const src = out.neighbors.get(id);
+        if (!src) continue;
+        newNeighbors.set(id, new Set([...src].filter((n) => keptIds.has(n))));
+      }
+      out.neighbors = newNeighbors;
+    }
+
     const r = 160;
     out.nodes.forEach((n, i) => {
       const angle = (i / Math.max(1, out.nodes.length)) * Math.PI * 2;
@@ -88,7 +204,7 @@ export function GraphView() {
       n.weight = 1 + (out.neighbors.get(n.id)?.size ?? 0);
     });
     return out;
-  }, [metadataVersion]);
+  }, [metadataVersion, config.filter, config.localGraph, config.localHops, activePath]);
 
   // Resize observer.
   useEffect(() => {
@@ -103,9 +219,11 @@ export function GraphView() {
     return () => ro.disconnect();
   }, []);
 
-  // Force-directed simulation in a rAF loop.
+  // Force-directed simulation in a rAF loop. Re-runs (and re-anneals) when
+  // the user changes force params or the underlying graph changes.
   useEffect(() => {
     if (nodes.length === 0) return;
+    const { repulsion, attraction, centerForce, linkDistance } = config.forces;
     let raf = 0;
     let frame = 0;
     const maxFrames = 600;
@@ -128,7 +246,7 @@ export function GraphView() {
             dist2 = dx * dx + dy * dy;
           }
           const dist = Math.sqrt(dist2);
-          const f = REPULSION / dist2;
+          const f = repulsion / dist2;
           const fx = (dx / dist) * f;
           const fy = (dy / dist) * f;
           a.vx -= fx;
@@ -137,36 +255,42 @@ export function GraphView() {
           b.vy += fy;
         }
       }
-      // Attraction along edges.
+      // Spring attraction along edges with rest length linkDistance.
+      // dist > rest pulls together, dist < rest pushes apart.
       for (const e of edges) {
         const a = byId.get(e.source);
         const b = byId.get(e.target);
         if (!a || !b) continue;
         const dx = b.x - a.x;
         const dy = b.y - a.y;
-        a.vx += dx * ATTRACTION;
-        a.vy += dy * ATTRACTION;
-        b.vx -= dx * ATTRACTION;
-        b.vy -= dy * ATTRACTION;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const stretch = dist - linkDistance;
+        const f = stretch * attraction;
+        const fx = (dx / dist) * f;
+        const fy = (dy / dist) * f;
+        a.vx += fx;
+        a.vy += fy;
+        b.vx -= fx;
+        b.vy -= fy;
       }
       // Gentle pull toward origin.
       for (const n of nodes) {
-        n.vx -= n.x * CENTER_FORCE;
-        n.vy -= n.y * CENTER_FORCE;
+        n.vx -= n.x * centerForce;
+        n.vy -= n.y * centerForce;
         n.vx *= DAMPING;
         n.vy *= DAMPING;
         n.x += n.vx;
         n.y += n.vy;
         totalEnergy += Math.abs(n.vx) + Math.abs(n.vy);
       }
-      force((c) => c + 1);
+      forceTick((c) => c + 1);
       if (frame < maxFrames && totalEnergy > MIN_VELOCITY * nodes.length) {
         raf = requestAnimationFrame(step);
       }
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [nodes, edges]);
+  }, [nodes, edges, config.forces]);
 
   // Pan + zoom handlers.
   const onMouseDown = (e: React.MouseEvent) => {
@@ -211,7 +335,9 @@ export function GraphView() {
           textAlign: "center",
         }}
       >
-        Vault has no markdown files yet — create some notes to populate the graph.
+        {config.filter || config.localGraph
+          ? "No notes match the current filter."
+          : "Vault has no markdown files yet — create some notes to populate the graph."}
       </div>
     );
   }
@@ -221,6 +347,23 @@ export function GraphView() {
 
   const cx = size.w / 2 + view.x;
   const cy = size.h / 2 + view.y;
+
+  const colorFor = (n: GraphNode): string => {
+    if (config.colorMode === "groups") {
+      const match = firstMatchingGroup(config.groups, {
+        path: n.path,
+        tags: n.tags,
+        frontmatter: n.frontmatter,
+      });
+      if (match) return match.color;
+    } else if (config.colorMode === "tag") {
+      const c = tagColorForFile(n.tags);
+      if (c) return c;
+    } else if (config.colorMode === "folder") {
+      return folderColorForPath(n.path);
+    }
+    return "var(--text-muted)";
+  };
 
   return (
     <div
@@ -246,7 +389,11 @@ export function GraphView() {
             const b = byIdRender.get(e.target);
             if (!a || !b) return null;
             const dim =
-              hover && hover !== a.id && hover !== b.id && !neighbors.get(hover)?.has(a.id) && !neighbors.get(hover)?.has(b.id);
+              hover &&
+              hover !== a.id &&
+              hover !== b.id &&
+              !neighbors.get(hover)?.has(a.id) &&
+              !neighbors.get(hover)?.has(b.id);
             return (
               <line
                 key={`e-${i}`}
@@ -255,7 +402,7 @@ export function GraphView() {
                 x2={b.x}
                 y2={b.y}
                 stroke="var(--text-muted)"
-                strokeWidth={0.7 / view.scale}
+                strokeWidth={config.display.linkThickness / view.scale}
                 opacity={dim ? 0.1 : 0.45}
               />
             );
@@ -264,8 +411,12 @@ export function GraphView() {
             const isHover = hover === n.id;
             const isNeighbor = !!hover && neighbors.get(hover)?.has(n.id);
             const dim = !!hover && !isHover && !isNeighbor;
-            const r = Math.max(2.5, Math.min(7, Math.sqrt(n.weight) * 2)) / Math.max(0.7, view.scale);
+            const radius =
+              config.display.nodeSize *
+                Math.max(0.6, Math.min(2.2, Math.sqrt(n.weight) * 0.6)) /
+              Math.max(0.7, view.scale);
             const fontScale = 1 / Math.max(0.7, view.scale);
+            const fill = isHover ? "var(--text-accent)" : colorFor(n);
             return (
               <g
                 key={n.id}
@@ -274,26 +425,26 @@ export function GraphView() {
                 onMouseLeave={() => setHover((h) => (h === n.id ? null : h))}
                 onClick={(ev) => {
                   ev.stopPropagation();
-                  workspaceStore.openFile(n.path, { newTab: ev.metaKey || ev.ctrlKey });
+                  workspaceStore.openFile(n.path, {
+                    newTab: ev.metaKey || ev.ctrlKey,
+                  });
                 }}
               >
                 <circle
                   cx={n.x}
                   cy={n.y}
-                  r={r * (isHover ? 1.4 : 1)}
-                  fill={
-                    isHover ? "var(--text-accent)" : isNeighbor ? "var(--color-accent)" : "var(--text-muted)"
-                  }
+                  r={radius * (isHover ? 1.4 : 1)}
+                  fill={fill}
                   opacity={dim ? 0.25 : 1}
                   stroke="var(--background-primary)"
                   strokeWidth={1 / view.scale}
                 />
-                {(isHover || view.scale > 1.3) && (
+                {(isHover || view.scale > config.display.textFadeThreshold) && (
                   <text
                     x={n.x}
-                    y={n.y + r + 8 * fontScale}
+                    y={n.y + radius + 8 * fontScale}
                     textAnchor="middle"
-                    fontSize={11 * fontScale}
+                    fontSize={config.display.textSize * fontScale}
                     fill="var(--text-normal)"
                     style={{
                       userSelect: "none",
@@ -326,6 +477,413 @@ export function GraphView() {
       >
         {nodes.length} nodes · {edges.length} links · drag to pan, scroll to zoom
       </div>
+      <button
+        type="button"
+        aria-label={showControls ? "Hide graph controls" : "Show graph controls"}
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowControls((v) => !v);
+        }}
+        style={{
+          position: "absolute",
+          top: 12,
+          left: 12,
+          padding: 6,
+          background: "var(--background-secondary)",
+          border: "1px solid var(--background-modifier-border)",
+          borderRadius: "var(--radius-s)",
+          color: "var(--text-muted)",
+          cursor: "var(--cursor-link)",
+          display: "flex",
+          alignItems: "center",
+          height: "auto",
+        }}
+      >
+        <Settings2 size={14} />
+      </button>
+      {showControls && (
+        <GraphControlsPanel onClose={() => setShowControls(false)} />
+      )}
     </div>
   );
+}
+
+function GraphControlsPanel({ onClose }: { onClose: () => void }) {
+  useSyncExternalStore(subscribeGraph, getGraphVersion, getGraphVersion);
+  const config = getGraphConfig();
+  return (
+    <div
+      onMouseDown={(e) => e.stopPropagation()}
+      onWheel={(e) => e.stopPropagation()}
+      style={{
+        position: "absolute",
+        top: 48,
+        left: 12,
+        width: 280,
+        maxHeight: "calc(100% - 64px)",
+        overflowY: "auto",
+        padding: "var(--size-4-3)",
+        background: "var(--background-secondary)",
+        border: "1px solid var(--background-modifier-border)",
+        borderRadius: "var(--radius-m)",
+        fontSize: "var(--font-ui-smaller)",
+        color: "var(--text-muted)",
+        boxShadow: "var(--shadow-s)",
+        display: "flex",
+        flexDirection: "column",
+        gap: "var(--size-4-3)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div
+          style={{
+            fontWeight: "var(--font-semibold)",
+            color: "var(--text-normal)",
+            fontSize: "var(--font-ui-small)",
+          }}
+        >
+          Graph controls
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close controls"
+          style={{
+            padding: 2,
+            background: "transparent",
+            border: 0,
+            color: "var(--text-muted)",
+            cursor: "var(--cursor-link)",
+            height: "auto",
+            boxShadow: "none",
+          }}
+        >
+          <X size={12} />
+        </button>
+      </div>
+
+      <ControlBlock title="Filter">
+        <input
+          type="text"
+          placeholder="tag:project -draft"
+          value={config.filter}
+          onChange={(e) => updateGraphConfig({ filter: e.currentTarget.value })}
+          style={{ width: "100%" }}
+        />
+        <p style={{ margin: "var(--size-2-2) 0 0", color: "var(--text-faint)" }}>
+          Search syntax: <code>tag:</code>, <code>path:</code>, <code>file:</code>,{" "}
+          <code>[name]</code>, <code>[name:value]</code>, <code>-term</code>.
+        </p>
+      </ControlBlock>
+
+      <ControlBlock title="Local graph">
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "var(--size-4-2)",
+            cursor: "var(--cursor-link)",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={config.localGraph}
+            onChange={(e) => updateGraphConfig({ localGraph: e.currentTarget.checked })}
+          />
+          <span>Show only neighbors of the active file</span>
+        </label>
+        {config.localGraph && (
+          <Slider
+            label="Hops"
+            min={1}
+            max={4}
+            step={1}
+            value={config.localHops}
+            onChange={(v) => updateGraphConfig({ localHops: v })}
+          />
+        )}
+      </ControlBlock>
+
+      <ControlBlock title="Color by">
+        <select
+          className="dropdown"
+          value={config.colorMode}
+          onChange={(e) =>
+            updateGraphConfig({ colorMode: e.currentTarget.value as GraphColorMode })
+          }
+          style={{ width: "100%" }}
+        >
+          <option value="none">Neutral</option>
+          <option value="tag">Tag (dominant)</option>
+          <option value="folder">Top-level folder</option>
+          <option value="groups">Groups (below)</option>
+        </select>
+      </ControlBlock>
+
+      <ControlBlock title="Groups">
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-2-3)" }}>
+          {config.groups.length === 0 ? (
+            <div style={{ color: "var(--text-faint)" }}>
+              No groups yet. Click <kbd>+</kbd> to add one.
+            </div>
+          ) : (
+            config.groups.map((g) => (
+              <div
+                key={g.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr 36px 24px",
+                  gap: "var(--size-2-2)",
+                  alignItems: "center",
+                }}
+              >
+                <input
+                  type="text"
+                  value={g.name}
+                  onChange={(e) => updateGraphGroup(g.id, { name: e.currentTarget.value })}
+                  placeholder="Name"
+                  style={{ width: "100%", minWidth: 0 }}
+                />
+                <input
+                  type="text"
+                  value={g.query}
+                  onChange={(e) => updateGraphGroup(g.id, { query: e.currentTarget.value })}
+                  placeholder="tag:work"
+                  style={{ width: "100%", minWidth: 0, fontFamily: "var(--font-monospace)" }}
+                />
+                <input
+                  type="color"
+                  value={hslToHex(g.color) ?? "#7c52ed"}
+                  onChange={(e) =>
+                    updateGraphGroup(g.id, { color: e.currentTarget.value })
+                  }
+                  style={{ width: 36, padding: 0 }}
+                />
+                <button
+                  type="button"
+                  aria-label={`Remove group ${g.name}`}
+                  onClick={() => removeGraphGroup(g.id)}
+                  style={{
+                    padding: 2,
+                    background: "transparent",
+                    border: 0,
+                    color: "var(--text-muted)",
+                    cursor: "var(--cursor-link)",
+                    height: "auto",
+                    boxShadow: "none",
+                  }}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))
+          )}
+          <button
+            type="button"
+            onClick={() =>
+              addGraphGroup({
+                name: "New group",
+                query: "",
+                color: colorForStringSafe(`g${config.groups.length + 1}`),
+              })
+            }
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              alignSelf: "flex-start",
+            }}
+          >
+            <Plus size={12} /> Add group
+          </button>
+        </div>
+      </ControlBlock>
+
+      <ControlBlock title="Display">
+        <Slider
+          label="Node size"
+          min={2}
+          max={12}
+          step={1}
+          value={config.display.nodeSize}
+          onChange={(v) => updateGraphDisplay({ nodeSize: v })}
+        />
+        <Slider
+          label="Link thickness"
+          min={0.2}
+          max={3}
+          step={0.1}
+          value={config.display.linkThickness}
+          onChange={(v) => updateGraphDisplay({ linkThickness: v })}
+        />
+        <Slider
+          label="Label size"
+          min={8}
+          max={20}
+          step={1}
+          value={config.display.textSize}
+          onChange={(v) => updateGraphDisplay({ textSize: v })}
+        />
+        <Slider
+          label="Label threshold"
+          min={0.4}
+          max={3}
+          step={0.1}
+          value={config.display.textFadeThreshold}
+          onChange={(v) => updateGraphDisplay({ textFadeThreshold: v })}
+        />
+      </ControlBlock>
+
+      <ControlBlock title="Forces">
+        <Slider
+          label="Repulsion"
+          min={1000}
+          max={15000}
+          step={500}
+          value={config.forces.repulsion}
+          onChange={(v) => updateGraphForces({ repulsion: v })}
+        />
+        <Slider
+          label="Edge attraction"
+          min={0.001}
+          max={0.05}
+          step={0.001}
+          value={config.forces.attraction}
+          onChange={(v) => updateGraphForces({ attraction: v })}
+        />
+        <Slider
+          label="Link distance"
+          min={20}
+          max={300}
+          step={10}
+          value={config.forces.linkDistance}
+          onChange={(v) => updateGraphForces({ linkDistance: v })}
+        />
+        <Slider
+          label="Center gravity"
+          min={0}
+          max={0.005}
+          step={0.0001}
+          value={config.forces.centerForce}
+          onChange={(v) => updateGraphForces({ centerForce: v })}
+        />
+        <button
+          type="button"
+          onClick={() =>
+            updateGraphConfig({
+              display: DEFAULT_GRAPH_CONFIG.display,
+              forces: DEFAULT_GRAPH_CONFIG.forces,
+            })
+          }
+          style={{ alignSelf: "flex-start", marginTop: "var(--size-2-3)" }}
+        >
+          Reset display & forces
+        </button>
+      </ControlBlock>
+    </div>
+  );
+}
+
+function ControlBlock({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-2-2)" }}>
+      <div
+        style={{
+          fontWeight: "var(--font-semibold)",
+          color: "var(--text-normal)",
+          fontSize: "var(--font-ui-smaller)",
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+        }}
+      >
+        {title}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Slider({
+  label,
+  min,
+  max,
+  step,
+  value,
+  onChange,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  step: number;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <label
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+        alignItems: "center",
+        gap: "var(--size-4-2)",
+      }}
+    >
+      <input
+        type="range"
+        min={min}
+        max={max}
+        step={step}
+        value={value}
+        onChange={(e) => onChange(Number(e.currentTarget.value))}
+        style={{ width: "100%" }}
+      />
+      <span
+        style={{
+          color: "var(--text-muted)",
+          fontVariantNumeric: "tabular-nums",
+          minWidth: 64,
+          textAlign: "end",
+          fontSize: "var(--font-ui-smaller)",
+        }}
+      >
+        <span style={{ color: "var(--text-faint)" }}>{label}: </span>
+        {Number.isInteger(value) ? value : value.toFixed(3)}
+      </span>
+    </label>
+  );
+}
+
+/** Best-effort HSL/hex color → hex for the color input. Returns "#7c52ed" for
+ *  values it can't parse (CSS variables, named colors, etc.). */
+function hslToHex(color: string): string | null {
+  const m = color.match(/^hsl\(\s*(\d+(?:\.\d+)?),\s*(\d+(?:\.\d+)?)%,\s*(\d+(?:\.\d+)?)%\s*\)$/);
+  if (!m) return color.startsWith("#") ? color : null;
+  const h = Number(m[1]);
+  const s = Number(m[2]) / 100;
+  const l = Number(m[3]) / 100;
+  const k = (n: number) => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) =>
+    Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
+  const r = f(0).toString(16).padStart(2, "0");
+  const g = f(8).toString(16).padStart(2, "0");
+  const b = f(4).toString(16).padStart(2, "0");
+  return `#${r}${g}${b}`;
+}
+
+function colorForStringSafe(s: string): string {
+  // Use the same deterministic hash as the colors module so new groups get
+  // a stable, distinct default color.
+  return colorForString(s);
 }

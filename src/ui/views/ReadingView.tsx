@@ -460,6 +460,67 @@ export function ReadingView({ path }: ReadingViewProps) {
     };
   }, [html]);
 
+  // Resolve embedded base blocks: ```base …``` → live filtered table.
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    let cancelled = false;
+
+    interface BaseHandle {
+      wrap: HTMLElement;
+      yamlText: string;
+      cleanup?: () => void;
+    }
+    const handles: BaseHandle[] = [];
+
+    for (const pre of root.querySelectorAll<HTMLElement>(
+      "pre.language-base:not(.is-resolved)",
+    )) {
+      const code = pre.querySelector("code");
+      if (!code) continue;
+      const yamlText = (code.textContent ?? "").trim();
+      const wrap = document.createElement("div");
+      wrap.className = "bases-fence";
+      wrap.innerHTML = `<div class="bases-fence-header"><span class="bases-fence-name">Base</span></div><div class="bases-fence-body">Loading…</div>`;
+      pre.replaceWith(wrap);
+      handles.push({ wrap, yamlText });
+      wrap.classList.add("is-resolved");
+    }
+
+    const renderAll = async () => {
+      const { renderBasesEmbed } = await import("./bases/embed");
+      if (cancelled) return;
+      for (const handle of handles) {
+        if (cancelled || !handle.wrap.isConnected) continue;
+        handle.cleanup?.();
+        try {
+          handle.cleanup = await renderBasesEmbed(handle.wrap, handle.yamlText, path);
+        } catch (err) {
+          const body = handle.wrap.querySelector(".bases-fence-body");
+          if (body) {
+            body.innerHTML = `<div class="message mod-error">${
+              err instanceof Error ? err.message : String(err)
+            }</div>`;
+          }
+        }
+      }
+    };
+
+    void renderAll();
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => void renderAll(), 300);
+    };
+    const unsub = metadataCache.subscribe(scheduleRefresh);
+    return () => {
+      cancelled = true;
+      if (refreshTimer) clearTimeout(refreshTimer);
+      unsub();
+      for (const handle of handles) handle.cleanup?.();
+    };
+  }, [html, path]);
+
   // Resolve embedded query blocks: ```query …``` → live result list.
   useEffect(() => {
     const root = containerRef.current;

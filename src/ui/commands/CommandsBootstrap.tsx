@@ -19,6 +19,7 @@ import { registerPluginReloadPlugin } from "@core/plugins-core/plugin-reload";
 import { registerVaultFindReplacePlugin } from "@core/plugins-core/vault-find-replace";
 import { registerBasesScaffoldPlugin } from "@core/plugins-core/bases-scaffold";
 import { registerWorkspacesPlugin } from "@core/plugins-core/workspaces";
+import { showUpdateCheckNotices } from "@core/plugins/update-check";
 import { workspaceStore } from "@core/workspace/store";
 
 interface CommandsBootstrapProps {
@@ -89,6 +90,13 @@ export function CommandsBootstrap({
       category: "Plugins",
       name: "Install plugin from URL…",
       callback: openInstallPlugin,
+    });
+
+    register({
+      id: "plugins:check-updates",
+      category: "Plugins",
+      name: "Check for plugin updates",
+      callback: () => showUpdateCheckNotices({ appVersion: "0.1.0-dev" }),
     });
 
     register({

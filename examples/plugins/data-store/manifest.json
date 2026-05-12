@@ -1,0 +1,8 @@
+{
+  "id": "data-store",
+  "name": "Data Store Demo",
+  "version": "0.1.0",
+  "description": "Demonstrates loadData/saveData, statusBar items, settings tabs, and event subscriptions.",
+  "author": "Granite",
+  "main": "main.js"
+}

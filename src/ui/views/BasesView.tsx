@@ -1,109 +1,29 @@
 import { Table } from "lucide-react";
 import { Effect } from "effect";
-import {
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
 import {
-  columnLabel,
   DEFAULT_BASE,
   parseBaseConfig,
   type BaseConfig,
   type ColumnKey,
   type SortOrder,
 } from "@core/bases/schema";
-import { stem } from "@core/fs/path";
+import { computeSummaries, groupRowsBy, type SummaryResult } from "@core/bases/summary";
 import { metadataCache } from "@core/metadata/cache";
 import { useMetadataVersion } from "@core/metadata/useMetadata";
 import { fileMatchesQuery, parseQuery } from "@core/search/query";
 import { settingsStore } from "@core/settings/store";
-import { workspaceStore } from "@core/workspace/store";
 import type { VaultFile, VaultPath } from "@core/fs/types";
+import { computeRow, sortRows, type Row } from "./bases/shared";
+import { BasesTableView } from "./bases/BasesTableView";
+import { BasesListView } from "./bases/BasesListView";
+import { BasesCardsView } from "./bases/BasesCardsView";
 
 export interface BasesViewProps {
   path: string | undefined;
-}
-
-type Row = {
-  file: VaultFile;
-  cells: Partial<Record<ColumnKey, unknown>>;
-};
-
-function formatCell(v: unknown, key: ColumnKey): React.ReactNode {
-  if (v === null || v === undefined) return "";
-  if (Array.isArray(v)) {
-    if (key === "tags") {
-      return (
-        <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
-          {v.map((t, i) => (
-            <span
-              key={i}
-              className="tag"
-              style={{
-                background: "var(--tag-background)",
-                color: "var(--tag-color)",
-                padding: "0 0.5em",
-                borderRadius: "var(--tag-radius)",
-                fontSize: "0.85em",
-              }}
-            >
-              #{String(t)}
-            </span>
-          ))}
-        </span>
-      );
-    }
-    return v.map((x) => String(x)).join(", ");
-  }
-  if (key === "file.modified" || key === "file.created") {
-    const t = typeof v === "number" ? v : Number(v);
-    if (!Number.isFinite(t) || t === 0) return "";
-    return new Date(t).toLocaleString();
-  }
-  if (typeof v === "object") return JSON.stringify(v);
-  return String(v);
-}
-
-function cellSortKey(v: unknown): number | string {
-  if (v === null || v === undefined) return "";
-  if (typeof v === "number") return v;
-  if (Array.isArray(v)) return v.join(", ").toLowerCase();
-  return String(v).toLowerCase();
-}
-
-function computeRow(file: VaultFile, columns: ReadonlyArray<ColumnKey>): Row {
-  const meta = metadataCache.getMetadata(file.path);
-  const cells: Partial<Record<ColumnKey, unknown>> = {};
-  for (const key of columns) {
-    switch (key) {
-      case "file.name":
-        cells[key] = stem(file.path);
-        break;
-      case "file.path":
-        cells[key] = file.path;
-        break;
-      case "file.modified":
-        cells[key] = file.mtimeMs;
-        break;
-      case "file.created":
-        cells[key] = file.ctimeMs;
-        break;
-      case "file.size":
-        cells[key] = file.size;
-        break;
-      case "tags":
-        cells[key] = meta ? [...new Set(meta.tags.map((t) => t.name))] : [];
-        break;
-      default:
-        cells[key] = meta ? meta.frontmatter[key] : null;
-        break;
-    }
-  }
-  return { file, cells };
 }
 
 export function BasesView({ path }: BasesViewProps) {
@@ -161,6 +81,10 @@ export function BasesView({ path }: BasesViewProps) {
     void reload();
   }, [reload]);
 
+  useEffect(() => {
+    setOverrideSort(null);
+  }, [path]);
+
   // Re-evaluate on watcher events (cheap because the file list is small).
   useEffect(() => {
     if (!path) return;
@@ -200,12 +124,16 @@ export function BasesView({ path }: BasesViewProps) {
       const needsContent =
         query.include.length > 0 ||
         query.exclude.length > 0 ||
-        query.lineTerms.length > 0;
+        query.lineTerms.length > 0 ||
+        query.regexes.length > 0 ||
+        query.negatedRegexes.length > 0;
       const metadataQuery = {
         ...query,
         include: [],
         exclude: [],
         lineTerms: [],
+        regexes: [],
+        negatedRegexes: [],
       };
       const rows: Row[] = [];
       for (const file of files) {
@@ -241,20 +169,13 @@ export function BasesView({ path }: BasesViewProps) {
             { matchCase: false },
           )
         ) {
-          rows.push(computeRow(file, config.columns));
+          rows.push(computeRow(file, config));
         }
       }
       if (cancelled) return;
-      const sortKey = (overrideSort?.column ?? config.sort) as ColumnKey;
+      const sortCol = (overrideSort?.column ?? config.sort) as ColumnKey;
       const sortOrder: SortOrder = overrideSort?.order ?? config.sortOrder;
-      rows.sort((a, b) => {
-        const ka = cellSortKey(a.cells[sortKey]);
-        const kb = cellSortKey(b.cells[sortKey]);
-        if (ka < kb) return sortOrder === "asc" ? -1 : 1;
-        if (ka > kb) return sortOrder === "asc" ? 1 : -1;
-        return 0;
-      });
-      setFiltered(rows);
+      setFiltered(sortRows(rows, sortCol, sortOrder));
     })();
     return () => {
       cancelled = true;
@@ -270,6 +191,31 @@ export function BasesView({ path }: BasesViewProps) {
       setOverrideSort({ column: col, order: "asc" });
     }
   };
+
+  // The user's columns plus any formula columns the config defines that
+  // aren't already listed. This way computed columns surface in every view.
+  const displayColumns: ReadonlyArray<ColumnKey> = useMemo(() => {
+    const out = [...config.columns];
+    for (const k of Object.keys(config.formulas)) {
+      if (!out.includes(k)) out.push(k);
+    }
+    return out;
+  }, [config.columns, config.formulas]);
+
+  const grouped: Map<string, ReadonlyArray<Row>> | null = useMemo(() => {
+    if (!config.groupBy) return null;
+    const key = config.groupBy;
+    const groups = groupRowsBy(filtered, key, (row, c) => row.cells[c]);
+    return groups;
+  }, [filtered, config.groupBy]);
+
+  const summaries: ReadonlyArray<SummaryResult> = useMemo(() => {
+    if (config.summaries.length === 0) return [];
+    return computeSummaries(config.summaries, filtered, (row, col) => row.cells[col]);
+  }, [filtered, config.summaries]);
+
+  const sortColumn = (overrideSort?.column ?? config.sort) as ColumnKey;
+  const sortOrder = overrideSort?.order ?? config.sortOrder;
 
   if (!path) {
     return (
@@ -324,6 +270,8 @@ export function BasesView({ path }: BasesViewProps) {
         </div>
         <div style={{ color: "var(--text-faint)", marginInlineStart: "auto" }}>
           {filtered.length} match{filtered.length === 1 ? "" : "es"}
+          {config.view !== "table" && <> · {config.view}</>}
+          {config.groupBy && <> · grouped by {config.groupBy}</>}
         </div>
       </div>
       {error && <div className="message mod-error">{error}</div>}
@@ -331,106 +279,33 @@ export function BasesView({ path }: BasesViewProps) {
         <div style={{ padding: "var(--size-4-4)", color: "var(--text-faint)" }}>
           Loading base…
         </div>
+      ) : config.view === "list" ? (
+        <BasesListView
+          config={config}
+          rows={filtered}
+          grouped={grouped}
+          summaries={summaries}
+          displayColumns={displayColumns}
+        />
+      ) : config.view === "cards" ? (
+        <BasesCardsView
+          config={config}
+          rows={filtered}
+          grouped={grouped}
+          summaries={summaries}
+          displayColumns={displayColumns}
+        />
       ) : (
-        <div
-          style={{
-            flex: "1 1 auto",
-            overflow: "auto",
-            padding: "0 var(--size-4-3) var(--size-4-3)",
-          }}
-        >
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "collapse",
-              fontSize: "var(--font-ui-small)",
-            }}
-          >
-            <thead>
-              <tr>
-                {config.columns.map((col) => {
-                  const activeCol = overrideSort?.column ?? config.sort;
-                  const order = overrideSort?.order ?? config.sortOrder;
-                  const isActive = col === activeCol;
-                  return (
-                    <th
-                      key={col}
-                      onClick={() => toggleSort(col)}
-                      style={{
-                        textAlign: "left",
-                        padding: "var(--size-2-3) var(--size-4-3)",
-                        background: "var(--background-secondary)",
-                        color: "var(--text-muted)",
-                        cursor: "pointer",
-                        position: "sticky",
-                        top: 0,
-                        userSelect: "none",
-                        borderBottom: "1px solid var(--background-modifier-border)",
-                      }}
-                    >
-                      {columnLabel(col)}
-                      {isActive && (
-                        <span style={{ marginInlineStart: 4 }}>
-                          {order === "asc" ? "▲" : "▼"}
-                        </span>
-                      )}
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={config.columns.length}
-                    style={{
-                      padding: "var(--size-4-4)",
-                      color: "var(--text-faint)",
-                      textAlign: "center",
-                    }}
-                  >
-                    No matching files.
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((row) => (
-                  <tr
-                    key={row.file.path}
-                    onClick={(e) => {
-                      if (
-                        e.target instanceof HTMLAnchorElement ||
-                        (e.target as HTMLElement).closest("a")
-                      )
-                        return;
-                      workspaceStore.openFile(row.file.path, {
-                        newTab: e.metaKey || e.ctrlKey,
-                      });
-                    }}
-                    style={{ cursor: "var(--cursor-link)" }}
-                  >
-                    {config.columns.map((col) => (
-                      <td
-                        key={col}
-                        style={{
-                          padding: "var(--size-2-3) var(--size-4-3)",
-                          borderBottom: "1px solid var(--background-modifier-border)",
-                          color: "var(--text-normal)",
-                          whiteSpace: col === "file.path" ? "nowrap" : "normal",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          maxWidth: 360,
-                        }}
-                      >
-                        {formatCell(row.cells[col], col)}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <BasesTableView
+          config={config}
+          rows={filtered}
+          grouped={grouped}
+          summaries={summaries}
+          sortColumn={sortColumn}
+          sortOrder={sortOrder}
+          onToggleSort={toggleSort}
+          displayColumns={displayColumns}
+        />
       )}
     </div>
   );
@@ -449,7 +324,8 @@ export async function scaffoldBaseFile(path: string): Promise<void> {
     cfg.columns.map((c) => `  - ${c}`).join("\n") +
     "\n" +
     `sort: ${cfg.sort}\n` +
-    `sortOrder: ${cfg.sortOrder}\n`;
+    `sortOrder: ${cfg.sortOrder}\n` +
+    `view: ${cfg.view}\n`;
   await run(
     Effect.gen(function* () {
       const fs = yield* FileSystem;

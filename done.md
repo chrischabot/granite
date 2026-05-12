@@ -4,6 +4,119 @@
 
 ---
 
+## 2026-05-12 — Phases 9-11: plugin platform, search & Bases parity, graph completeness
+
+### Phase 9 — Plugin platform completeness
+- **`PluginApi` extended** with persistence and chrome integration:
+  - `loadData<T>()` / `saveData(data)` reading and writing
+    `.granite/plugins/<id>/data.json` via the existing atomic-write FS layer
+    (`core/plugins/data-store.ts`).
+  - `addSettingsTab({ name, render })` — plugins inject custom panels into
+    Settings → Plugin options. Render is imperative (`render(containerEl)`)
+    and may return a cleanup function. The loader also bulk-removes residual
+    tabs on plugin unload.
+  - `statusBar.add({ text, tooltip?, onClick? })` returning a handle with
+    `setText`/`setTooltip`/`setOnClick`/`remove`. The `StatusBar` shell
+    component subscribes via `useSyncExternalStore` and renders all items.
+  - `events.on(name, listener)` for `file-open`, `active-leaf-change`,
+    `layout-change`, `file-rename`. The bus bridges into `workspaceStore` so
+    real subscriber updates emit appropriate events; per-plugin disposers are
+    bulk-removed at unload time (safety net).
+  - `metadataCache.{getFileCache, getBacklinks, getAllTags, getAllProperties}`
+    as a read-only window into the live cache.
+- **PluginManifest** gains `manifestUrl` and `minAppVersion` fields so plugins
+  can declare a remote endpoint for update checks and a host-version floor.
+- **Update check**: `core/plugins/update-check.ts` + a new
+  `plugins:check-updates` command. Fetches each plugin's `manifestUrl`,
+  compares versions with a small semver-like comparator, and shows a notice
+  summary (with an explicit warning when `minAppVersion` isn't met).
+- **Sample plugin** `examples/plugins/data-store/` demonstrates every new
+  surface — counter persisted via `saveData`, increment via status-bar
+  click, reset button + last-updated readout via a settings tab, and a
+  `file-open` event listener that logs to the console.
+- **Public TS declarations** (`examples/plugins/granite-api.d.ts`) updated to
+  expose all new types.
+
+### Phase 10 — Search & Bases parity
+- **Search regex** — `/pattern/flags` and `-/pattern/flags` token forms.
+  Empty flag list defaults to case-insensitive; explicit flags are
+  authoritative. Mismatched regexes fall through and are treated as free
+  terms.
+- **Property operators** — `[name]` (must exist with a non-null value),
+  `[name:value]` (equals, case-insensitive by default, array-aware so
+  `[tags:work]` matches a tag list), `[name:null]` (must be missing or
+  null), `[name:!null]`. All forms support `-` negation.
+- **Bases formula evaluator** (`core/bases/formula.ts`) — recursive-descent
+  parser + tree-walking evaluator. Supports arithmetic, comparison, boolean
+  short-circuit, unary `-`/`!`, field `obj.key`, index `obj["k"]`/`arr[0]`,
+  and 18 built-ins (`length`, `lower`, `upper`, `trim`, `now`, `date`,
+  `datetime`, `concat`, `if`, `contains`, `startsWith`, `endsWith`,
+  `coalesce`, `min`, `max`, `abs`, `floor`, `ceil`, `round`). Frontmatter
+  keys are exposed both as bare identifiers and under `fm.<key>`.
+- **Bases summaries** (`core/bases/summary.ts`) — `count`, `sum`, `avg`,
+  `min`, `max`, `median` plus `groupRowsBy()` keyed string buckets used by
+  group-by views.
+- **`BaseConfig` schema extensions** — `view: "table" | "list" | "cards"`,
+  optional `groupBy`, `summaries: SummarySpec[]`, and named `formulas`
+  (`{ size_kb: "file.size / 1024" }`). Legacy `.base` files still parse.
+- **BasesView refactor** — extracted row builder / sorter / formatter into
+  `ui/views/bases/shared.ts`. The main view dispatches to one of three
+  presentations:
+  - `BasesTableView` — sortable headers, group headings as sibling `<tr>`s
+    (fixed nested-tbody markup), summary footer.
+  - `BasesListView` — title + muted property strip per row.
+  - `BasesCardsView` — auto-fill CSS grid of bordered cards with
+    key/value rows.
+- **User-chosen sort override** now resets when the active `.base` file
+  changes so each base honors its own configured default sort.
+
+### Phase 11 — Graph completeness
+- **Graph configuration store** (`core/graph/store.ts`) — persists to
+  `localStorage` immediately and `.granite/graph.json` (debounced). State
+  covers `filter`, named `groups`, `colorMode`, four display sliders, four
+  force sliders, and the local-graph toggle. `mergeWithDefaults` validates
+  every numeric field via `Number.isFinite` so a corrupt persisted blob
+  cannot inject NaN into the simulation.
+- **Color modes** — `core/graph/colors.ts` deterministic string → HSL
+  hashing for the `tag` (dominant tag) and `folder` (top-level folder)
+  presets; same input always produces the same hue.
+- **Groups** (`core/graph/groups.ts`) — user-named buckets with a query
+  string + CSS color. The matcher reuses the search-query parser, restricted
+  to the content-free operator subset (tag/path/file/props + free terms
+  against path/stem) so it can be evaluated against the metadata cache
+  without reading file bodies. `firstMatchingGroup` resolves priority by
+  array order.
+- **Live filter** — the configured query restricts the graph to matching
+  nodes; the search-query parser is reused so the same syntax users know from
+  the Search panel works in the graph.
+- **Display + force sliders** — node size, link thickness, label size, label
+  threshold (zoom level above which all labels appear), plus repulsion, edge
+  attraction, link distance (now a real spring rest length:
+  `(dist − linkDistance) × attraction`), and center gravity. A "Reset
+  display & forces" button restores defaults.
+- **Local graph mode** — when enabled, the graph trims to a configurable
+  N-hop neighborhood of the active markdown file.
+- **`GraphView` overhaul** — collapsible controls panel with a settings
+  cog toggle, color-by selector, group editor with per-row color picker,
+  and all sliders. The simulation reads parameters from the store so changes
+  take effect on the next animation frame.
+
+### Tests
+- 86 new test cases:
+  - Plugins: `host-registries.test.ts`, `events.test.ts`,
+    `update-check.test.ts` (+ extended `loader` smoke tests).
+  - Search: regex + property operators (+ existing cases).
+  - Bases: `formula.test.ts` (parser + evaluator + built-ins),
+    `summary.test.ts` (aggregations + grouping), extended `schema.test.ts`
+    for new fields.
+  - Graph: `colors.test.ts`, `groups.test.ts`, `store.test.ts` (including
+    a fresh-module-load hydration test that proves corrupt localStorage
+    cannot poison the simulation).
+- **Total: 365 tests passing across 33 files**, up from the previously
+  reported 71 / 8. CI workflow (`typecheck + lint + test + build`) is green.
+
+---
+
 ## 2026-05-10 (late) — Canvas, Bases, search/replace, print, persistence migration
 
 ### Canvas (JSON Canvas v1)

@@ -835,6 +835,30 @@ const wikilinkCompletionSource: CompletionSource = (context) => {
     };
   }
 
+  if (innerText.startsWith("^^")) {
+    const query = innerText.slice(2).toLowerCase();
+    const blocks = metadataCache.getAllBlocks();
+    const filtered = query
+      ? blocks.filter((b) => b.id.toLowerCase().includes(query))
+      : blocks;
+    return {
+      from: before.from,
+      options: filtered.slice(0, 100).map((b) => ({
+        label: `^${b.id}`,
+        detail: stem(b.path),
+        type: "namespace",
+        apply: (view, _completion, from, to) => {
+          const insert = `[[${stem(b.path)}#^${b.id}]]`;
+          const replaceTo = to + consumeTrailing;
+          view.dispatch({
+            changes: { from, to: replaceTo, insert },
+            selection: { anchor: from + insert.length },
+          });
+        },
+      })),
+    };
+  }
+
   const entries = metadataCache.getAllSwitcherEntries();
   return {
     from: before.from,

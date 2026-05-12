@@ -1,11 +1,19 @@
 import { BookOpen, Cloud, Edit3 } from "lucide-react";
 import { Effect } from "effect";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { workspaceStore } from "@core/workspace/store";
 import { useWorkspace } from "@core/workspace/useWorkspace";
+import {
+  listStatusBarItems,
+  subscribeStatusBarItems,
+} from "@core/plugins/host-registries";
 import { useVault } from "../vault/VaultContext";
+
+const CJK_CHAR_RE =
+  /[\u4E00-\u9FFF\u3400-\u4DBF\uF900-\uFAFF\u3040-\u309F\u30A0-\u30FF\uAC00-\uD7AF]/gu;
+const LATIN_WORD_RE = /[\p{L}\p{N}_]+(?:['\u2019][\p{L}\p{N}_]+)*/gu;
 
 function countWords(text: string): number {
   let body = text;
@@ -14,19 +22,21 @@ function countWords(text: string): number {
     if (end !== -1) body = body.slice(end + 4);
   }
   body = body.replace(/```[\s\S]*?```/g, "");
-  try {
-    const matches = body.match(/[\p{L}\p{N}]+/gu);
-    return matches ? matches.length : 0;
-  } catch {
-    const matches = body.match(/[A-Za-z0-9]+/g);
-    return matches ? matches.length : 0;
-  }
+  const cjkMatches = body.match(CJK_CHAR_RE) ?? [];
+  const remainder = body.replace(CJK_CHAR_RE, " ");
+  const wordMatches = remainder.match(LATIN_WORD_RE) ?? [];
+  return cjkMatches.length + wordMatches.length;
 }
 
 export function StatusBar() {
   const { activeVault } = useVault();
   const { groups, leaves, activeGroupId } = useWorkspace();
   const [wordCount, setWordCount] = useState<number | null>(null);
+  const pluginItems = useSyncExternalStore(
+    subscribeStatusBarItems,
+    listStatusBarItems,
+    listStatusBarItems,
+  );
 
   const group = activeGroupId ? groups.get(activeGroupId) : null;
   const activeLeafId = group?.activeLeafId ?? null;
@@ -132,6 +142,28 @@ export function StatusBar() {
           </span>
         </div>
       )}
+      {pluginItems.map((item) => (
+        <div
+          key={item.id}
+          className={`status-bar-item${item.onClick ? " mod-clickable" : ""}`}
+          role={item.onClick ? "button" : undefined}
+          tabIndex={item.onClick ? 0 : undefined}
+          title={item.tooltip ?? undefined}
+          onClick={item.onClick ? () => item.onClick?.() : undefined}
+          onKeyDown={
+            item.onClick
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    item.onClick?.();
+                  }
+                }
+              : undefined
+          }
+        >
+          <span className="status-bar-item-segment">{item.text}</span>
+        </div>
+      ))}
     </div>
   );
 }

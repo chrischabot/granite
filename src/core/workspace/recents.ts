@@ -3,7 +3,6 @@ const MAX_RECENTS = 32;
 
 const subscribers = new Set<() => void>();
 let cache: string[] | null = null;
-let memoryFallback: string[] = [];
 
 function load(): string[] {
   try {
@@ -13,12 +12,11 @@ function load(): string[] {
     if (!Array.isArray(parsed)) return [];
     return parsed.filter((v): v is string => typeof v === "string").slice(0, MAX_RECENTS);
   } catch {
-    return memoryFallback;
+    return [];
   }
 }
 
 function save(list: ReadonlyArray<string>): void {
-  memoryFallback = [...list];
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
   } catch {

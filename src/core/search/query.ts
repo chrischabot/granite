@@ -1,6 +1,17 @@
-import type { ParsedMetadata } from "@core/metadata/parser";
-import type { VaultFile, VaultPath } from "@core/fs/types";
 import { stem } from "@core/fs/path";
+import type { VaultFile, VaultPath } from "@core/fs/types";
+import type { ParsedMetadata } from "@core/metadata/parser";
+
+export type PropertyValueConstraint =
+  | { kind: "null" }
+  | { kind: "not-null" }
+  | { kind: "equals"; value: string };
+
+export interface PropertyConstraint {
+  readonly key: string;
+  /** `null` means "the property must exist with a non-null value". */
+  readonly value: PropertyValueConstraint | null;
+}
 
 export interface ParsedQuery {
   /** Free-text substrings that must appear anywhere in the file (case-insensitive). */
@@ -15,9 +26,78 @@ export interface ParsedQuery {
   readonly files: ReadonlyArray<string>;
   /** Line-level constraints — for each, at least one line in the file must contain the term. */
   readonly lineTerms: ReadonlyArray<string>;
+  /** /pattern/flags regexes that MUST match against the content. */
+  readonly regexes: ReadonlyArray<RegExp>;
+  /** Negated /pattern/flags regexes — MUST NOT match. */
+  readonly negatedRegexes: ReadonlyArray<RegExp>;
+  /** Frontmatter property constraints that MUST hold. */
+  readonly props: ReadonlyArray<PropertyConstraint>;
+  /** Negated frontmatter property constraints. */
+  readonly negatedProps: ReadonlyArray<PropertyConstraint>;
 }
 
-const TOKEN_RE = /(?:[a-zA-Z]+:)?(?:"[^"]+"|\S+)/g;
+/**
+ * Top-level tokenizer. Matches, in priority order:
+ *   1. Optional leading `-` for negation
+ *   2. `/pattern/flags` regex literal
+ *   3. `[key]` or `[key:value]` property operator
+ *   4. `operator:"quoted phrase"` or `operator:bare`
+ *   5. `"quoted phrase"` or `bare-term`
+ */
+const TOKEN_RE = /-?(?:\/(?:\\.|[^/\\])+\/[gimsuy]*|\[[^\]]+\]|(?:[a-zA-Z]+:)?(?:"[^"]+"|\S+))/g;
+
+const REGEX_FLAGS_RE = /^[gimsuy]*$/;
+
+function parseRegexToken(body: string): RegExp | null {
+  if (!body.startsWith("/")) return null;
+  // Find the matching closing slash (skipping escaped slashes).
+  let end = -1;
+  for (let i = 1; i < body.length; i++) {
+    if (body[i] === "\\") {
+      i++;
+      continue;
+    }
+    if (body[i] === "/") {
+      end = i;
+      break;
+    }
+  }
+  if (end === -1) return null;
+  const pattern = body.slice(1, end);
+  const flags = body.slice(end + 1);
+  if (!REGEX_FLAGS_RE.test(flags)) return null;
+  // Default to case-insensitive when the user omits the `i` flag entirely so
+  // it matches the rest of the query's case-insensitive defaults.
+  const effectiveFlags = flags.includes("i") || flags.length > 0 ? flags : "i";
+  try {
+    return new RegExp(pattern, effectiveFlags);
+  } catch {
+    return null;
+  }
+}
+
+function parsePropertyToken(body: string): PropertyConstraint | null {
+  if (!body.startsWith("[") || !body.endsWith("]")) return null;
+  const inner = body.slice(1, -1).trim();
+  if (!inner) return null;
+  const colonIdx = inner.indexOf(":");
+  if (colonIdx === -1) {
+    return { key: inner.trim(), value: null };
+  }
+  const key = inner.slice(0, colonIdx).trim();
+  if (!key) return null;
+  let value = inner.slice(colonIdx + 1).trim();
+  if (value === "null") {
+    return { key, value: { kind: "null" } };
+  }
+  if (value === "!null" || value === "*") {
+    return { key, value: { kind: "not-null" } };
+  }
+  if (value.startsWith('"') && value.endsWith('"') && value.length >= 2) {
+    value = value.slice(1, -1);
+  }
+  return { key, value: { kind: "equals", value } };
+}
 
 /** Parse a structured search query. */
 export function parseQuery(input: string): ParsedQuery {
@@ -27,6 +107,10 @@ export function parseQuery(input: string): ParsedQuery {
   const paths: string[] = [];
   const files: string[] = [];
   const lineTerms: string[] = [];
+  const regexes: RegExp[] = [];
+  const negatedRegexes: RegExp[] = [];
+  const props: PropertyConstraint[] = [];
+  const negatedProps: PropertyConstraint[] = [];
 
   let m: RegExpExecArray | null;
   TOKEN_RE.lastIndex = 0;
@@ -37,7 +121,29 @@ export function parseQuery(input: string): ParsedQuery {
     if (token.startsWith("-")) {
       negate = true;
       token = token.slice(1);
+      if (!token) continue;
     }
+
+    if (token.startsWith("/")) {
+      const re = parseRegexToken(token);
+      if (re) {
+        if (negate) negatedRegexes.push(re);
+        else regexes.push(re);
+        continue;
+      }
+      // Malformed regex — fall through and treat as free term.
+    }
+
+    if (token.startsWith("[")) {
+      const prop = parsePropertyToken(token);
+      if (prop) {
+        if (negate) negatedProps.push(prop);
+        else props.push(prop);
+        continue;
+      }
+      // Malformed property — fall through.
+    }
+
     const colonIdx = token.indexOf(":");
     let key = "";
     let value = token;
@@ -69,7 +175,18 @@ export function parseQuery(input: string): ParsedQuery {
     }
   }
 
-  return { include, exclude, tags, paths, files, lineTerms };
+  return {
+    include,
+    exclude,
+    tags,
+    paths,
+    files,
+    lineTerms,
+    regexes,
+    negatedRegexes,
+    props,
+    negatedProps,
+  };
 }
 
 export interface QueryContext {
@@ -80,6 +197,38 @@ export interface QueryContext {
 
 export interface MatchOptions {
   readonly matchCase?: boolean;
+}
+
+function stringEquals(a: unknown, b: string, matchCase: boolean): boolean {
+  const aStr = a == null ? "" : String(a);
+  return matchCase ? aStr === b : aStr.toLowerCase() === b.toLowerCase();
+}
+
+function propMatches(
+  constraint: PropertyConstraint,
+  fm: Record<string, unknown>,
+  matchCase: boolean,
+): boolean {
+  const has = Object.prototype.hasOwnProperty.call(fm, constraint.key);
+  const value = has ? fm[constraint.key] : undefined;
+  // Pure existence — bare `[name]` requires the key to exist with a non-null value.
+  if (constraint.value === null) {
+    return has && value !== null && value !== undefined;
+  }
+  switch (constraint.value.kind) {
+    case "null":
+      return !has || value === null || value === undefined;
+    case "not-null":
+      return has && value !== null && value !== undefined;
+    case "equals": {
+      const wanted = constraint.value.value;
+      if (!has) return false;
+      if (Array.isArray(value)) {
+        return value.some((v) => stringEquals(v, wanted, matchCase));
+      }
+      return stringEquals(value, wanted, matchCase);
+    }
+  }
 }
 
 /** Test whether the given file passes the structured query. */
@@ -124,6 +273,26 @@ export function fileMatchesQuery(
     for (const term of query.lineTerms) {
       const needle = cased ? term : term.toLowerCase();
       if (!lines.some((line) => line.includes(needle))) return false;
+    }
+  }
+  if (query.regexes.length > 0 || query.negatedRegexes.length > 0) {
+    for (const re of query.regexes) {
+      // Reset lastIndex defensively in case the regex carries the `g` flag.
+      re.lastIndex = 0;
+      if (!re.test(ctx.content)) return false;
+    }
+    for (const re of query.negatedRegexes) {
+      re.lastIndex = 0;
+      if (re.test(ctx.content)) return false;
+    }
+  }
+  if (query.props.length > 0 || query.negatedProps.length > 0) {
+    const fm = ctx.metadata?.frontmatter ?? {};
+    for (const c of query.props) {
+      if (!propMatches(c, fm, cased)) return false;
+    }
+    for (const c of query.negatedProps) {
+      if (propMatches(c, fm, cased)) return false;
     }
   }
   return true;

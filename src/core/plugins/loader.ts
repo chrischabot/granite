@@ -1,14 +1,26 @@
-import { Effect } from "effect";
+import { commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
-import { commandRegistry } from "@core/commands/CommandRegistry";
-import { workspaceStore } from "@core/workspace/store";
+import type { VaultPath } from "@core/fs/types";
+import { metadataCache } from "@core/metadata/cache";
 import { noticeManager } from "@core/notices/notice";
 import { activeThemePath } from "@core/themes/loader";
 import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
+import { workspaceStore } from "@core/workspace/store";
+import { Effect } from "effect";
+import { loadPluginData, savePluginData } from "./data-store";
+import { bindWorkspaceEvents, onPluginEvent, removeAllListenersForPlugin } from "./events";
+import {
+  addStatusBarItem,
+  addSettingsTab as registryAddSettingsTab,
+  removeAllSettingsTabsForPlugin,
+  removeAllStatusBarItemsForPlugin,
+} from "./host-registries";
 import type {
   LoadedPlugin,
   PluginApi,
+  PluginEventMap,
+  PluginEventName,
   PluginExports,
   PluginManifest,
   PluginVaultInfo,
@@ -63,10 +75,7 @@ async function hydrateEnabledFromDisk(vaultId: string): Promise<void> {
   const onDisk = await readConfigJson<string[]>(DISK_CONFIG_NAME);
   if (Array.isArray(onDisk)) {
     try {
-      localStorage.setItem(
-        `${STORAGE_KEY}:${vaultId}`,
-        JSON.stringify(onDisk),
-      );
+      localStorage.setItem(`${STORAGE_KEY}:${vaultId}`, JSON.stringify(onDisk));
     } catch {
       /* ignore */
     }
@@ -117,6 +126,31 @@ function makeApi(pluginId: string): PluginApi {
       version: GRANITE_VERSION,
       activeThemePath: activeThemePath(),
     },
+    statusBar: {
+      add: (opts) => addStatusBarItem(pluginId, opts ?? {}),
+    },
+    events: {
+      on: <E extends PluginEventName>(event: E, listener: (data: PluginEventMap[E]) => void) =>
+        onPluginEvent(pluginId, event, listener),
+    },
+    metadataCache: {
+      getFileCache: (p) => metadataCache.getMetadata(p as VaultPath),
+      getBacklinks: (p) =>
+        metadataCache.getBacklinks(p as VaultPath).map((b) => ({
+          source: b.source,
+          lines: [...b.lines],
+        })),
+      getAllTags: () => [...metadataCache.getAllTags()],
+      getAllProperties: () =>
+        metadataCache.getAllProperties().map((entry) => ({
+          name: entry.name,
+          count: entry.count,
+          samples: [...entry.samples],
+        })),
+    },
+    loadData: <T = unknown>() => loadPluginData<T>(pluginId),
+    saveData: (data) => savePluginData(pluginId, data),
+    addSettingsTab: (spec) => registryAddSettingsTab(pluginId, spec),
     log: (...args: unknown[]) => {
       // eslint-disable-next-line no-console
       console.log(prefix, ...args);
@@ -143,6 +177,8 @@ async function readManifest(id: string): Promise<PluginManifest | null> {
       ...(parsed.description ? { description: parsed.description } : {}),
       ...(parsed.author ? { author: parsed.author } : {}),
       ...(parsed.main ? { main: parsed.main } : {}),
+      ...(parsed.manifestUrl ? { manifestUrl: parsed.manifestUrl } : {}),
+      ...(parsed.minAppVersion ? { minAppVersion: parsed.minAppVersion } : {}),
     };
   } catch {
     return null;
@@ -170,8 +206,7 @@ async function loadPlugin(entry: PluginEntry): Promise<void> {
   const moduleObj: { exports: PluginExports } = { exports: {} };
   try {
     const fn = new Function("module", "exports", "api", `${code}\n;return module.exports;`);
-    const exports =
-      (fn(moduleObj, moduleObj.exports, api) as PluginExports) ?? moduleObj.exports;
+    const exports = (fn(moduleObj, moduleObj.exports, api) as PluginExports) ?? moduleObj.exports;
     if (typeof exports.onLoad === "function") {
       await Promise.resolve(exports.onLoad(api));
     }
@@ -200,6 +235,11 @@ async function unloadPlugin(entry: PluginEntry): Promise<void> {
     }
     delete entry.cleanup;
   }
+  // Safety net: blast any residual host registry entries / event listeners
+  // even if the plugin forgot to call the disposers we returned to it.
+  removeAllStatusBarItemsForPlugin(entry.manifest.id);
+  removeAllSettingsTabsForPlugin(entry.manifest.id);
+  removeAllListenersForPlugin(entry.manifest.id);
 }
 
 async function refreshAll(): Promise<void> {
@@ -261,6 +301,8 @@ export async function bindPlugins(vaultId: string, info: PluginVaultInfo): Promi
   await unbindPlugins();
   activeVaultId = vaultId;
   activeVaultInfo = info;
+  // Bridge workspace state into the plugin event bus. Idempotent.
+  bindWorkspaceEvents();
   await hydrateEnabledFromDisk(vaultId);
   if (activeVaultId !== vaultId) return;
   await refreshAll();

@@ -36,6 +36,12 @@ const EN_LOCALE: LocaleMap = {
   "search.status.matches": "matches",
   "search.status.file": "file",
   "search.status.files": "files",
+  "tags.empty": "No tags found.",
+  "tags.showNested": "Show nested tags",
+  "tags.expand": "Expand #{tag}",
+  "tags.collapse": "Collapse #{tag}",
+  "tags.menu.filter": "Filter search by #{tag}",
+  "tags.menu.rename": "Rename #{tag} across the vault…",
 };
 
 const builtinLocales: Record<LocaleId, LocaleMap> = {
@@ -72,6 +78,12 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "search.status.matches": "התאמות",
     "search.status.file": "קובץ",
     "search.status.files": "קבצים",
+    "tags.empty": "לא נמצאו תגיות.",
+    "tags.showNested": "הצגת תגיות מקוננות",
+    "tags.expand": "הרחבת #{tag}",
+    "tags.collapse": "כיווץ #{tag}",
+    "tags.menu.filter": "סינון חיפוש לפי #{tag}",
+    "tags.menu.rename": "שינוי שם #{tag} בכל הכספת…",
   },
 };
 

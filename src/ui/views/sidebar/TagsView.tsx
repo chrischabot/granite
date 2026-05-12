@@ -5,6 +5,7 @@ import { renameTagAcrossVault } from "@core/plugins-core/tag-rename";
 import { settingsStore } from "@core/settings/store";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useI18n } from "../../i18n/useI18n";
 import { setSearchQuery } from "./SearchView";
 import { type TagNode, buildTagsModel, sortTagNodes } from "./tags-model";
 
@@ -18,6 +19,7 @@ function filterByTag(fullName: string): void {
 }
 
 export function TagsView() {
+  const t = useI18n();
   useMetadataVersion();
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [tags, setTags] = useState<Array<{ name: string; count: number }>>([]);
@@ -39,7 +41,7 @@ export function TagsView() {
   const tree = useMemo(() => buildTagsModel(tags, showNestedTags), [tags, showNestedTags]);
 
   if (tags.length === 0) {
-    return <div className="workspace-sidedock-empty-state">No tags found.</div>;
+    return <div className="workspace-sidedock-empty-state">{t("tags.empty")}</div>;
   }
 
   const toggle = (fullName: string) =>
@@ -58,10 +60,17 @@ export function TagsView() {
           checked={showNestedTags}
           onChange={(e) => settingsStore.update({ showNestedTags: e.currentTarget.checked })}
         />
-        Show nested tags
+        {t("tags.showNested")}
       </label>
       {sortTagNodes(tree.children.values()).map((node) => (
-        <TagRow key={node.fullName} node={node} depth={0} collapsed={collapsed} onToggle={toggle} />
+        <TagRow
+          key={node.fullName}
+          node={node}
+          depth={0}
+          collapsed={collapsed}
+          onToggle={toggle}
+          t={t}
+        />
       ))}
     </div>
   );
@@ -72,11 +81,13 @@ function TagRow({
   depth,
   collapsed,
   onToggle,
+  t,
 }: {
   node: TagNode;
   depth: number;
   collapsed: Set<string>;
   onToggle: (fullName: string) => void;
+  t: ReturnType<typeof useI18n>;
 }) {
   const hasChildren = node.children.size > 0;
   const isCollapsed = collapsed.has(node.fullName);
@@ -89,12 +100,12 @@ function TagRow({
       items: [
         {
           id: "filter",
-          label: `Filter search by #${node.fullName}`,
+          label: t("tags.menu.filter", { tag: node.fullName }),
           callback: () => filterByTag(node.fullName),
         },
         {
           id: "rename",
-          label: `Rename #${node.fullName} across the vault…`,
+          label: t("tags.menu.rename", { tag: node.fullName }),
           callback: () => void renameTagAcrossVault(node.fullName),
         },
       ],
@@ -117,7 +128,9 @@ function TagRow({
           <button
             type="button"
             className="collapse-icon"
-            aria-label={`${isCollapsed ? "Expand" : "Collapse"} #${node.fullName}`}
+            aria-label={t(isCollapsed ? "tags.expand" : "tags.collapse", {
+              tag: node.fullName,
+            })}
             style={{
               width: 14,
               display: "inline-flex",
@@ -154,6 +167,7 @@ function TagRow({
             depth={depth + 1}
             collapsed={collapsed}
             onToggle={onToggle}
+            t={t}
           />
         ))}
     </>

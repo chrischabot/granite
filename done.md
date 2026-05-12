@@ -113,6 +113,22 @@
 
 ---
 
+## 2026-05-12 — Tags view i18n ratchet
+
+- **Tags pane externalization** — routed the empty state, nested-tags toggle,
+  expand/collapse labels, and context-menu labels through `t()`.
+- **Hebrew coverage** — added Hebrew translations for the Tags pane strings.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` so
+  Search and Tags view literals are both guarded against English-string
+  regressions.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: targeted i18n and tags-model tests pass.
+
+---
+
 ## 2026-05-12 — Performance budget first pass
 
 - **Quick Switcher keystroke path** — extracted reusable fuzzy indexes and

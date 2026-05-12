@@ -53,5 +53,6 @@ describe("i18n", () => {
     expect(t("settings.editor")).toBe("עורך");
     expect(t("app.empty.noFile")).toBe("אין קובץ פתוח");
     expect(t("search.sort.relevance")).toBe("רלוונטיות");
+    expect(t("tags.showNested")).toBe("הצגת תגיות מקוננות");
   });
 });

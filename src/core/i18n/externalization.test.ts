@@ -300,6 +300,25 @@ const GRAPH_VIEW_FORBIDDEN_PATTERNS = [
   />\s*Reset display & forces\s*</,
 ];
 
+const FILE_RECOVERY_MODAL_FORBIDDEN_PATTERNS = [
+  /"Could not load snapshots"/,
+  /"Snapshot copied\."/,
+  /"Snapshot restored\."/,
+  /confirm\("Clear all recovery snapshots\?"\)/,
+  /"Recovery snapshots cleared\."/,
+  /title="File recovery"/,
+  /aria-label="Recovery snapshots"/,
+  />\s*Filename\s*</,
+  /"Filter files"/,
+  />\s*Loading snapshots…\s*</,
+  />\s*No snapshots found\.\s*</,
+  /\{snapshot\.content\.length\} bytes/,
+  />\s*Clear\s*</,
+  />\s*Show changes\s*</,
+  />\s*Copy\s*</,
+  />\s*Restore\s*</,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -763,6 +782,35 @@ describe("UI string externalization audit", () => {
       "graph.controls.forces",
       "graph.forces.repulsion",
       "graph.reset",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps File Recovery modal labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/prompts/FileRecoveryModal.tsx`, "utf8");
+    const violations = FILE_RECOVERY_MODAL_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+    for (const requiredKey of [
+      "fileRecovery.error.load",
+      "fileRecovery.notice.copied",
+      "fileRecovery.notice.restored",
+      "fileRecovery.confirm.clear",
+      "fileRecovery.notice.cleared",
+      "fileRecovery.title",
+      "fileRecovery.snapshots",
+      "fileRecovery.filename",
+      "fileRecovery.filterPlaceholder",
+      "fileRecovery.loading",
+      "fileRecovery.empty",
+      "fileRecovery.bytes",
+      "fileRecovery.clear",
+      "fileRecovery.showChanges",
+      "fileRecovery.copy",
+      "fileRecovery.restore",
     ]) {
       expect(source).toContain(requiredKey);
     }

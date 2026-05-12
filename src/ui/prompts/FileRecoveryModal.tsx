@@ -9,6 +9,7 @@ import {
 } from "@core/plugins-core/file-recovery";
 import { Effect } from "effect";
 import { useEffect, useMemo, useState } from "react";
+import { useI18n } from "../i18n/useI18n";
 import { Modal } from "../overlay/Modal";
 
 export interface FileRecoveryModalProps {
@@ -58,6 +59,7 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
   const [showChanges, setShowChanges] = useState(true);
   const [currentContent, setCurrentContent] = useState("");
   const [loading, setLoading] = useState(false);
+  const t = useI18n();
 
   useEffect(() => {
     if (!path) return;
@@ -71,7 +73,7 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
         setSelectedId(list[0]?.id ?? null);
       })
       .catch((err) => {
-        noticeManager.show(err instanceof Error ? err.message : "Could not load snapshots", {
+        noticeManager.show(err instanceof Error ? err.message : t("fileRecovery.error.load"), {
           kind: "error",
         });
       })
@@ -81,7 +83,7 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
     return () => {
       cancelled = true;
     };
-  }, [path]);
+  }, [path, t]);
 
   const filteredSnapshots = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -101,30 +103,30 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
   const copy = async () => {
     if (!selected) return;
     await navigator.clipboard?.writeText(selected.content);
-    noticeManager.show("Snapshot copied.", { kind: "success" });
+    noticeManager.show(t("fileRecovery.notice.copied"), { kind: "success" });
   };
 
   const restore = async () => {
     if (!selected) return;
     await restoreRecoverySnapshot(selected);
-    noticeManager.show("Snapshot restored.", { kind: "success" });
+    noticeManager.show(t("fileRecovery.notice.restored"), { kind: "success" });
     onClose();
   };
 
   const clear = async () => {
-    const ok = confirm("Clear all recovery snapshots?");
+    const ok = confirm(t("fileRecovery.confirm.clear"));
     if (!ok) return;
     await clearRecoverySnapshots();
     setSnapshots([]);
     setSelectedId(null);
-    noticeManager.show("Recovery snapshots cleared.", { kind: "success" });
+    noticeManager.show(t("fileRecovery.notice.cleared"), { kind: "success" });
   };
 
   return (
     <Modal
       open={path !== null}
       onClose={onClose}
-      title="File recovery"
+      title={t("fileRecovery.title")}
       modifier="mod-sidebar-layout"
     >
       <div
@@ -136,15 +138,15 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
           minHeight: 420,
         }}
       >
-        <section className="file-recovery-list" aria-label="Recovery snapshots">
+        <section className="file-recovery-list" aria-label={t("fileRecovery.snapshots")}>
           <label className="setting-item-name" htmlFor="file-recovery-filter">
-            Filename
+            {t("fileRecovery.filename")}
           </label>
           <input
             id="file-recovery-filter"
             className="prompt-input"
             value={filter}
-            placeholder={path ?? "Filter files"}
+            placeholder={path ?? t("fileRecovery.filterPlaceholder")}
             onChange={(e) => setFilter(e.currentTarget.value)}
           />
           <div
@@ -159,11 +161,11 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
           >
             {loading ? (
               <div style={{ padding: "var(--size-4-3)", color: "var(--text-faint)" }}>
-                Loading snapshots…
+                {t("fileRecovery.loading")}
               </div>
             ) : filteredSnapshots.length === 0 ? (
               <div style={{ padding: "var(--size-4-3)", color: "var(--text-faint)" }}>
-                No snapshots found.
+                {t("fileRecovery.empty")}
               </div>
             ) : (
               filteredSnapshots.map((snapshot) => (
@@ -190,13 +192,15 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
                     {formatSnapshotTime(snapshot.mtimeMs)}
                   </span>
                   <br />
-                  <span className="u-muted">{snapshot.content.length} bytes</span>
+                  <span className="u-muted">
+                    {t("fileRecovery.bytes", { bytes: snapshot.content.length })}
+                  </span>
                 </button>
               ))
             )}
           </div>
           <button type="button" onClick={clear} disabled={!path || snapshots.length === 0}>
-            Clear
+            {t("fileRecovery.clear")}
           </button>
         </section>
         <section style={{ display: "flex", minWidth: 0, flexDirection: "column" }}>
@@ -206,7 +210,7 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
               checked={showChanges}
               onChange={(e) => setShowChanges(e.currentTarget.checked)}
             />
-            Show changes
+            {t("fileRecovery.showChanges")}
           </label>
           <textarea
             className="file-recovery-text"
@@ -220,10 +224,10 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
             style={{ justifyContent: "flex-end", paddingInlineEnd: 0 }}
           >
             <button type="button" onClick={copy} disabled={!selected}>
-              Copy
+              {t("fileRecovery.copy")}
             </button>
             <button type="button" className="mod-cta" onClick={restore} disabled={!selected}>
-              Restore
+              {t("fileRecovery.restore")}
             </button>
           </div>
         </section>

@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-12 — File Recovery i18n ratchet
+
+- **File Recovery modal** — routed load fallback error, copy/restore/clear
+  notices, clear confirmation, modal title, snapshot list label, filename/filter
+  labels, loading/empty states, byte count, show-changes toggle, and copy/restore
+  actions through `t()`.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if File Recovery's formerly hard-coded English labels return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Graph view i18n ratchet
 
 - **Graph canvas chrome** — routed empty states, SVG accessible label/title,

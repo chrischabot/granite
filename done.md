@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-12 — Theme body-text contrast assertion
+
+- **Contrast gate** — added a token-level WCAG AA assertion for
+  `--text-normal` against `--background-primary` in light, dark, and
+  high-contrast theme variants.
+- **Real CSS coverage** — the test reads `tokens.css` and
+  `high-contrast.css` directly, resolves CSS variable chains, and computes
+  relative luminance rather than relying on duplicated fixture values.
+
+### Tests
+- Added `src/styles/contrast.test.ts` for body text contrast.
+- Added minimal test-runtime typings for `node:fs` so CSS source files can be
+  read without widening the app's TypeScript environment.
+- Validation: scoped `bunx biome check --write`, targeted contrast test, and
+  `bun run typecheck` pass.
+
+---
+
 ## 2026-05-12 — Accessibility live announcements
 
 - **Shared live region** — added a central polite/atomic screen-reader

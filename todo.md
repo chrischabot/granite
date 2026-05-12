@@ -95,7 +95,7 @@
 ### §24.20 Accessibility — Phase 16
 - [ ] Full keyboard-only audit
 - [x] Screen-reader announcement of tab changes / modal opens / notice content ← _shipped 2026-05-12 a11y live announcements_
-- [ ] 4.5:1 contrast assertion
+- [x] 4.5:1 contrast assertion ← _shipped 2026-05-12 theme contrast test_
 
 ### §24.21 i18n — Phase 15
 - [ ] String externalisation across UI

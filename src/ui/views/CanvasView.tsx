@@ -1,38 +1,24 @@
+import { canvasKeyboardStep, snapCanvasValue } from "@core/canvas/interactions";
 import {
-  ZoomIn,
-  ZoomOut,
-  Maximize2,
-  Trash2,
-  Type,
-  FileText,
-  LinkIcon,
-} from "lucide-react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
-import {
-  EMPTY_CANVAS,
-  newCanvasId,
-  readCanvasFile,
-  writeCanvasFile,
   type Canvas,
   type CanvasEdge,
   type CanvasNode,
+  EMPTY_CANVAS,
   type EdgeSide,
   type FileNode,
   type GroupNode,
   type LinkNode,
   type TextNode,
+  newCanvasId,
+  readCanvasFile,
+  writeCanvasFile,
 } from "@core/canvas/schema";
 import { stem } from "@core/fs/path";
 import { renderMarkdown } from "@core/markdown/renderer";
-import { workspaceStore } from "@core/workspace/store";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
+import { FileText, LinkIcon, Magnet, Maximize2, Trash2, Type, ZoomIn, ZoomOut } from "lucide-react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 export interface CanvasViewProps {
   path: string | undefined;
@@ -103,6 +89,7 @@ export function CanvasView({ path }: CanvasViewProps) {
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [snapToGrid, setSnapToGrid] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dirtyRef = useRef(false);
@@ -147,10 +134,9 @@ export function CanvasView({ path }: CanvasViewProps) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       void writeCanvasFile(path, canvasRef.current).catch((err) => {
-        noticeManager.show(
-          err instanceof Error ? err.message : "Could not save canvas",
-          { kind: "error" },
-        );
+        noticeManager.show(err instanceof Error ? err.message : "Could not save canvas", {
+          kind: "error",
+        });
       });
       dirtyRef.current = false;
     }, SAVE_DEBOUNCE_MS);
@@ -230,15 +216,15 @@ export function CanvasView({ path }: CanvasViewProps) {
     const node: TextNode = {
       id: newCanvasId(),
       type: "text",
-      x: Math.round((cx - 100) / GRID) * GRID,
-      y: Math.round((cy - 40) / GRID) * GRID,
+      x: snapCanvasValue(cx - 100, snapToGrid, GRID),
+      y: snapCanvasValue(cy - 40, snapToGrid, GRID),
       width: 200,
       height: 80,
       text,
     };
     mutate({ ...canvasRef.current, nodes: [...canvasRef.current.nodes, node] });
     setSelectedId(node.id);
-  }, [view, mutate]);
+  }, [view, mutate, snapToGrid]);
 
   const commitTextEdit = useCallback(
     (id: string, next: string) => {
@@ -300,8 +286,8 @@ export function CanvasView({ path }: CanvasViewProps) {
       if (resize) {
         const dx = (ev.clientX - resize.startMouseX) / view.scale;
         const dy = (ev.clientY - resize.startMouseY) / view.scale;
-        const nw = Math.max(MIN_NODE_W, Math.round((resize.startW + dx) / GRID) * GRID);
-        const nh = Math.max(MIN_NODE_H, Math.round((resize.startH + dy) / GRID) * GRID);
+        const nw = Math.max(MIN_NODE_W, snapCanvasValue(resize.startW + dx, snapToGrid, GRID));
+        const nh = Math.max(MIN_NODE_H, snapCanvasValue(resize.startH + dy, snapToGrid, GRID));
         updateNode(resize.id, { width: nw, height: nh } as Partial<CanvasNode>);
         return;
       }
@@ -309,8 +295,8 @@ export function CanvasView({ path }: CanvasViewProps) {
       if (drag) {
         const dx = (ev.clientX - drag.startMouseX) / view.scale;
         const dy = (ev.clientY - drag.startMouseY) / view.scale;
-        const nx = Math.round((drag.startNodeX + dx) / GRID) * GRID;
-        const ny = Math.round((drag.startNodeY + dy) / GRID) * GRID;
+        const nx = snapCanvasValue(drag.startNodeX + dx, snapToGrid, GRID);
+        const ny = snapCanvasValue(drag.startNodeY + dy, snapToGrid, GRID);
         updateNode(drag.id, { x: nx, y: ny } as Partial<CanvasNode>);
         return;
       }
@@ -335,7 +321,7 @@ export function CanvasView({ path }: CanvasViewProps) {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
-  }, [view, updateNode, finalizeEdgeDraft]);
+  }, [view, updateNode, finalizeEdgeDraft, snapToGrid]);
 
   const onBackgroundMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -387,7 +373,7 @@ export function CanvasView({ path }: CanvasViewProps) {
         deleteSelected();
         return;
       }
-      const step = ev.shiftKey ? GRID * 5 : GRID;
+      const step = canvasKeyboardStep(snapToGrid, GRID, ev.shiftKey);
       let dx = 0;
       let dy = 0;
       if (ev.key === "ArrowLeft") dx = -step;
@@ -402,7 +388,7 @@ export function CanvasView({ path }: CanvasViewProps) {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [selectedId, deleteSelected, updateNode]);
+  }, [selectedId, deleteSelected, updateNode, snapToGrid]);
 
   const fitToContent = useCallback((c: Canvas) => {
     const el = containerRef.current;
@@ -412,10 +398,10 @@ export function CanvasView({ path }: CanvasViewProps) {
       setView({ x: rect.width / 2, y: rect.height / 2, scale: 1 });
       return;
     }
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
+    let minX = Number.POSITIVE_INFINITY;
+    let minY = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let maxY = Number.NEGATIVE_INFINITY;
     for (const n of c.nodes) {
       minX = Math.min(minX, n.x);
       minY = Math.min(minY, n.y);
@@ -479,7 +465,7 @@ export function CanvasView({ path }: CanvasViewProps) {
     });
   }, [canvas]);
 
-  const selectedNode = selectedId ? canvas.nodes.find((n) => n.id === selectedId) ?? null : null;
+  const selectedNode = selectedId ? (canvas.nodes.find((n) => n.id === selectedId) ?? null) : null;
 
   if (!path) {
     return (
@@ -528,8 +514,16 @@ export function CanvasView({ path }: CanvasViewProps) {
         e.preventDefault();
         const rect = containerRef.current?.getBoundingClientRect();
         if (!rect) return;
-        const x = Math.round(((e.clientX - rect.left - view.x) / view.scale - 100) / GRID) * GRID;
-        const y = Math.round(((e.clientY - rect.top - view.y) / view.scale - 40) / GRID) * GRID;
+        const x = snapCanvasValue(
+          (e.clientX - rect.left - view.x) / view.scale - 100,
+          snapToGrid,
+          GRID,
+        );
+        const y = snapCanvasValue(
+          (e.clientY - rect.top - view.y) / view.scale - 40,
+          snapToGrid,
+          GRID,
+        );
         const node: FileNode = {
           id: newCanvasId(),
           type: "file",
@@ -561,6 +555,7 @@ export function CanvasView({ path }: CanvasViewProps) {
           <svg
             width="100%"
             height="100%"
+            aria-hidden="true"
             style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
           >
             <defs>
@@ -580,11 +575,11 @@ export function CanvasView({ path }: CanvasViewProps) {
               {edgesSvg}
               {edgeDraftEnd && edgeDraftRef.current
                 ? (() => {
-                    const src = canvas.nodes.find(
-                      (n) => n.id === edgeDraftRef.current!.fromId,
-                    );
+                    const draft = edgeDraftRef.current;
+                    if (!draft) return null;
+                    const src = canvas.nodes.find((n) => n.id === draft.fromId);
                     if (!src) return null;
-                    const p1 = sideAnchor(src, edgeDraftRef.current!.fromSide);
+                    const p1 = sideAnchor(src, draft.fromSide);
                     return (
                       <line
                         x1={p1.x}
@@ -638,9 +633,7 @@ export function CanvasView({ path }: CanvasViewProps) {
                   else if (node.type === "file" && node.file) {
                     workspaceStore.openFile(node.file, {
                       newTab: true,
-                      ...(node.subpath
-                        ? { fragment: node.subpath.replace(/^#\^?/, "") }
-                        : {}),
+                      ...(node.subpath ? { fragment: node.subpath.replace(/^#\^?/, "") } : {}),
                     });
                   } else if (node.type === "link" && node.url) {
                     workspaceStore.openWebviewer(node.url, { newTab: true });
@@ -668,7 +661,6 @@ export function CanvasView({ path }: CanvasViewProps) {
           zIndex: 5,
         }}
         onMouseDown={(e) => e.stopPropagation()}
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
@@ -681,11 +673,19 @@ export function CanvasView({ path }: CanvasViewProps) {
         </button>
         <button
           type="button"
+          className={`clickable-icon${snapToGrid ? " is-active" : ""}`}
+          aria-label={snapToGrid ? "Disable snap to grid" : "Enable snap to grid"}
+          aria-pressed={snapToGrid}
+          onClick={() => setSnapToGrid((v) => !v)}
+          title="Snap to grid"
+        >
+          <Magnet size={14} />
+        </button>
+        <button
+          type="button"
           className="clickable-icon"
           aria-label="Zoom in"
-          onClick={() =>
-            setView((v) => ({ ...v, scale: Math.min(3, v.scale * 1.2) }))
-          }
+          onClick={() => setView((v) => ({ ...v, scale: Math.min(3, v.scale * 1.2) }))}
         >
           <ZoomIn size={14} />
         </button>
@@ -693,9 +693,7 @@ export function CanvasView({ path }: CanvasViewProps) {
           type="button"
           className="clickable-icon"
           aria-label="Zoom out"
-          onClick={() =>
-            setView((v) => ({ ...v, scale: Math.max(0.2, v.scale * 0.83) }))
-          }
+          onClick={() => setView((v) => ({ ...v, scale: Math.max(0.2, v.scale * 0.83) }))}
         >
           <ZoomOut size={14} />
         </button>
@@ -710,15 +708,17 @@ export function CanvasView({ path }: CanvasViewProps) {
         </button>
         {selectedNode && (
           <>
-            <div
+            <fieldset
               style={{
                 display: "flex",
                 gap: 4,
                 padding: "0 6px",
                 borderLeft: "1px solid var(--background-modifier-border)",
+                borderTop: 0,
+                borderRight: 0,
+                borderBottom: 0,
                 marginInlineStart: 4,
               }}
-              role="group"
               aria-label="Node color"
             >
               {NODE_COLOR_SWATCHES.map((c) => (
@@ -747,7 +747,7 @@ export function CanvasView({ path }: CanvasViewProps) {
                   }}
                 />
               ))}
-            </div>
+            </fieldset>
             <button
               type="button"
               className="clickable-icon"
@@ -817,8 +817,12 @@ function CanvasNodeView({
     boxSizing: "border-box",
   };
 
-  const renderAnchors = selected ? <NodeAnchors node={node} onMouseDown={onAnchorMouseDown} /> : null;
-  const renderResize = selected ? <NodeResizeHandle node={node} onMouseDown={onResizeStart} /> : null;
+  const renderAnchors = selected ? (
+    <NodeAnchors node={node} onMouseDown={onAnchorMouseDown} />
+  ) : null;
+  const renderResize = selected ? (
+    <NodeResizeHandle node={node} onMouseDown={onResizeStart} />
+  ) : null;
 
   if (node.type === "group") {
     return (
@@ -867,7 +871,12 @@ function CanvasNodeView({
   if (node.type === "file") {
     return (
       <>
-        <CanvasFileNode node={node} style={baseStyle} onMouseDown={onMouseDown} onDoubleClick={onDoubleClick} />
+        <CanvasFileNode
+          node={node}
+          style={baseStyle}
+          onMouseDown={onMouseDown}
+          onDoubleClick={onDoubleClick}
+        />
         {renderAnchors}
         {renderResize}
       </>
@@ -876,7 +885,12 @@ function CanvasNodeView({
   if (node.type === "link") {
     return (
       <>
-        <CanvasLinkNode node={node} style={baseStyle} onMouseDown={onMouseDown} onDoubleClick={onDoubleClick} />
+        <CanvasLinkNode
+          node={node}
+          style={baseStyle}
+          onMouseDown={onMouseDown}
+          onDoubleClick={onDoubleClick}
+        />
         {renderAnchors}
         {renderResize}
       </>

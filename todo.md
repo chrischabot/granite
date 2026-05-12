@@ -45,7 +45,7 @@
 ### §24.9 Canvas
 - [ ] Marquee select / alt-duplicate / shift-axis-lock
 - [ ] Embedded canvas interaction inside host note
-- [ ] Snap toggle
+- [x] Snap toggle ← _shipped 2026-05-12 canvas sweep_
 
 ### §24.10 Bases — closed in Phase 10 sweep
 - [x] List view + Cards view

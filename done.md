@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — Canvas snap toggle
+
+- **Snap-to-grid control** — Canvas now has a toolbar toggle for grid snapping
+  instead of forcing every drag, resize, file drop, new text card, and keyboard
+  move onto the 10 px grid.
+- **Unsnapped precision mode** — when snapping is off, pointer movement rounds
+  to whole-pixel canvas coordinates and arrow keys move by 1 px / 10 px with
+  Shift; when snapping is on, arrow keys preserve the existing 10 px / 50 px
+  movement behavior.
+
+### Tests
+- Added `core/canvas/interactions.test.ts` for snap math and keyboard step
+  behavior.
+- Validation: scoped `bunx biome check --write` for the new canvas helpers,
+  `bun run typecheck`, `bun run test` (416 tests / 40 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Tag metadata case unification
 
 - **Per-note tag unification** — metadata parsing now deduplicates body and

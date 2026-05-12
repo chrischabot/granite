@@ -56,7 +56,7 @@
 
 ### §24.12 Sidebars
 - [x] Pop-out sidebar tabs into the central area ← _shipped 2026-05-12 sidebar workspace leaves_
-- [ ] Multiple vertical tab groups within a sidebar
+- [x] Multiple vertical tab groups within a sidebar ← _shipped 2026-05-12 sidebar group stack_
 
 ### §24.13 Status bar
 - [x] CJK-aware word count ← _shipped 2026-05-12 sweep_

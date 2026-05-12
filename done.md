@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-12 — Vertical sidebar tab groups
+
+- **Sidebar group stack** — left and right sidebars now render one or more
+  vertical groups, each with its own active tab and content pane.
+- **Split/close controls** — each sidebar group can be split below the current
+  group, copying its active tab, and non-final groups can be closed.
+- **Shared group model** — extracted pure sidebar group state helpers so split,
+  activate, and close behavior is covered outside React rendering.
+
+### Tests
+- Added `src/ui/shell/sidebar-groups.test.ts`.
+- Validation: scoped `bunx biome check --write`, targeted sidebar group tests,
+  `bun run typecheck`, full `bun run test`, `bun run build`, and
+  `git diff --check` pass.
+
+---
+
 ## 2026-05-12 — Sidebar tabs as central workspace leaves
 
 - **Sidebar leaf state** — workspace leaves now support a `sidebar` state with

@@ -241,10 +241,8 @@
   position: absolute;
   z-index: var(--layer-cover);
   background-color: transparent;
-  transition:
-    background-color 200ms ease-in-out,
-    border-color 200ms ease-in-out,
-    opacity 200ms ease-in-out;
+  transition: background-color 200ms ease-in-out, border-color 200ms ease-in-out, opacity 200ms
+    ease-in-out;
   border-color: var(--divider-color);
   border-top: 0;
   border-width: var(--divider-width);
@@ -469,6 +467,31 @@ body:not(.show-ribbon) .side-dock-ribbon {
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.workspace-sidebar-groups {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.workspace-sidebar-group {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 0;
+  position: relative;
+}
+
+.workspace-leaf-resize-handle.mod-sidebar-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  width: 100%;
+  height: 3px;
+  cursor: row-resize;
 }
 
 .workspace-sidebar-tabs {

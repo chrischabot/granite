@@ -12,6 +12,7 @@ import { listRecents, subscribeRecents } from "@core/workspace/recents";
 import { workspaceStore } from "@core/workspace/store";
 import { Effect } from "effect";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useI18n } from "../i18n/useI18n";
 import { Prompt } from "../overlay/Prompt";
 import { useVault } from "../vault/VaultContext";
 
@@ -47,6 +48,7 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
   const { activeVault } = useVault();
   const [files, setFiles] = useState<ReadonlyArray<VaultFile>>([]);
   const [loading, setLoading] = useState(false);
+  const t = useI18n();
 
   useMetadataVersion();
   const recents = useSyncExternalStore(subscribeRecents, listRecents, listRecents);
@@ -132,7 +134,7 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
         workspaceStore.openFile(item.path, { newTab: mods.newTab });
       }
     } catch (err) {
-      noticeManager.show(err instanceof Error ? err.message : "Could not open note", {
+      noticeManager.show(err instanceof Error ? err.message : t("quickSwitcher.error.open"), {
         kind: "error",
       });
     }
@@ -142,7 +144,7 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
     <Prompt<SwitcherItem>
       open={open}
       onClose={onClose}
-      placeholder={loading ? "Loading vault..." : "Find or create a note..."}
+      placeholder={loading ? t("quickSwitcher.loading") : t("quickSwitcher.placeholder")}
       items={items}
       toSearchText={(item) => item.displayName}
       extraQueryItems={(rawQuery, baseItems) => {
@@ -157,7 +159,7 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
         const newPath = folder ? join(folder, name) : name;
         return [
           {
-            displayName: `Create new note: ${trimmed}`,
+            displayName: t("quickSwitcher.createDisplay", { name: trimmed }),
             path: newPath,
             alias: null,
             recent: false,
@@ -196,7 +198,7 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
                       fontStyle: "italic",
                     }}
                   >
-                    alias for {stem(item.path)}
+                    {t("quickSwitcher.aliasFor", { stem: stem(item.path) })}
                   </span>
                 )}
                 {item.kind === "file" && item.recent && (
@@ -208,7 +210,7 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
                       color: "var(--text-accent)",
                     }}
                   >
-                    recent
+                    {t("quickSwitcher.flair.recent")}
                   </span>
                 )}
                 {item.kind === "create" && (
@@ -220,7 +222,7 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
                       color: "var(--text-success)",
                     }}
                   >
-                    new
+                    {t("quickSwitcher.flair.new")}
                   </span>
                 )}
               </div>
@@ -234,10 +236,10 @@ export function QuickSwitcher({ open, onClose, onActivate }: QuickSwitcherProps)
         onClose();
       }}
       instructions={[
-        { command: "↵", description: "to open" },
-        { command: "⌘ ↵", description: "open in new tab" },
-        { command: "⇧ ↵", description: "create new note" },
-        { command: "esc", description: "to dismiss" },
+        { command: "↵", description: t("quickSwitcher.instruction.open") },
+        { command: "⌘ ↵", description: t("quickSwitcher.instruction.openNewTab") },
+        { command: "⇧ ↵", description: t("quickSwitcher.instruction.create") },
+        { command: "esc", description: t("prompt.instruction.dismiss") },
       ]}
     />
   );

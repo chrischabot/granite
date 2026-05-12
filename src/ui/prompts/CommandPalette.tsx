@@ -1,9 +1,10 @@
-import { Star, StarOff } from "lucide-react";
-import { useEffect, useState, type MouseEvent } from "react";
-import { Prompt } from "../overlay/Prompt";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { formatHotkey } from "@core/commands/hotkeys";
 import { highlightMatches } from "@core/search/fuzzy";
+import { Star, StarOff } from "lucide-react";
+import { type MouseEvent, useEffect, useState } from "react";
+import { useI18n } from "../i18n/useI18n";
+import { Prompt } from "../overlay/Prompt";
 
 const RECENT_KEY = "granite.recent-commands.v1";
 const PINNED_KEY = "granite.pinned-commands.v1";
@@ -37,6 +38,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
   const [commands, setCommands] = useState<ReadonlyArray<Command>>([]);
   const [recent, setRecent] = useState<string[]>([]);
   const [pinned, setPinned] = useState<string[]>([]);
+  const t = useI18n();
 
   useEffect(() => {
     if (!open) return;
@@ -70,26 +72,33 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
     <Prompt<Command>
       open={open}
       onClose={onClose}
-      placeholder="Type a command..."
+      placeholder={t("commandPalette.placeholder")}
       items={commands}
       emptyQueryItems={orderedForEmpty}
       toSearchText={(c) => (c.category ? `${c.category} ${c.name}` : c.name)}
       renderItem={(cmd, match) => {
         const text = cmd.category ? `${cmd.category}: ${cmd.name}` : cmd.name;
         const segments = highlightMatches(text, match?.indices);
+        let segmentOffset = 0;
+        const keyedSegments = segments.map((s) => {
+          const key = `${s.matched ? "matched" : "plain"}-${segmentOffset}-${s.text}`;
+          segmentOffset += s.text.length;
+          return { ...s, key };
+        });
         const hotkey = cmd.hotkeys?.[0];
         const isPinned = pinned.includes(cmd.id);
+        const pinLabel = isPinned ? t("commandPalette.unpin") : t("commandPalette.pin");
         return (
           <div className="suggestion-item-row mod-complex">
             <div className="suggestion-content">
               <div className="suggestion-title">
-                {segments.map((s, i) =>
+                {keyedSegments.map((s) =>
                   s.matched ? (
-                    <span key={i} className="suggestion-highlight">
+                    <span key={s.key} className="suggestion-highlight">
                       {s.text}
                     </span>
                   ) : (
-                    <span key={i}>{s.text}</span>
+                    <span key={s.key}>{s.text}</span>
                   ),
                 )}
               </div>
@@ -105,8 +114,8 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
               {hotkey && <span className="suggestion-hotkey">{formatHotkey(hotkey)}</span>}
               <button
                 type="button"
-                aria-label={isPinned ? "Unpin command" : "Pin command"}
-                title={isPinned ? "Unpin command" : "Pin command"}
+                aria-label={pinLabel}
+                title={pinLabel}
                 onClick={(e: MouseEvent<HTMLButtonElement>) => {
                   e.stopPropagation();
                   togglePin(cmd.id);
@@ -137,9 +146,9 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps) {
         setTimeout(() => commandRegistry.run(cmd.id), 0);
       }}
       instructions={[
-        { command: "↵", description: "to run" },
-        { command: "★", description: "pin / unpin" },
-        { command: "esc", description: "to dismiss" },
+        { command: "↵", description: t("commandPalette.instruction.run") },
+        { command: "★", description: t("commandPalette.instruction.pin") },
+        { command: "esc", description: t("prompt.instruction.dismiss") },
       ]}
     />
   );

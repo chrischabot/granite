@@ -60,5 +60,8 @@ describe("i18n", () => {
     expect(t("properties.addAction")).toBe("הוספת מאפיין");
     expect(t("status.localOnly")).toBe("מקומי בלבד");
     expect(t("fileExplorer.action.newNote")).toBe("הערה חדשה");
+    expect(t("quickSwitcher.placeholder")).toBe("חיפוש או יצירת הערה...");
+    expect(t("commandPalette.pin")).toBe("נעיצת פקודה");
+    expect(t("templatePicker.placeholder")).toBe("בחירת תבנית…");
   });
 });

@@ -10,6 +10,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "../i18n/useI18n";
 
 export interface PromptInstruction {
   /** Symbol shown in bold at the start of the hint, e.g. "↵". */
@@ -59,6 +60,7 @@ export function Prompt<T>(props: PromptProps<T>) {
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const listId = useId();
+  const t = useI18n();
   const fuzzyIndex = useMemo(() => createFuzzyIndex(items, toSearchText), [items, toSearchText]);
 
   const ranked = useMemo<ReadonlyArray<{ item: T; match: FuzzyMatch | null }>>(() => {
@@ -175,7 +177,7 @@ export function Prompt<T>(props: PromptProps<T>) {
         {/* biome-ignore lint/a11y/useSemanticElements: custom virtual listbox with controlled active descendant. */}
         <div ref={listRef} id={listId} className="prompt-results" role="listbox" tabIndex={-1}>
           {ranked.length === 0 ? (
-            <div className="suggestion-empty">No matches.</div>
+            <div className="suggestion-empty">{t("prompt.noMatches")}</div>
           ) : (
             ranked.map(({ item, match }, i) => (
               <div

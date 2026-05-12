@@ -173,6 +173,37 @@ const FILE_EXPLORER_FORBIDDEN_PATTERNS = [
   />\s*All files in this vault are excluded by your filters\.\s*</,
 ];
 
+const PROMPT_FORBIDDEN_PATTERNS = [/No matches\./];
+
+const QUICK_SWITCHER_FORBIDDEN_PATTERNS = [
+  /"Could not open note"/,
+  /"Loading vault\.\.\."/,
+  /"Find or create a note\.\.\."/,
+  /`Create new note: \$\{trimmed\}`/,
+  />\s*alias for\s*\{/,
+  />\s*recent\s*</,
+  />\s*new\s*</,
+  /description: "to open"/,
+  /description: "open in new tab"/,
+  /description: "create new note"/,
+  /description: "to dismiss"/,
+];
+
+const COMMAND_PALETTE_FORBIDDEN_PATTERNS = [
+  /placeholder="Type a command\.\.\."/,
+  /"Unpin command"/,
+  /"Pin command"/,
+  /description: "to run"/,
+  /description: "pin \/ unpin"/,
+  /description: "to dismiss"/,
+];
+
+const TEMPLATE_PICKER_FORBIDDEN_PATTERNS = [
+  /placeholder="Pick a template…"/,
+  /description: "to insert"/,
+  /description: "to dismiss"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -498,5 +529,61 @@ describe("UI string externalization audit", () => {
     }
 
     expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps prompt overlay and picker labels routed through i18n keys", () => {
+    const promptSource = readFileSync(`${process.cwd()}/src/ui/overlay/Prompt.tsx`, "utf8");
+    const quickSwitcherSource = readFileSync(
+      `${process.cwd()}/src/ui/prompts/QuickSwitcher.tsx`,
+      "utf8",
+    );
+    const commandPaletteSource = readFileSync(
+      `${process.cwd()}/src/ui/prompts/CommandPalette.tsx`,
+      "utf8",
+    );
+    const templatePickerSource = readFileSync(
+      `${process.cwd()}/src/ui/prompts/TemplatePicker.tsx`,
+      "utf8",
+    );
+    const violations = [
+      ...PROMPT_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(promptSource)),
+      ...QUICK_SWITCHER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(quickSwitcherSource)),
+      ...COMMAND_PALETTE_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(commandPaletteSource)),
+      ...TEMPLATE_PICKER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(templatePickerSource)),
+    ];
+
+    for (const requiredKey of ["prompt.noMatches", "prompt.instruction.dismiss"]) {
+      expect(
+        promptSource + quickSwitcherSource + commandPaletteSource + templatePickerSource,
+      ).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "quickSwitcher.placeholder",
+      "quickSwitcher.loading",
+      "quickSwitcher.error.open",
+      "quickSwitcher.createDisplay",
+      "quickSwitcher.aliasFor",
+      "quickSwitcher.flair.recent",
+      "quickSwitcher.flair.new",
+      "quickSwitcher.instruction.open",
+      "quickSwitcher.instruction.openNewTab",
+      "quickSwitcher.instruction.create",
+    ]) {
+      expect(quickSwitcherSource).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "commandPalette.placeholder",
+      "commandPalette.pin",
+      "commandPalette.unpin",
+      "commandPalette.instruction.run",
+      "commandPalette.instruction.pin",
+    ]) {
+      expect(commandPaletteSource).toContain(requiredKey);
+    }
+    for (const requiredKey of ["templatePicker.placeholder", "templatePicker.instruction.insert"]) {
+      expect(templatePickerSource).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
   });
 });

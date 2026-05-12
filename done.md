@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-12 — Prompt surfaces i18n ratchet
+
+- **Shared prompt overlay** — routed the no-match state through `t()` so every
+  command-style picker inherits the locale-reactive empty state.
+- **Quick Switcher** — routed loading/placeholder text, create-note synthetic
+  row labels, alias/recent/new flairs, fallback open error, and keyboard
+  instructions through `t()`.
+- **Command Palette and Template Picker** — routed placeholders, pin/unpin
+  labels, and prompt instruction text through `t()`.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if the old prompt, switcher, command palette, or template picker
+  literals return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — File Explorer i18n ratchet
 
 - **File Explorer actions** — routed new-note/new-folder prompts, invalid-name

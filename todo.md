@@ -29,7 +29,7 @@
 
 ### §24.5 Properties
 - [x] Date / Date&time locale rendering ← _shipped 2026-05-12 property sweep_
-- [ ] Format Converter migration of legacy `tag`/`alias`/`cssclass` singular keys
+- [x] Format Converter migration of legacy `tag`/`alias`/`cssclass` singular keys ← _shipped 2026-05-12 format-converter sweep_
 - [x] JSON-style frontmatter → YAML on save rewrite path ← _covered 2026-05-12 property sweep_
 
 ### §24.6 Tags

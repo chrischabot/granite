@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-12 — Format Converter legacy property migration
+
+- **Legacy default-property migration** — Format Converter now includes a
+  vault-wide command that migrates deprecated `tag`, `alias`, and `cssclass`
+  frontmatter keys to `tags`, `aliases`, and `cssclasses`.
+- **Merge behavior** — migration preserves existing plural values, converts
+  scalar legacy values to lists, strips leading `#` from migrated tags, and
+  avoids duplicate merged values.
+
+### Tests
+- Extended `core/plugins-core/format-converter.test.ts` with scalar
+  `tag`, combined `alias`/`cssclass`, merge/dedupe, and no-op cases.
+- Validation: scoped `bunx biome check --write`, `bun run typecheck`,
+  `bun run test` (408 tests / 38 files), and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Property date and frontmatter round-trip hardening
 
 - **Locale date rendering** — added `core/metadata/property-format.ts` and

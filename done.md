@@ -15,15 +15,21 @@
 - **Graph pan path** — graph drag now updates the SVG viewport transform
   imperatively during mousemove and commits React state once at drag end, so
   panning does not rerender every node and edge per pointer event.
+- **Atomic save budget coverage** — added a deterministic File System Access
+  handle mock that exercises `handleAdapter.writeText()` and `readText()` around
+  the real atomic temp-file copy path, asserting the content round-trips under
+  the 50 ms budget in the adapter layer.
 
 ### Tests
 - Extended `src/core/search/fuzzy.test.ts` with a 10k-item reusable-index
   keystroke budget assertion under 16 ms.
 - Extended `src/core/search/query.test.ts` with a 10k-note regex scan budget
   assertion under 500 ms.
+- Extended `src/core/fs/handle-adapter.test.ts` with an atomic text save
+  round-trip budget assertion under 50 ms.
 - Validation: scoped `bunx biome check --write`, targeted search performance
-  tests, and `bun run typecheck` pass. Browser FPS validation remains open for
-  the graph item.
+  and filesystem adapter tests, and `bun run typecheck` pass. Browser FPS and
+  host-disk save validation remain open for their product-budget items.
 
 ---
 

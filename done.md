@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-05-12 — Configurable delete policy
+
+- **Trash settings surfaced** — Settings → Files & links now exposes Confirm
+  file deletion and Deleted files controls (System trash / Vault trash /
+  Permanently delete), and Settings search indexes delete/trash keywords.
+- **Deletion policy boundary** — file explorer deletes now go through
+  `core/fs/trash.ts` instead of calling `fs.remove()` directly. Vault-trash
+  mode moves files under `.trash/` preserving subpaths and collision-renaming
+  existing trash targets. Permanent mode remains an explicit `remove()`.
+- **No fake system trash** — `FileSystemImpl` now has an optional
+  `moveToSystemTrash()` host capability. The browser adapter does not expose an
+  OS recycle-bin API, so System trash mode fails loudly with `FsUnsupported`
+  instead of degrading into permanent deletion.
+- **File explorer a11y cleanup** — file rows are semantic buttons while
+  preserving keyboard open/rename/delete behavior.
+
+### Tests
+- Added `core/fs/trash.test.ts` covering permanent delete, vault trash,
+  collision-renamed vault trash, unsupported browser system trash, and
+  host-provided system trash.
+- Validation: scoped `bunx biome check --write`, `bun run typecheck`,
+  `bun run test` (393 tests / 36 files), and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Settings live filter
 
 - **Settings search** — added a live search box to the Settings sidebar.

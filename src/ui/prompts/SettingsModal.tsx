@@ -398,6 +398,35 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
+                  name="Confirm file deletion"
+                  desc="Ask before deleting files from the file explorer."
+                  control={
+                    <Toggle
+                      checked={settings.confirmFileDeletion}
+                      onChange={(v) => settingsStore.update({ confirmFileDeletion: v })}
+                    />
+                  }
+                />
+                <SettingItem
+                  name="Deleted files"
+                  desc="Choose whether deletes use the OS trash, the vault .trash folder, or permanent deletion."
+                  control={
+                    <select
+                      className="dropdown"
+                      value={settings.deletedFiles}
+                      onChange={(e) =>
+                        settingsStore.update({
+                          deletedFiles: e.currentTarget.value as "system" | "vault" | "permanent",
+                        })
+                      }
+                    >
+                      <option value="system">System trash</option>
+                      <option value="vault">Vault trash (.trash)</option>
+                      <option value="permanent">Permanently delete</option>
+                    </select>
+                  }
+                />
+                <SettingItem
                   name="Excluded files"
                   desc={
                     "One pattern per line. A bare name (e.g. `archive`) matches any segment; `**` crosses directories. Comment lines start with `#`. Excluded files don't appear in the file explorer, switcher, search, or metadata cache."

@@ -1,3 +1,26 @@
+import { ClickableIcon } from "@/ui/controls/ClickableIcon";
+import { openMenu } from "@/ui/overlay/Menu";
+import { useVault } from "@/ui/vault/VaultContext";
+import { run } from "@core/effect/runtime";
+import { FileSystem } from "@core/fs/FileSystem";
+import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
+import {
+  dirname,
+  extension,
+  isInvalidName,
+  join,
+  normalize,
+  basename as pathBasename,
+  stem,
+} from "@core/fs/path";
+import { deleteVaultPath, deletedFilesModeLabel } from "@core/fs/trash";
+import { FsUnsupported, type VaultEntry, type VaultFile, type VaultPath } from "@core/fs/types";
+import { rewriteWikilinksOnRename } from "@core/links/rewrite";
+import { noticeManager } from "@core/notices/notice";
+import { type FileExplorerSort, settingsStore } from "@core/settings/store";
+import { workspaceStore } from "@core/workspace/store";
+import { useWorkspace } from "@core/workspace/useWorkspace";
+import { Effect } from "effect";
 import {
   ArrowDownAZ,
   ChevronDown,
@@ -9,40 +32,23 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { Effect } from "effect";
 import {
+  type KeyboardEvent,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
-  type KeyboardEvent,
 } from "react";
-import { ClickableIcon } from "@/ui/controls/ClickableIcon";
-import { useVault } from "@/ui/vault/VaultContext";
-import { run } from "@core/effect/runtime";
-import { FileSystem } from "@core/fs/FileSystem";
-import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
-import {
-  basename as pathBasename,
-  dirname,
-  extension,
-  isInvalidName,
-  join,
-  normalize,
-  stem,
-} from "@core/fs/path";
-import { rewriteWikilinksOnRename } from "@core/links/rewrite";
-import { settingsStore, type FileExplorerSort } from "@core/settings/store";
-import { workspaceStore } from "@core/workspace/store";
-import { useWorkspace } from "@core/workspace/useWorkspace";
-import { noticeManager } from "@core/notices/notice";
-import { openMenu } from "@/ui/overlay/Menu";
-import type { VaultEntry, VaultFile, VaultPath } from "@core/fs/types";
 import { sortNodes } from "./sort";
 
 const FILE_DND_MIME = "application/granite-vault-path";
+
+function deletionErrorMessage(err: unknown): string {
+  if (err instanceof FsUnsupported) return err.feature;
+  return err instanceof Error ? err.message : String(err);
+}
 
 interface TreeNode {
   readonly entry: VaultEntry;
@@ -97,6 +103,16 @@ export function FileExplorerView() {
     settingsStore.subscribe,
     () => settingsStore.getState().fileExplorerSort,
     () => settingsStore.getState().fileExplorerSort,
+  );
+  const confirmFileDeletion = useSyncExternalStore(
+    settingsStore.subscribe,
+    () => settingsStore.getState().confirmFileDeletion,
+    () => settingsStore.getState().confirmFileDeletion,
+  );
+  const deletedFiles = useSyncExternalStore(
+    settingsStore.subscribe,
+    () => settingsStore.getState().deletedFiles,
+    () => settingsStore.getState().deletedFiles,
   );
 
   const activePath = (() => {
@@ -312,27 +328,39 @@ export function FileExplorerView() {
   }, [visibleTree]);
 
   const handleDelete = async (path: VaultPath) => {
-    if (!confirm(`Delete "${stem(path)}"? This cannot be undone.`)) return;
+    const modeLabel = deletedFilesModeLabel(deletedFiles);
+    if (
+      confirmFileDeletion &&
+      !confirm(
+        `Delete "${stem(path)}" using ${modeLabel}?${deletedFiles === "permanent" ? " This cannot be undone." : ""}`,
+      )
+    ) {
+      return;
+    }
     try {
-      await run(
-        Effect.gen(function* () {
-          const fs = yield* FileSystem;
-          yield* fs.remove(path);
-        }),
-      );
+      await run(deleteVaultPath(path, deletedFiles));
       await refresh();
-      noticeManager.show("Deleted.", { kind: "success" });
+      noticeManager.show(
+        deletedFiles === "vault"
+          ? "Moved to vault trash."
+          : deletedFiles === "system"
+            ? "Moved to system trash."
+            : "Deleted.",
+        { kind: "success" },
+      );
     } catch (err) {
-      noticeManager.show(err instanceof Error ? err.message : String(err), { kind: "error" });
+      noticeManager.show(deletionErrorMessage(err), { kind: "error" });
     }
   };
 
   const handleDeleteMany = useCallback(
     async (paths: ReadonlyArray<VaultPath>) => {
       if (paths.length === 0) return;
+      const modeLabel = deletedFilesModeLabel(deletedFiles);
       if (
+        confirmFileDeletion &&
         !confirm(
-          `Delete ${paths.length} selected file${paths.length === 1 ? "" : "s"}? This cannot be undone.`,
+          `Delete ${paths.length} selected file${paths.length === 1 ? "" : "s"} using ${modeLabel}?${deletedFiles === "permanent" ? " This cannot be undone." : ""}`,
         )
       ) {
         return;
@@ -340,12 +368,7 @@ export function FileExplorerView() {
       let failures = 0;
       for (const p of paths) {
         try {
-          await run(
-            Effect.gen(function* () {
-              const fs = yield* FileSystem;
-              yield* fs.remove(p);
-            }),
-          );
+          await run(deleteVaultPath(p, deletedFiles));
         } catch {
           failures += 1;
         }
@@ -353,14 +376,19 @@ export function FileExplorerView() {
       setSelection(new Set());
       await refresh();
       if (failures === 0) {
-        noticeManager.show(`Deleted ${paths.length} file${paths.length === 1 ? "" : "s"}.`, {
-          kind: "success",
-        });
+        const verb = deletedFiles === "vault" ? "Moved" : "Deleted";
+        const destination = deletedFiles === "vault" ? " to vault trash" : "";
+        noticeManager.show(
+          `${verb} ${paths.length} file${paths.length === 1 ? "" : "s"}${destination}.`,
+          {
+            kind: "success",
+          },
+        );
       } else {
         noticeManager.show(`Deleted with ${failures} failure(s).`, { kind: "warning" });
       }
     },
-    [refresh],
+    [confirmFileDeletion, deletedFiles, refresh],
   );
 
   const handleRowClick = useCallback(
@@ -538,7 +566,9 @@ export function FileExplorerView() {
   );
 
   if (!activeVault) {
-    return <div className="workspace-sidedock-empty-state">No vault open. Open a folder to begin.</div>;
+    return (
+      <div className="workspace-sidedock-empty-state">No vault open. Open a folder to begin.</div>
+    );
   }
 
   return (
@@ -552,7 +582,6 @@ export function FileExplorerView() {
       ) : (
         <div
           className="nav-files-container"
-          tabIndex={0}
           onKeyDown={(e) => {
             if (
               (e.key === "Delete" || e.key === "Backspace") &&
@@ -595,9 +624,7 @@ export function FileExplorerView() {
                 onToggle={toggleCollapsed}
                 onStartRename={startRename}
                 onCommitRename={commitRename}
-                onChangeRename={(v) =>
-                  setRenaming((prev) => (prev ? { ...prev, value: v } : prev))
-                }
+                onChangeRename={(v) => setRenaming((prev) => (prev ? { ...prev, value: v } : prev))}
                 onCancelRename={() => setRenaming(null)}
                 onDelete={handleDelete}
                 onContextMenu={showContextMenu}
@@ -675,7 +702,7 @@ function TreeRow(props: RowProps) {
     }
   };
 
-  const handleKey = (e: KeyboardEvent<HTMLDivElement>) => {
+  const handleKey = (e: KeyboardEvent<HTMLButtonElement>) => {
     if (isRenaming) return;
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -686,7 +713,11 @@ function TreeRow(props: RowProps) {
     } else if (e.key === "F2" && !isDir) {
       e.preventDefault();
       onStartRename(node.entry.path);
-    } else if ((e.key === "Delete" || e.key === "Backspace") && !isDir && (e.metaKey || e.ctrlKey)) {
+    } else if (
+      (e.key === "Delete" || e.key === "Backspace") &&
+      !isDir &&
+      (e.metaKey || e.ctrlKey)
+    ) {
       e.preventDefault();
       onDelete(node.entry.path);
     }
@@ -701,7 +732,8 @@ function TreeRow(props: RowProps) {
 
   return (
     <>
-      <div
+      <button
+        type="button"
         className={`tree-item-self ${isDir ? "mod-collapsible" : "is-clickable"}${isActive ? " is-active" : ""}${isSelected ? " is-selected" : ""}${isRenaming ? " is-being-renamed" : ""}${dragOver ? " is-being-dragged-over" : ""}`}
         style={{ paddingInlineStart: 24 + indent }}
         draggable={!isDir && !isRenaming}
@@ -733,8 +765,8 @@ function TreeRow(props: RowProps) {
         }}
         onClick={handleClick}
         onContextMenu={(e) => onContextMenu(e, node.entry.path, isDir)}
-        role="button"
-        tabIndex={0}
+        aria-expanded={isDir ? !isCollapsed : undefined}
+        aria-pressed={isSelected || undefined}
         onKeyDown={handleKey}
       >
         {isDir && (
@@ -772,7 +804,7 @@ function TreeRow(props: RowProps) {
           )}
         </span>
         {showExt && !isRenaming && <span className="nav-file-tag">{fileExt}</span>}
-      </div>
+      </button>
       {isDir && !isCollapsed && node.children && (
         <div className="tree-item-children">
           {node.children.map((child) => (

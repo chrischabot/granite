@@ -34,9 +34,12 @@
  * -------------------------------------------------------------------------- */
 .tree-item-self {
   align-items: center;
+  background: transparent;
+  border: 0;
   display: flex;
   border-radius: var(--nav-item-radius);
   color: var(--nav-item-color);
+  font: inherit;
   font-size: var(--nav-item-size);
   line-height: var(--line-height-tight);
   font-weight: var(--nav-item-weight);
@@ -47,6 +50,8 @@
   user-select: none;
   gap: var(--size-2-2);
   outline: none;
+  text-align: start;
+  width: 100%;
 }
 
 @media (hover: hover) {

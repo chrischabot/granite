@@ -8,7 +8,7 @@
 ## Outstanding by acceptance-criteria section
 
 ### §24.1 Vault & files
-- [ ] Configurable trash setting (system trash / vault `.trash/` / permanent) — Phase 16
+- [ ] Configurable trash setting (system trash / vault `.trash/` / permanent) — vault/permanent policy and host-hooked system path shipped 2026-05-12; native OS-trash adapter still required for full System trash acceptance
 - [ ] External-edit-detected ≤ 500 ms perf assertion — Phase 14
 - [ ] Multi-window simultaneous vaults
 

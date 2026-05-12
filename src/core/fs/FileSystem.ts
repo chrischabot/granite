@@ -39,6 +39,15 @@ export interface FileSystemImpl {
   /** Delete file or directory recursively. */
   remove(path: VaultPath): Effect.Effect<void, FsError>;
 
+  /**
+   * Move a path to the operating system trash/recycle bin.
+   *
+   * Browser File System Access does not expose this capability, so adapters may
+   * omit it. Callers must treat absence as unsupported instead of falling back
+   * to permanent deletion.
+   */
+  moveToSystemTrash?(path: VaultPath): Effect.Effect<void, FsError>;
+
   /** Stat a path (returns null for non-existent). */
   stat(path: VaultPath): Effect.Effect<VaultEntry | null, FsError>;
 

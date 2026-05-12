@@ -1,3 +1,5 @@
+import type { DeletedFilesMode } from "@core/fs/trash";
+
 const STORAGE_KEY = "granite.settings.v1";
 
 export type FileExplorerSort =
@@ -16,6 +18,8 @@ export interface UserSettings {
   newNoteFolder: string;
   defaultViewMode: "source" | "reading";
   attachmentsFolder: string;
+  confirmFileDeletion: boolean;
+  deletedFiles: DeletedFilesMode;
   /** Newline-separated glob list — patterns hide matching files from every
    *  vault listing (file explorer, switcher, search, metadata cache, graph). */
   excludedFiles: string;
@@ -43,6 +47,8 @@ export const DEFAULT_SETTINGS: UserSettings = {
   newNoteFolder: "",
   defaultViewMode: "source",
   attachmentsFolder: "attachments",
+  confirmFileDeletion: true,
+  deletedFiles: "system",
   excludedFiles: "",
   spellcheck: false,
   livePreview: true,

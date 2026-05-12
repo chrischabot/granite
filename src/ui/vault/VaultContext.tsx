@@ -21,6 +21,7 @@ import {
   persistVault,
   removeVault as removeVaultEntry,
 } from "@core/vault/registry";
+import { buildVaultWindowUrl, parseVaultWindowRequest } from "@core/vault/window-url";
 import { bindPersistence, restoreFor, restoreForAsync } from "@core/workspace/persist";
 import { workspaceStore } from "@core/workspace/store";
 import { Layer } from "effect";
@@ -48,6 +49,7 @@ interface VaultContextValue {
   pickFolder: () => Promise<void>;
   openOpfs: (name: string) => Promise<void>;
   reopen: (id: string) => Promise<void>;
+  openInNewWindow: (id: string) => void;
   closeVault: () => Promise<void>;
   removeVault: (id: string) => Promise<void>;
   refreshList: () => Promise<void>;
@@ -89,10 +91,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       setVaults(list);
 
       // Pop-out window: ?popout=1&vaultId=<id>&leaf=<urlencoded JSON>.
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("popout") === "1") {
-        const vaultId = params.get("vaultId");
-        const target = list.find((v) => v.id === vaultId);
+      // Vault window: ?vaultWindow=1&vaultId=<id>.
+      const windowRequest = parseVaultWindowRequest(window.location.search);
+      if (windowRequest) {
+        const target = list.find((v) => v.id === windowRequest.vaultId);
         if (target) {
           try {
             if (target.kind === "opfs" && opfsSupported()) {
@@ -115,8 +117,8 @@ export function VaultProvider({ children }: { children: ReactNode }) {
                 }
               }
             }
-            const leafEncoded = params.get("leaf");
-            if (leafEncoded) {
+            const leafEncoded = windowRequest.leaf;
+            if (windowRequest.mode === "popout" && leafEncoded) {
               try {
                 const leafState = JSON.parse(decodeURIComponent(leafEncoded));
                 if (leafState && typeof leafState.type === "string") {
@@ -274,6 +276,11 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     [vaults, setActive],
   );
 
+  const openInNewWindow = useCallback((id: string) => {
+    const url = buildVaultWindowUrl(window.location.href, id);
+    window.open(url, "_blank", "width=1200,height=800,popup");
+  }, []);
+
   const closeVault = useCallback(async () => {
     if (persistUnbindRef.current) {
       persistUnbindRef.current();
@@ -309,11 +316,22 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       pickFolder,
       openOpfs,
       reopen,
+      openInNewWindow,
       closeVault,
       removeVault,
       refreshList,
     }),
-    [activeVault, vaults, pickFolder, openOpfs, reopen, closeVault, removeVault, refreshList],
+    [
+      activeVault,
+      vaults,
+      pickFolder,
+      openOpfs,
+      reopen,
+      openInNewWindow,
+      closeVault,
+      removeVault,
+      refreshList,
+    ],
   );
 
   return <VaultContext.Provider value={value}>{children}</VaultContext.Provider>;

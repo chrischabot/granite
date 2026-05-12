@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-05-12 — Multi-window vault bootstrap
+
+- **Vault window URLs** — added a dedicated `?vaultWindow=1&vaultId=...`
+  launch path that opens a registered vault in a separate browser window
+  without replacing the current window's active vault.
+- **Vault picker action** — recent vault rows now include an icon-only
+  "Open in new window" action alongside the existing same-window Open action.
+- **Pop-out compatibility** — tab pop-outs still use `?popout=1` and serialized
+  leaf state, while standalone vault windows intentionally strip inherited
+  pop-out leaf parameters.
+
+### Tests
+- Added `src/core/vault/window-url.test.ts` for vault-window URL construction
+  and request parsing.
+- Validation: scoped `bunx biome check --write`, targeted vault-window tests,
+  `bun run typecheck`, full `bun run test`, `bun run build`, and
+  `git diff --check` pass. Browser automation was unavailable in this tool
+  context; Vite was started on `http://localhost:8081/` for local smoke
+  availability.
+
+---
+
 ## 2026-05-12 — Native host system-trash bridge
 
 - **Native trash bridge** — `handleAdapter()` now wires System trash mode to a

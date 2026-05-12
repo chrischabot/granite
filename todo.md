@@ -10,7 +10,7 @@
 ### §24.1 Vault & files
 - [x] Configurable trash setting (system trash / vault `.trash/` / permanent) ← _shipped 2026-05-12 native host trash bridge_
 - [x] External-edit-detected ≤ 500 ms perf assertion ← _shipped 2026-05-12 external edit sync_
-- [ ] Multi-window simultaneous vaults
+- [x] Multi-window simultaneous vaults ← _shipped 2026-05-12 vault window bootstrap_
 
 ### §24.2 Editor — Phase 12
 - [x] Vim key bindings (CM6 vim addon) ← _shipped 2026-05-12 Phase 12 sweep_

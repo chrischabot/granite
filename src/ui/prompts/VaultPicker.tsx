@@ -1,4 +1,4 @@
-import { FolderOpen, FolderPlus, Globe, Trash2 } from "lucide-react";
+import { ExternalLink, FolderOpen, FolderPlus, Globe, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Modal } from "../overlay/Modal";
 import { useVault } from "../vault/VaultContext";
@@ -17,6 +17,7 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
     pickFolder,
     openOpfs,
     reopen,
+    openInNewWindow,
     removeVault,
   } = useVault();
   const [error, setError] = useState<string | null>(null);
@@ -98,10 +99,24 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
                     {isActive ? (
                       <span style={{ color: "var(--text-success)" }}>Active</span>
                     ) : (
-                      <button type="button" onClick={() => wrap(() => reopen(v.id))} disabled={busy}>
+                      <button
+                        type="button"
+                        onClick={() => wrap(() => reopen(v.id))}
+                        disabled={busy}
+                      >
                         Open
                       </button>
                     )}
+                    <button
+                      type="button"
+                      className="clickable-icon"
+                      aria-label={`Open ${v.name} in new window`}
+                      title={`Open ${v.name} in new window`}
+                      onClick={() => openInNewWindow(v.id)}
+                      disabled={busy}
+                    >
+                      <ExternalLink size={16} />
+                    </button>
                     <button
                       type="button"
                       className="clickable-icon"
@@ -128,16 +143,16 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
           >
             New vault
           </h3>
-          <div
-            style={{ display: "flex", gap: "var(--size-4-2)", marginTop: "var(--size-4-2)" }}
-          >
+          <div style={{ display: "flex", gap: "var(--size-4-2)", marginTop: "var(--size-4-2)" }}>
             <button
               type="button"
               className="mod-cta"
               onClick={() => wrap(pickFolder)}
               disabled={!canPickFolder || busy}
               title={
-                canPickFolder ? "Pick a folder on your computer" : "Folder picking requires a Chromium browser"
+                canPickFolder
+                  ? "Pick a folder on your computer"
+                  : "Folder picking requires a Chromium browser"
               }
             >
               <FolderPlus size={14} style={{ marginRight: "var(--size-2-2)" }} />

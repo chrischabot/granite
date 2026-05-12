@@ -1,12 +1,13 @@
 import { Effect } from "effect";
 import type { FileSystemImpl, FsUnsubscribe } from "./FileSystem";
+import { type NativeSystemTrashBridge, detectNativeSystemTrashBridge } from "./native-trash";
 import { basename, dirname, extension } from "./path";
 import {
   FsAccessDenied,
-  FsIoError,
-  FsNotFound,
   type FsError,
   type FsEvent,
+  FsIoError,
+  FsNotFound,
   type VaultDirectory,
   type VaultEntry,
   type VaultFile,
@@ -127,6 +128,11 @@ export interface HandleAdapterOptions {
   readonly skipDirs?: ReadonlyArray<string>;
   /** Polling interval for the watcher in ms. */
   readonly pollIntervalMs?: number;
+  /**
+   * Native host bridge for OS trash. Browser FSA does not expose absolute
+   * paths or recycle-bin APIs, so this must be supplied by a trusted host.
+   */
+  readonly systemTrash?: NativeSystemTrashBridge | null;
 }
 
 const DEFAULT_SKIP = [".granite", ".git", "node_modules"] as const;
@@ -137,6 +143,7 @@ export function handleAdapter(
 ): FileSystemImpl {
   const skipDirs = new Set([...DEFAULT_SKIP, ...(opts.skipDirs ?? [])]);
   const pollIntervalMs = opts.pollIntervalMs ?? 1500;
+  const systemTrash = opts.systemTrash ?? detectNativeSystemTrashBridge();
 
   const listImpl = (dir: VaultPath) =>
     Effect.tryPromise({
@@ -277,6 +284,14 @@ export function handleAdapter(
       catch: (err) => (err instanceof FsNotFound ? err : adaptError(path, err)),
     });
 
+  const moveToSystemTrashImpl = systemTrash
+    ? (path: VaultPath) =>
+        Effect.tryPromise({
+          try: () => Promise.resolve(systemTrash.moveToSystemTrash({ rootName: root.name, path })),
+          catch: (err) => adaptError(path, err),
+        })
+    : undefined;
+
   const renameImpl = (from: VaultPath, to: VaultPath) =>
     Effect.tryPromise({
       try: async () => {
@@ -391,6 +406,7 @@ export function handleAdapter(
     mkdir: mkdirImpl,
     rename: renameImpl,
     remove: removeImpl,
+    ...(moveToSystemTrashImpl ? { moveToSystemTrash: moveToSystemTrashImpl } : {}),
     stat: statImpl,
     watch: watchImpl,
   };

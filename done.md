@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-12 — Native host system-trash bridge
+
+- **Native trash bridge** — `handleAdapter()` now wires System trash mode to a
+  trusted host capability at `window.graniteHost.fs.moveToSystemTrash()` when
+  one is present.
+- **Vault-scoped request** — native trash requests pass the vault root display
+  name and vault-relative path to the host, keeping browser code out of
+  absolute-path guessing.
+- **Browser safety retained** — regular browser FSA/OPFS adapters still omit
+  `moveToSystemTrash()`, so unsupported System trash mode fails loudly instead
+  of falling back to permanent deletion.
+
+### Tests
+- Added `src/core/fs/native-trash.test.ts` and
+  `src/core/fs/handle-adapter.test.ts`.
+- Validation: scoped `bunx biome check --write`, targeted filesystem trash
+  tests, full `bun run test`, `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-12 — Workspace crash-restart persistence
 
 - **Fast-close flush** — workspace persistence now flushes any pending

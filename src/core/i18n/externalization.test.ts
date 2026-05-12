@@ -404,6 +404,49 @@ const SETTINGS_FILTER_FORBIDDEN_PATTERNS = [
   /title: "Templates"/,
 ];
 
+const WORKSPACE_CHROME_FORBIDDEN_PATTERNS = [
+  /ariaLabel="Navigate back"/,
+  /ariaLabel="Navigate forward"/,
+  /ariaLabel="New tab"/,
+  /ariaLabel=\{stacked \? "Unstack tabs" : "Stack tabs vertically"\}/,
+  /ariaLabel="Close this tab group"/,
+  /label: "Close"/,
+  /label: "Close other tabs"/,
+  /label: "Close tabs to the right"/,
+  /label: "Split right"/,
+  /label: "Split down"/,
+  /label: "Open in new window"/,
+  /label: isPinned \? "Unpin tab" : "Pin tab"/,
+  /aria-label="Unpin tab"/,
+  /aria-label="Close tab"/,
+  /ariaLabel=\{isReading \? "Edit this note" : "Read this note"\}/,
+  />\s*Welcome to Granite\s*</,
+  /A local-first, Markdown-native, linked-thinking knowledge base/,
+  /title=\{\s*canPickFolder\s*\?\s*"Pick a folder on your computer"/,
+  /prompt\("Name for the in-browser vault\?", "My vault"\)/,
+  /title="Create a vault stored inside the browser"/,
+  />\s*Pick a folder…\s*</,
+  />\s*In-browser vault\s*</,
+  />\s*Already have a vault\?\s*</,
+  />\s*Open the vault switcher\s*</,
+  />\s*No file open\s*</,
+  />\s*Click a file in the sidebar, press\s*</,
+  />\s*for the command palette\.\s*</,
+  /`Active tab: \$\{leafTitle\(activeLeaf\)\}`/,
+  /leafTitle\(activeLeaf\)/,
+];
+
+const WORKSPACE_LEAF_TITLE_FORBIDDEN_PATTERNS = [
+  /return "Files"/,
+  /return "Settings"/,
+  /return "Web viewer"/,
+  /return "Graph view"/,
+  /return "Canvas"/,
+  /return "Base"/,
+  /return "New tab"/,
+  /"Untitled"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -976,6 +1019,63 @@ describe("UI string externalization audit", () => {
       "settings.templates",
     ]) {
       expect(filterSource).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps workspace chrome, tab actions, leaf titles, and empty states routed through i18n keys", () => {
+    const sources = [
+      readFileSync(`${process.cwd()}/src/ui/shell/Titlebar.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/workspace/TabStrip.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/workspace/Tab.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/workspace/Leaf.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/A11yAnnouncer.tsx`, "utf8"),
+    ];
+    const leafTitleSource = readFileSync(`${process.cwd()}/src/ui/workspace/leaf-title.ts`, "utf8");
+    const chromeSource = sources.join("\n");
+    const violations = WORKSPACE_CHROME_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(chromeSource),
+    ).concat(
+      WORKSPACE_LEAF_TITLE_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(leafTitleSource)),
+    );
+
+    for (const requiredKey of [
+      "titlebar.navigateBack",
+      "titlebar.navigateForward",
+      "workspace.tab.new",
+      "workspace.tab.stack",
+      "workspace.tab.closeGroup",
+      "workspace.menu.close",
+      "workspace.menu.closeOthers",
+      "workspace.menu.closeRight",
+      "workspace.menu.splitRight",
+      "workspace.menu.openNewWindow",
+      "workspace.menu.unpin",
+      "workspace.tab.close",
+      "workspace.action.editNote",
+      "workspace.action.readNote",
+      "workspace.announce.activeTab",
+      "workspace.empty.createBrowserVaultTitle",
+      "workspace.empty.openHint.beforeQuickSwitcher",
+      "app.welcome.title",
+      "app.welcome.openSwitcher",
+      "app.empty.noFile",
+    ]) {
+      expect(chromeSource).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "workspace.leaf.untitled",
+      "workspace.leaf.files",
+      "workspace.leaf.settings",
+      "workspace.leaf.webViewer",
+      "workspace.leaf.graph",
+      "workspace.leaf.canvas",
+      "workspace.leaf.base",
+      "workspace.leaf.newTab",
+      "sidebar.tab.localGraph",
+    ]) {
+      expect(leafTitleSource).toContain(requiredKey);
     }
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);

@@ -1,7 +1,6 @@
 import { commandRegistry } from "@core/commands/CommandRegistry";
 import { workspaceStore } from "@core/workspace/store";
 import type { Leaf } from "@core/workspace/types";
-import { leafTitle } from "@core/workspace/types";
 import {
   BookOpen,
   Edit3,
@@ -11,6 +10,7 @@ import {
   SplitSquareVertical,
 } from "lucide-react";
 import { ClickableIcon } from "../controls/ClickableIcon";
+import { useI18n } from "../i18n/useI18n";
 import { useVault } from "../vault/VaultContext";
 import { BasesView } from "../views/BasesView";
 import { CanvasView } from "../views/CanvasView";
@@ -19,6 +19,7 @@ import { MarkdownView } from "../views/MarkdownView";
 import { ReadingView } from "../views/ReadingView";
 import { WebViewerView } from "../views/WebViewerView";
 import { SidebarLeafView } from "../views/sidebar/SidebarLeafView";
+import { displayLeafTitle } from "./leaf-title";
 
 export interface LeafBodyProps {
   leaf: Leaf;
@@ -45,7 +46,8 @@ export function LeafBody({ leaf, groupId, isActiveGroup }: LeafBodyProps) {
 }
 
 function ViewHeader({ leaf, groupId: _groupId }: { leaf: Leaf; groupId?: string }) {
-  const title = leafTitle(leaf);
+  const t = useI18n();
+  const title = displayLeafTitle(leaf, t);
   const isMarkdown = leaf.state.type === "markdown";
   const isReading = isMarkdown && leaf.state.mode === "reading";
   return (
@@ -57,21 +59,21 @@ function ViewHeader({ leaf, groupId: _groupId }: { leaf: Leaf; groupId?: string 
       <div className="view-actions">
         {isMarkdown && (
           <ClickableIcon
-            ariaLabel={isReading ? "Edit this note" : "Read this note"}
+            ariaLabel={t(isReading ? "workspace.action.editNote" : "workspace.action.readNote")}
             icon={isReading ? <Edit3 /> : <BookOpen />}
             onClick={() => workspaceStore.setMode(leaf.id, isReading ? "source" : "reading")}
           />
         )}
         {isMarkdown && (
           <ClickableIcon
-            ariaLabel="Split right"
+            ariaLabel={t("workspace.menu.splitRight")}
             icon={<SplitSquareHorizontal />}
             onClick={() => workspaceStore.splitLeaf(leaf.id, "right")}
           />
         )}
         {isMarkdown && (
           <ClickableIcon
-            ariaLabel="Split down"
+            ariaLabel={t("workspace.menu.splitDown")}
             icon={<SplitSquareVertical />}
             onClick={() => workspaceStore.splitLeaf(leaf.id, "down")}
           />
@@ -114,6 +116,7 @@ function ViewBody({ leaf }: { leaf: Leaf }) {
 }
 
 function EmptyLeafBody() {
+  const t = useI18n();
   const { activeVault, canPickFolder, canUseOpfs, pickFolder, openOpfs } = useVault();
 
   if (!activeVault) {
@@ -140,7 +143,7 @@ function EmptyLeafBody() {
             color: "var(--text-normal)",
           }}
         >
-          Welcome to Granite
+          {t("app.welcome.title")}
         </div>
         <div
           style={{
@@ -149,8 +152,7 @@ function EmptyLeafBody() {
             color: "var(--text-muted)",
           }}
         >
-          A local-first, Markdown-native, linked-thinking knowledge base. Your notes are stored as
-          plain `.md` files; nothing leaves your computer.
+          {t("app.welcome.body")}
         </div>
         <div style={{ display: "flex", gap: "var(--size-4-2)", marginTop: "var(--size-4-4)" }}>
           <button
@@ -164,27 +166,30 @@ function EmptyLeafBody() {
             }}
             title={
               canPickFolder
-                ? "Pick a folder on your computer"
-                : "Folder picking requires a Chromium browser"
+                ? t("vaultPicker.pickFolderTitle")
+                : t("vaultPicker.pickFolderUnavailable")
             }
           >
             <FolderOpen size={14} style={{ marginRight: "var(--size-2-2)" }} />
-            Pick a folder…
+            {t("app.welcome.pickFolder")}
           </button>
           <button
             type="button"
             disabled={!canUseOpfs}
             onClick={() => {
-              const name = prompt("Name for the in-browser vault?", "My vault");
+              const name = prompt(
+                t("vaultPicker.prompt.opfsName"),
+                t("vaultPicker.prompt.opfsDefault"),
+              );
               if (!name) return;
               void openOpfs(name).catch((err) => {
                 alert(err instanceof Error ? err.message : String(err));
               });
             }}
-            title="Create a vault stored inside the browser"
+            title={t("workspace.empty.createBrowserVaultTitle")}
           >
             <Globe size={14} style={{ marginRight: "var(--size-2-2)" }} />
-            In-browser vault
+            {t("app.welcome.opfsVault")}
           </button>
         </div>
         <div
@@ -194,7 +199,7 @@ function EmptyLeafBody() {
             marginTop: "var(--size-4-3)",
           }}
         >
-          Already have a vault?{" "}
+          {t("app.welcome.haveVault")}{" "}
           <button
             type="button"
             style={{
@@ -209,7 +214,7 @@ function EmptyLeafBody() {
             }}
             onClick={() => void commandRegistry.run("app:open-vault-switcher")}
           >
-            Open the vault switcher
+            {t("app.welcome.openSwitcher")}
           </button>
           .
         </div>
@@ -238,10 +243,10 @@ function EmptyLeafBody() {
           color: "var(--text-normal)",
         }}
       >
-        No file open
+        {t("app.empty.noFile")}
       </div>
       <div style={{ fontSize: "var(--font-ui-small)", maxWidth: 420, textAlign: "center" }}>
-        Click a file in the sidebar, press{" "}
+        {t("workspace.empty.openHint.beforeQuickSwitcher")}{" "}
         <kbd
           style={{
             padding: "0 4px",
@@ -252,7 +257,7 @@ function EmptyLeafBody() {
         >
           ⌘O
         </kbd>{" "}
-        to open one, or press{" "}
+        {t("workspace.empty.openHint.afterQuickSwitcher")}{" "}
         <kbd
           style={{
             padding: "0 4px",
@@ -263,7 +268,7 @@ function EmptyLeafBody() {
         >
           ⌘P
         </kbd>{" "}
-        for the command palette.
+        {t("workspace.empty.openHint.afterCommandPalette")}
       </div>
     </div>
   );

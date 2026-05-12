@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-12 — Workspace chrome i18n ratchet
+
+- **Titlebar and tab strip** — routed back/forward navigation labels, new-tab,
+  stack/unstack, close-tab, and close-group labels through `t()`.
+- **Workspace tabs and leaf headers** — routed tab context-menu actions,
+  pinned-tab controls, markdown read/edit and split actions, fallback leaf
+  titles, and active-tab live-region announcements through locale keys.
+- **Empty workspace states** — reused the existing welcome/vault-picker strings
+  and added i18n keys for the active-vault no-file hint and in-browser-vault
+  title.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if workspace chrome, tab actions, leaf titles, or empty-state copy return
+  as hard-coded English UI literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts`,
+  `src/core/i18n/externalization.test.ts`, and covered the localized
+  announcement path through `src/ui/A11yAnnouncer.test.tsx`.
+- Validation: Biome check, targeted i18n/a11y tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Settings modal i18n ratchet
 
 - **Settings modal** — routed modal chrome, search placeholder, sidebar group

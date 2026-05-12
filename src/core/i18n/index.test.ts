@@ -73,5 +73,9 @@ describe("i18n", () => {
     expect(t("settings.appearance.baseScheme")).toBe("ערכת צבע בסיסית");
     expect(t("settings.hotkeys.pressKey")).toBe("לחצו על מקש…");
     expect(t("settings.plugins.installFromUrl")).toBe("התקנת תוסף מכתובת URL…");
+    expect(t("titlebar.navigateBack")).toBe("ניווט אחורה");
+    expect(t("workspace.tab.close")).toBe("סגירת לשונית");
+    expect(t("workspace.menu.splitRight")).toBe("פיצול ימינה");
+    expect(t("workspace.announce.activeTab", { title: "Projects" })).toBe("לשונית פעילה: Projects");
   });
 });

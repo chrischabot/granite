@@ -1,17 +1,18 @@
+import { dirtyPaths, subscribeDirty } from "@core/workspace/dirty";
+import { workspaceStore } from "@core/workspace/store";
+import type { Leaf } from "@core/workspace/types";
 import {
+  ExternalLink,
   Pin,
-  X,
   PinOff,
   SplitSquareHorizontal,
   SplitSquareVertical,
-  ExternalLink,
+  X,
 } from "lucide-react";
 import { useSyncExternalStore } from "react";
-import type { Leaf } from "@core/workspace/types";
-import { leafTitle } from "@core/workspace/types";
-import { workspaceStore } from "@core/workspace/store";
-import { dirtyPaths, subscribeDirty } from "@core/workspace/dirty";
-import { openMenu, type MenuItem } from "../overlay/Menu";
+import { useI18n } from "../i18n/useI18n";
+import { type MenuItem, openMenu } from "../overlay/Menu";
+import { displayLeafTitle } from "./leaf-title";
 
 export interface TabProps {
   leaf: Leaf;
@@ -26,9 +27,7 @@ function tryGetActiveVaultIdFromUrl(): string | null {
   // the most-recent vault id from a globally exposed accessor injected by
   // VaultProvider. If unavailable, return null and let the popout open the
   // vault picker.
-  return (
-    (window as unknown as { __graniteActiveVaultId?: string }).__graniteActiveVaultId ?? null
-  );
+  return (window as unknown as { __graniteActiveVaultId?: string }).__graniteActiveVaultId ?? null;
 }
 
 function popOutLeaf(leaf: Leaf): void {
@@ -42,47 +41,47 @@ function popOutLeaf(leaf: Leaf): void {
 }
 
 export function Tab({ leaf, active }: TabProps) {
-  const title = leafTitle(leaf);
+  const t = useI18n();
+  const title = displayLeafTitle(leaf, t);
   const isMarkdown = leaf.state.type === "markdown";
   const isPinned = isMarkdown && leaf.state.pinned;
   const dirty = useSyncExternalStore(subscribeDirty, dirtyPaths, dirtyPaths);
-  const isDirty =
-    leaf.state.type === "markdown" && dirty.has(leaf.state.path);
+  const isDirty = leaf.state.type === "markdown" && dirty.has(leaf.state.path);
 
   const onContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     const items: MenuItem[] = [
       {
         id: "close",
-        label: "Close",
+        label: t("workspace.menu.close"),
         icon: <X size={14} />,
         callback: () => workspaceStore.closeTab(leaf.id),
       },
       {
         id: "close-others",
-        label: "Close other tabs",
+        label: t("workspace.menu.closeOthers"),
         callback: () => workspaceStore.closeOtherTabs(leaf.id),
       },
       {
         id: "close-right",
-        label: "Close tabs to the right",
+        label: t("workspace.menu.closeRight"),
         callback: () => workspaceStore.closeRightTabs(leaf.id),
       },
       {
         id: "split-right",
-        label: "Split right",
+        label: t("workspace.menu.splitRight"),
         icon: <SplitSquareHorizontal size={14} />,
         callback: () => workspaceStore.splitLeaf(leaf.id, "right"),
       },
       {
         id: "split-down",
-        label: "Split down",
+        label: t("workspace.menu.splitDown"),
         icon: <SplitSquareVertical size={14} />,
         callback: () => workspaceStore.splitLeaf(leaf.id, "down"),
       },
       {
         id: "popout",
-        label: "Open in new window",
+        label: t("workspace.menu.openNewWindow"),
         icon: <ExternalLink size={14} />,
         callback: () => popOutLeaf(leaf),
       },
@@ -90,7 +89,7 @@ export function Tab({ leaf, active }: TabProps) {
     if (isMarkdown) {
       items.push({
         id: "pin",
-        label: isPinned ? "Unpin tab" : "Pin tab",
+        label: t(isPinned ? "workspace.menu.unpin" : "workspace.menu.pin"),
         icon: isPinned ? <PinOff size={14} /> : <Pin size={14} />,
         callback: () => workspaceStore.togglePinned(leaf.id),
       });
@@ -124,31 +123,29 @@ export function Tab({ leaf, active }: TabProps) {
       tabIndex={0}
     >
       <div className="workspace-tab-header-inner">
-        <span
-          className={`workspace-tab-header-inner-title${isDirty ? " is-dirty" : ""}`}
-        >
+        <span className={`workspace-tab-header-inner-title${isDirty ? " is-dirty" : ""}`}>
           {isDirty ? "● " : ""}
           {title}
         </span>
         <span className="workspace-tab-header-status-container">
           {isPinned && (
-            <span
+            <button
+              type="button"
               className="workspace-tab-header-status-icon mod-pinned"
-              role="button"
-              aria-label="Unpin tab"
+              aria-label={t("workspace.menu.unpin")}
               onClick={(e) => {
                 e.stopPropagation();
                 workspaceStore.togglePinned(leaf.id);
               }}
             >
               <Pin size={14} />
-            </span>
+            </button>
           )}
         </span>
         <button
           type="button"
           className="workspace-tab-header-inner-close-button"
-          aria-label="Close tab"
+          aria-label={t("workspace.tab.close")}
           onClick={(e) => {
             e.stopPropagation();
             workspaceStore.closeTab(leaf.id);

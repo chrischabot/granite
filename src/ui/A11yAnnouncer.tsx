@@ -1,7 +1,8 @@
 import { a11yAnnouncer } from "@core/a11y/announcer";
-import { leafTitle } from "@core/workspace/types";
 import { useWorkspace } from "@core/workspace/useWorkspace";
 import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useI18n } from "./i18n/useI18n";
+import { displayLeafTitle } from "./workspace/leaf-title";
 
 export function A11yAnnouncer() {
   const announcement = useSyncExternalStore(
@@ -18,6 +19,7 @@ export function A11yAnnouncer() {
 }
 
 export function WorkspaceA11yAnnouncements() {
+  const t = useI18n();
   const { activeGroupId, groups, leaves } = useWorkspace();
   const activeLeafId = activeGroupId ? (groups.get(activeGroupId)?.activeLeafId ?? null) : null;
   const activeLeaf = activeLeafId ? (leaves.get(activeLeafId) ?? null) : null;
@@ -26,8 +28,12 @@ export function WorkspaceA11yAnnouncements() {
   useEffect(() => {
     if (!activeLeafId || activeLeafId === lastAnnouncedLeafId.current) return;
     lastAnnouncedLeafId.current = activeLeafId;
-    if (activeLeaf) a11yAnnouncer.announce(`Active tab: ${leafTitle(activeLeaf)}`);
-  }, [activeLeafId, activeLeaf]);
+    if (activeLeaf) {
+      a11yAnnouncer.announce(
+        t("workspace.announce.activeTab", { title: displayLeafTitle(activeLeaf, t) }),
+      );
+    }
+  }, [activeLeafId, activeLeaf, t]);
 
   return null;
 }

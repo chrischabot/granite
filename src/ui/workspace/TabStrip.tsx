@@ -1,9 +1,10 @@
-import { Plus, Rows, Columns, X } from "lucide-react";
-import { useRef, useState } from "react";
-import type { Leaf } from "@core/workspace/types";
 import { workspaceStore } from "@core/workspace/store";
+import type { Leaf } from "@core/workspace/types";
+import { Columns, Plus, Rows, X } from "lucide-react";
+import { useRef, useState } from "react";
 import { ClickableIcon } from "../controls/ClickableIcon";
-import { Tab, TAB_DND_MIME } from "./Tab";
+import { useI18n } from "../i18n/useI18n";
+import { TAB_DND_MIME, Tab } from "./Tab";
 
 export interface TabStripProps {
   leaves: ReadonlyArray<Leaf>;
@@ -13,13 +14,8 @@ export interface TabStripProps {
   stacked: boolean;
 }
 
-export function TabStrip({
-  leaves,
-  activeLeafId,
-  groupId,
-  canCloseGroup,
-  stacked,
-}: TabStripProps) {
+export function TabStrip({ leaves, activeLeafId, groupId, canCloseGroup, stacked }: TabStripProps) {
+  const t = useI18n();
   const innerRef = useRef<HTMLDivElement>(null);
   const [insertBefore, setInsertBefore] = useState<string | null | undefined>(undefined);
 
@@ -33,7 +29,9 @@ export function TabStrip({
     let target: string | null = null;
     for (const tab of tabs) {
       const rect = tab.getBoundingClientRect();
-      if (stacked ? e.clientY < rect.top + rect.height / 2 : e.clientX < rect.left + rect.width / 2) {
+      if (
+        stacked ? e.clientY < rect.top + rect.height / 2 : e.clientX < rect.left + rect.width / 2
+      ) {
         target = tab.getAttribute("data-leaf-id");
         break;
       }
@@ -66,9 +64,7 @@ export function TabStrip({
           <div
             key={leaf.id}
             data-leaf-id={leaf.id}
-            className={
-              insertBefore === leaf.id ? "workspace-tab-header-drop-before" : undefined
-            }
+            className={insertBefore === leaf.id ? "workspace-tab-header-drop-before" : undefined}
           >
             <Tab leaf={leaf} active={leaf.id === activeLeafId} />
           </div>
@@ -81,7 +77,7 @@ export function TabStrip({
       </div>
       <div className="workspace-tab-header-new-tab">
         <ClickableIcon
-          ariaLabel="New tab"
+          ariaLabel={t("workspace.tab.new")}
           icon={<Plus />}
           onClick={() => {
             if (activeLeafId) workspaceStore.focusTab(activeLeafId);
@@ -89,13 +85,13 @@ export function TabStrip({
           }}
         />
         <ClickableIcon
-          ariaLabel={stacked ? "Unstack tabs" : "Stack tabs vertically"}
+          ariaLabel={t(stacked ? "workspace.tab.unstack" : "workspace.tab.stack")}
           icon={stacked ? <Columns /> : <Rows />}
           onClick={() => workspaceStore.toggleStacked(groupId)}
         />
         {canCloseGroup && (
           <ClickableIcon
-            ariaLabel="Close this tab group"
+            ariaLabel={t("workspace.tab.closeGroup")}
             icon={<X />}
             onClick={() => workspaceStore.closeGroup(groupId)}
           />

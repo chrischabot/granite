@@ -23,6 +23,7 @@ import {
   rectangularSelection,
 } from "@codemirror/view";
 import { commandRegistry } from "@core/commands/CommandRegistry";
+import { markdownFileUrlLink, shouldDropExternalFileAsLink } from "@core/dnd/external-files";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { stem } from "@core/fs/path";
@@ -272,6 +273,14 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
         }
       };
 
+      const insertTextAtSelection = (insert: string) => {
+        const sel = view.state.selection.main;
+        view.dispatch({
+          changes: { from: sel.from, to: sel.to, insert },
+          selection: { anchor: sel.from + insert.length },
+        });
+      };
+
       const onPaste = async (e: ClipboardEvent) => {
         const items = e.clipboardData?.items;
         if (!items) return;
@@ -320,8 +329,28 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
         }
         const files = e.dataTransfer?.files;
         if (!files || files.length === 0) return;
+        const droppedFiles = [...files];
+        if (shouldDropExternalFileAsLink(e)) {
+          const links = droppedFiles
+            .map((file) => markdownFileUrlLink(file))
+            .filter((link): link is string => link !== null);
+          e.preventDefault();
+          if (links.length === 0) {
+            noticeManager.show("Dropped file paths are not available from this host.", {
+              kind: "warning",
+            });
+            return;
+          }
+          insertTextAtSelection(links.join("\n"));
+          if (links.length < droppedFiles.length) {
+            noticeManager.show("Some dropped file paths were not available from this host.", {
+              kind: "warning",
+            });
+          }
+          return;
+        }
         const accepted: File[] = [];
-        for (const file of files) {
+        for (const file of droppedFiles) {
           if (!isSupportedAttachmentMime(file.type)) continue;
           accepted.push(file);
         }

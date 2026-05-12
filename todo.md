@@ -83,7 +83,7 @@
 - [ ] Community plugin browser (URL install exists; no registry browse yet)
 
 ### §24.18 Drag & drop
-- [ ] External-OS-drag handling with `Ctrl/Option` modifier
+- [x] External-OS-drag handling with `Ctrl/Option` modifier ← _shipped 2026-05-12 external file drop sweep_
 
 ### §24.19 Performance — Phase 14
 - [ ] 10 k-note cold start < 3 s

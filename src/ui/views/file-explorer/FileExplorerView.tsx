@@ -1,6 +1,7 @@
 import { ClickableIcon } from "@/ui/controls/ClickableIcon";
 import { openMenu } from "@/ui/overlay/Menu";
 import { useVault } from "@/ui/vault/VaultContext";
+import { importExternalFileToVault } from "@core/dnd/external-files";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
@@ -44,6 +45,10 @@ import {
 import { sortNodes } from "./sort";
 
 const FILE_DND_MIME = "application/granite-vault-path";
+
+function hasExternalFiles(dataTransfer: DataTransfer): boolean {
+  return Array.from(dataTransfer.types).includes("Files");
+}
 
 function deletionErrorMessage(err: unknown): string {
   if (err instanceof FsUnsupported) return err.feature;
@@ -473,6 +478,59 @@ export function FileExplorerView() {
     }
   };
 
+  const importExternalFiles = useCallback(
+    async (files: ReadonlyArray<File>, targetFolder: VaultPath) => {
+      if (!activeVault || files.length === 0) return;
+      let imported = 0;
+      let failures = 0;
+      for (const file of files) {
+        try {
+          await importExternalFileToVault(file, targetFolder, {
+            async mkdir(path) {
+              await run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  yield* fs.mkdir(path);
+                }),
+              );
+            },
+            async stat(path) {
+              return run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  return yield* fs.stat(path);
+                }),
+              );
+            },
+            async writeBytes(path, bytes) {
+              await run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  yield* fs.writeBytes(path, bytes);
+                }),
+              );
+            },
+          });
+          imported += 1;
+        } catch {
+          failures += 1;
+        }
+      }
+      await refresh();
+      if (failures === 0) {
+        noticeManager.show(
+          `Imported ${imported} file${imported === 1 ? "" : "s"}${targetFolder ? ` into ${targetFolder}` : ""}.`,
+          { kind: "success" },
+        );
+      } else {
+        noticeManager.show(`Imported ${imported} file(s) with ${failures} failure(s).`, {
+          kind: "warning",
+        });
+      }
+    },
+    [activeVault, refresh],
+  );
+
   const showContextMenu = (e: React.MouseEvent, path: VaultPath, isDir: boolean) => {
     e.preventDefault();
     const items = isDir
@@ -597,14 +655,23 @@ export function FileExplorerView() {
             if (Array.from(e.dataTransfer.types).includes(FILE_DND_MIME)) {
               e.preventDefault();
               e.dataTransfer.dropEffect = "move";
+            } else if (hasExternalFiles(e.dataTransfer)) {
+              e.preventDefault();
+              e.dataTransfer.dropEffect = "copy";
             }
           }}
           onDrop={(e) => {
             const src = e.dataTransfer.getData(FILE_DND_MIME);
-            if (!src) return;
-            if (e.target !== e.currentTarget) return;
+            if (src) {
+              if (e.target !== e.currentTarget) return;
+              e.preventDefault();
+              void moveTo(src as VaultPath, "" as VaultPath);
+              return;
+            }
+            const files = [...e.dataTransfer.files];
+            if (files.length === 0 || e.target !== e.currentTarget) return;
             e.preventDefault();
-            void moveTo(src as VaultPath, "" as VaultPath);
+            void importExternalFiles(files, "" as VaultPath);
           }}
         >
           {visibleTree.length === 0 ? (
@@ -629,6 +696,7 @@ export function FileExplorerView() {
                 onDelete={handleDelete}
                 onContextMenu={showContextMenu}
                 onMoveTo={moveTo}
+                onImportExternalFiles={importExternalFiles}
                 onRowClick={handleRowClick}
               />
             ))
@@ -654,6 +722,7 @@ interface RowProps {
   onDelete: (p: VaultPath) => void;
   onContextMenu: (e: React.MouseEvent, p: VaultPath, isDir: boolean) => void;
   onMoveTo: (sourcePath: VaultPath, targetFolder: VaultPath) => Promise<void>;
+  onImportExternalFiles: (files: ReadonlyArray<File>, targetFolder: VaultPath) => Promise<void>;
   onRowClick: (path: VaultPath, e: React.MouseEvent | React.KeyboardEvent) => void;
 }
 
@@ -673,6 +742,7 @@ function TreeRow(props: RowProps) {
     onDelete,
     onContextMenu,
     onMoveTo,
+    onImportExternalFiles,
     onRowClick,
   } = props;
   const indent = depth * 16;
@@ -749,6 +819,10 @@ function TreeRow(props: RowProps) {
             e.preventDefault();
             e.dataTransfer.dropEffect = "move";
             if (!dragOver) setDragOver(true);
+          } else if (hasExternalFiles(e.dataTransfer)) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+            if (!dragOver) setDragOver(true);
           }
         }}
         onDragLeave={() => {
@@ -758,7 +832,14 @@ function TreeRow(props: RowProps) {
           if (!isDir) return;
           const src = e.dataTransfer.getData(FILE_DND_MIME);
           setDragOver(false);
-          if (!src) return;
+          if (!src) {
+            const files = [...e.dataTransfer.files];
+            if (files.length === 0) return;
+            e.preventDefault();
+            e.stopPropagation();
+            void onImportExternalFiles(files, node.entry.path);
+            return;
+          }
           e.preventDefault();
           e.stopPropagation();
           void onMoveTo(src as VaultPath, node.entry.path);
@@ -824,6 +905,7 @@ function TreeRow(props: RowProps) {
               onDelete={onDelete}
               onContextMenu={onContextMenu}
               onMoveTo={onMoveTo}
+              onImportExternalFiles={onImportExternalFiles}
               onRowClick={onRowClick}
             />
           ))}

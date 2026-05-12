@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-12 — External file drag-and-drop handling
+
+- **Editor file-url modifier** — OS file drops in the editor now honor
+  Ctrl on Windows/Linux and Option on macOS by inserting `file:///` Markdown
+  links instead of importing when the desktop host exposes file paths.
+- **Editor safety fallback** — modifier drops prevent browser navigation and
+  warn when the host cannot provide external file paths.
+- **File Explorer imports** — dropping OS files onto a folder or the empty
+  File Explorer root copies them into that vault location, with sanitized names
+  and collision suffixes.
+- **Shared helpers** — external-path extraction, file URL encoding, platform
+  modifier selection, filename sanitization, and unique import paths are covered
+  by core unit tests.
+
+### Tests
+- Added `src/core/dnd/external-files.test.ts`.
+- Validation: scoped `bunx biome check --write`, targeted D&D helper tests,
+  and `bun run typecheck` pass.
+
+---
+
 ## 2026-05-12 — CommonMark conformance harness
 
 - **Official fixture** — added the CommonMark 0.31.2 JSON examples from

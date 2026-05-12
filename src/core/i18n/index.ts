@@ -22,8 +22,20 @@ const EN_LOCALE: LocaleMap = {
   "settings.templates": "Templates",
   "search.placeholder": "Search… (tag: path: file: line: -exclude)",
   "search.empty.short": "Keep typing… (need at least 2 characters)",
-  "search.empty.intro":
-    "Type to search across all notes in the vault. Operators: tag: · path: · file: · line: · -term",
+  "search.empty.intro": "Type to search across all notes in the vault. Operators:",
+  "search.matchCase": "Match case",
+  "search.sort": "Sort",
+  "search.sort.relevance": "Relevance",
+  "search.sort.name": "Name",
+  "search.sort.modifiedNewest": "Modified (newest)",
+  "search.sort.modifiedOldest": "Modified (oldest)",
+  "search.status.searching": "Searching…",
+  "search.status.noResults": "No results.",
+  "search.status.results": "{matches} {matchLabel} in {files} {fileLabel}",
+  "search.status.match": "match",
+  "search.status.matches": "matches",
+  "search.status.file": "file",
+  "search.status.files": "files",
 };
 
 const builtinLocales: Record<LocaleId, LocaleMap> = {
@@ -46,8 +58,20 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "settings.templates": "תבניות",
     "search.placeholder": "חיפוש… (tag: path: file: line: -exclude)",
     "search.empty.short": "להמשיך להקליד… (צריך לפחות 2 תווים)",
-    "search.empty.intro":
-      "הקלידו כדי לחפש בכל ההערות בכספת. אופרטורים: tag: · path: · file: · line: · -term",
+    "search.empty.intro": "הקלידו כדי לחפש בכל ההערות בכספת. אופרטורים:",
+    "search.matchCase": "התאמת אותיות",
+    "search.sort": "מיון",
+    "search.sort.relevance": "רלוונטיות",
+    "search.sort.name": "שם",
+    "search.sort.modifiedNewest": "שונה לאחרונה",
+    "search.sort.modifiedOldest": "שונה מזמן",
+    "search.status.searching": "מחפש…",
+    "search.status.noResults": "אין תוצאות.",
+    "search.status.results": "{matches} {matchLabel} ב-{files} {fileLabel}",
+    "search.status.match": "התאמה",
+    "search.status.matches": "התאמות",
+    "search.status.file": "קובץ",
+    "search.status.files": "קבצים",
   },
 };
 

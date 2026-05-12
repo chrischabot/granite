@@ -21,6 +21,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { useI18n } from "../../i18n/useI18n";
 
 interface FileMatches {
   path: VaultPath;
@@ -79,6 +80,7 @@ function applySort(arr: FileMatches[], order: SortOrder): FileMatches[] {
 }
 
 export function SearchView() {
+  const t = useI18n();
   const externalValue = useSyncExternalStore(queryStore.subscribe, queryStore.get, queryStore.get);
   const [query, setQuery] = useState(externalValue);
   const [results, setResults] = useState<FileMatches[]>([]);
@@ -185,13 +187,23 @@ export function SearchView() {
   }, [sortOrder]);
 
   const totalMatches = results.reduce((sum, r) => sum + r.matches.length, 0);
+  const resultStatus = running
+    ? t("search.status.searching")
+    : results.length === 0
+      ? t("search.status.noResults")
+      : t("search.status.results", {
+          matches: totalMatches,
+          matchLabel: t(totalMatches === 1 ? "search.status.match" : "search.status.matches"),
+          files: results.length,
+          fileLabel: t(results.length === 1 ? "search.status.file" : "search.status.files"),
+        });
 
   return (
     <div className="search-pane">
       <div className="nav-header" style={{ flexDirection: "column", alignItems: "stretch" }}>
         <input
           type="search"
-          placeholder="Search… (tag: path: file: line: -exclude)"
+          placeholder={t("search.placeholder")}
           value={query}
           onChange={(e) => setQuery(e.currentTarget.value)}
           style={{ width: "100%" }}
@@ -212,33 +224,31 @@ export function SearchView() {
               checked={matchCase}
               onChange={(e) => setMatchCase(e.currentTarget.checked)}
             />
-            Match case
+            {t("search.matchCase")}
           </label>
           <label style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            Sort
+            {t("search.sort")}
             <select
               className="dropdown"
               value={sortOrder}
               onChange={(e) => setSortOrder(e.currentTarget.value as SortOrder)}
               style={{ minWidth: 0 }}
             >
-              <option value="relevance">Relevance</option>
-              <option value="name">Name</option>
-              <option value="modified-newest">Modified (newest)</option>
-              <option value="modified-oldest">Modified (oldest)</option>
+              <option value="relevance">{t("search.sort.relevance")}</option>
+              <option value="name">{t("search.sort.name")}</option>
+              <option value="modified-newest">{t("search.sort.modifiedNewest")}</option>
+              <option value="modified-oldest">{t("search.sort.modifiedOldest")}</option>
             </select>
           </label>
         </div>
       </div>
       {query.trim().length === 0 ? (
         <div className="workspace-sidedock-empty-state">
-          Type to search across all notes in the vault. Operators: <code>tag:foo</code> ·{" "}
-          <code>path:</code> · <code>file:</code> · <code>line:</code> · <code>-term</code>
+          {t("search.empty.intro")} <code>tag:foo</code> · <code>path:</code> · <code>file:</code> ·{" "}
+          <code>line:</code> · <code>-term</code>
         </div>
       ) : query.trim().length < 2 ? (
-        <div className="workspace-sidedock-empty-state">
-          Keep typing… (need at least 2 characters)
-        </div>
+        <div className="workspace-sidedock-empty-state">{t("search.empty.short")}</div>
       ) : (
         <>
           <div
@@ -248,11 +258,7 @@ export function SearchView() {
               color: "var(--text-muted)",
             }}
           >
-            {running
-              ? "Searching…"
-              : results.length === 0
-                ? "No results."
-                : `${totalMatches} match${totalMatches === 1 ? "" : "es"} in ${results.length} file${results.length === 1 ? "" : "s"}`}
+            {resultStatus}
           </div>
           <div className="search-result-container mod-global-search">
             {results.map((r) => (

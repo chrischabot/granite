@@ -95,6 +95,24 @@
 
 ---
 
+## 2026-05-12 — Search view i18n ratchet
+
+- **React i18n hook** — added `useI18n()` so UI components can subscribe to
+  locale changes and re-render translated labels.
+- **Search view externalization** — routed the Search pane placeholder, match
+  case label, sort label/options, empty states, and result status text through
+  `t()`.
+- **Regression audit** — added `src/core/i18n/externalization.test.ts` to fail
+  if Search view's formerly hard-coded English strings return as visible UI
+  literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts`.
+- Added `src/core/i18n/externalization.test.ts`.
+- Validation: targeted i18n tests pass.
+
+---
+
 ## 2026-05-12 — Performance budget first pass
 
 - **Quick Switcher keystroke path** — extracted reusable fuzzy indexes and

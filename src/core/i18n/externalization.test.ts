@@ -319,6 +319,28 @@ const FILE_RECOVERY_MODAL_FORBIDDEN_PATTERNS = [
   />\s*Restore\s*</,
 ];
 
+const INSTALL_PLUGIN_MODAL_FORBIDDEN_PATTERNS = [
+  /"Manifest is not valid JSON"/,
+  /"Manifest must be a JSON object"/,
+  /"Manifest must include `id`, `name`, and `version` strings"/,
+  /"Plugin `id` may only contain letters, digits, dashes, or underscores"/,
+  /"Could not derive base URL from manifest URL"/,
+  /`HTTP \$\{response\.status\} while fetching \$\{label\}`/,
+  /"Plugin `main` must be a flat filename \(no slashes\)"/,
+  /`Registry entry "\$\{entry\.id\}" points to manifest id "\$\{latestManifest\.id\}"`/,
+  /`Installed "\$\{preview\.manifest\.name\}"\. Enable it from Settings → Plugins\.`/,
+  /title="Install community plugin"/,
+  /Browse the official Obsidian community registry/,
+  /placeholder="Search community plugins"/,
+  />\s*Loading community registry…\s*</,
+  />\s*Manual manifest URL\s*</,
+  />\s*\{fetching \? "Fetching…" : "Fetch"\}\s*</,
+  /by \{preview\.manifest\.author\}/,
+  /KB of plugin code will be written to/,
+  />\s*Cancel\s*</,
+  />\s*\{writing \? "Installing…" : "Install"\}\s*</,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -811,6 +833,42 @@ describe("UI string externalization audit", () => {
       "fileRecovery.showChanges",
       "fileRecovery.copy",
       "fileRecovery.restore",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Install Plugin modal labels and surfaced errors routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/prompts/InstallPluginModal.tsx`, "utf8");
+    const violations = INSTALL_PLUGIN_MODAL_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+    for (const requiredKey of [
+      "installPlugin.error.invalidJson",
+      "installPlugin.error.manifestObject",
+      "installPlugin.error.requiredFields",
+      "installPlugin.error.invalidId",
+      "installPlugin.error.baseUrl",
+      "installPlugin.error.http",
+      "installPlugin.error.invalidMain",
+      "installPlugin.error.registryMismatch",
+      "installPlugin.asset.manifest",
+      "installPlugin.asset.communityManifest",
+      "installPlugin.notice.installed",
+      "installPlugin.title",
+      "installPlugin.description.beforeManifest",
+      "installPlugin.searchPlaceholder",
+      "installPlugin.registry.loading",
+      "installPlugin.manualUrl",
+      "installPlugin.fetching",
+      "installPlugin.fetch",
+      "installPlugin.byAuthor",
+      "installPlugin.codeSize",
+      "installPlugin.cancel",
+      "installPlugin.installing",
+      "installPlugin.install",
     ]) {
       expect(source).toContain(requiredKey);
     }

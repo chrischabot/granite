@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-12 — Install Plugin i18n ratchet
+
+- **Install Plugin modal** — routed manifest validation errors, fetch errors,
+  registry mismatch errors, success notice, modal title/description, registry
+  search/loading labels, manual manifest label, fetch/install/cancel actions,
+  author label, and plugin-code size summary through `t()`.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if Install Plugin's formerly hard-coded English labels or surfaced
+  errors return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — File Recovery i18n ratchet
 
 - **File Recovery modal** — routed load fallback error, copy/restore/clear

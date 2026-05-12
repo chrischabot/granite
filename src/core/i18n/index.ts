@@ -334,6 +334,35 @@ const EN_LOCALE: LocaleMap = {
   "fileRecovery.showChanges": "Show changes",
   "fileRecovery.copy": "Copy",
   "fileRecovery.restore": "Restore",
+  "installPlugin.error.invalidJson": "Manifest is not valid JSON",
+  "installPlugin.error.manifestObject": "Manifest must be a JSON object",
+  "installPlugin.error.requiredFields": "Manifest must include `id`, `name`, and `version` strings",
+  "installPlugin.error.invalidId":
+    "Plugin `id` may only contain letters, digits, dashes, or underscores",
+  "installPlugin.error.baseUrl": "Could not derive base URL from manifest URL",
+  "installPlugin.error.http": "HTTP {status} while fetching {label}",
+  "installPlugin.error.invalidMain": "Plugin `main` must be a flat filename (no slashes)",
+  "installPlugin.error.registryMismatch":
+    'Registry entry "{entryId}" points to manifest id "{manifestId}"',
+  "installPlugin.asset.manifest": "manifest",
+  "installPlugin.asset.communityManifest": "community manifest",
+  "installPlugin.notice.installed": 'Installed "{name}". Enable it from Settings → Plugins.',
+  "installPlugin.title": "Install community plugin",
+  "installPlugin.description.beforeManifest":
+    "Browse the official Obsidian community registry or paste a plugin",
+  "installPlugin.description.afterManifest": "URL. Granite writes plugin files into",
+  "installPlugin.description.afterPath":
+    "and keeps them disabled until you enable them in Settings.",
+  "installPlugin.searchPlaceholder": "Search community plugins",
+  "installPlugin.registry.loading": "Loading community registry…",
+  "installPlugin.manualUrl": "Manual manifest URL",
+  "installPlugin.fetching": "Fetching…",
+  "installPlugin.fetch": "Fetch",
+  "installPlugin.byAuthor": "by {author}",
+  "installPlugin.codeSize": "{kb} KB of plugin code will be written to",
+  "installPlugin.cancel": "Cancel",
+  "installPlugin.installing": "Installing…",
+  "installPlugin.install": "Install",
 };
 
 const builtinLocales: Record<LocaleId, LocaleMap> = {
@@ -665,6 +694,34 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "fileRecovery.showChanges": "הצגת שינויים",
     "fileRecovery.copy": "העתקה",
     "fileRecovery.restore": "שחזור",
+    "installPlugin.error.invalidJson": "המניפסט אינו JSON תקין",
+    "installPlugin.error.manifestObject": "המניפסט חייב להיות אובייקט JSON",
+    "installPlugin.error.requiredFields": "המניפסט חייב לכלול מחרוזות `id`,‏ `name`, ו-`version`",
+    "installPlugin.error.invalidId":
+      "מזהה התוסף יכול להכיל רק אותיות, ספרות, מקפים או קווים תחתונים",
+    "installPlugin.error.baseUrl": "לא ניתן לגזור כתובת בסיס מכתובת המניפסט",
+    "installPlugin.error.http": "HTTP {status} בעת טעינת {label}",
+    "installPlugin.error.invalidMain": "ערך `main` של התוסף חייב להיות שם קובץ שטוח (ללא לוכסנים)",
+    "installPlugin.error.registryMismatch":
+      'רשומת הרישום "{entryId}" מצביעה למזהה מניפסט "{manifestId}"',
+    "installPlugin.asset.manifest": "מניפסט",
+    "installPlugin.asset.communityManifest": "מניפסט קהילתי",
+    "installPlugin.notice.installed": '"{name}" הותקן. הפעילו אותו דרך הגדרות ← תוספים.',
+    "installPlugin.title": "התקנת תוסף קהילתי",
+    "installPlugin.description.beforeManifest":
+      "עיינו ברישום הקהילתי הרשמי של Obsidian או הדביקו כתובת",
+    "installPlugin.description.afterManifest": "של תוסף. גרניט כותב את קובצי התוסף אל",
+    "installPlugin.description.afterPath": "ומשאיר אותם כבויים עד שתפעילו אותם בהגדרות.",
+    "installPlugin.searchPlaceholder": "חיפוש תוספים קהילתיים",
+    "installPlugin.registry.loading": "טוען רישום קהילתי…",
+    "installPlugin.manualUrl": "כתובת מניפסט ידנית",
+    "installPlugin.fetching": "טוען…",
+    "installPlugin.fetch": "טעינה",
+    "installPlugin.byAuthor": "מאת {author}",
+    "installPlugin.codeSize": "{kb} KB של קוד תוסף ייכתבו אל",
+    "installPlugin.cancel": "ביטול",
+    "installPlugin.installing": "מתקין…",
+    "installPlugin.install": "התקנה",
   },
 };
 

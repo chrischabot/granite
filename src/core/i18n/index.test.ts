@@ -68,5 +68,6 @@ describe("i18n", () => {
     expect(t("bookmarks.defaultGroup")).toBe("סימניות");
     expect(t("graph.controls.title")).toBe("פקדי גרף");
     expect(t("fileRecovery.title")).toBe("שחזור קבצים");
+    expect(t("installPlugin.title")).toBe("התקנת תוסף קהילתי");
   });
 });

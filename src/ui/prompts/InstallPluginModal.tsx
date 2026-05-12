@@ -10,6 +10,7 @@ import {
 } from "@core/plugins/community-registry";
 import { Effect } from "effect";
 import { useEffect, useMemo, useState } from "react";
+import { useI18n } from "../i18n/useI18n";
 import { Modal } from "../overlay/Modal";
 
 export interface InstallPluginModalProps {
@@ -43,26 +44,27 @@ interface PluginManifestJson {
 }
 
 const SAFE_ID_RE = /^[a-z0-9_-]+$/i;
+type Translate = (key: string, params?: Record<string, string | number>) => string;
 
-function parseManifest(manifestText: string): FetchedPlugin["manifest"] {
+function parseManifest(manifestText: string, t: Translate): FetchedPlugin["manifest"] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(manifestText);
   } catch {
-    throw new Error("Manifest is not valid JSON");
+    throw new Error(t("installPlugin.error.invalidJson"));
   }
   if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("Manifest must be a JSON object");
+    throw new Error(t("installPlugin.error.manifestObject"));
   }
   const obj = parsed as PluginManifestJson;
   const id = typeof obj.id === "string" ? obj.id : null;
   const name = typeof obj.name === "string" ? obj.name : null;
   const version = typeof obj.version === "string" ? obj.version : null;
   if (!id || !name || !version) {
-    throw new Error("Manifest must include `id`, `name`, and `version` strings");
+    throw new Error(t("installPlugin.error.requiredFields"));
   }
   if (!SAFE_ID_RE.test(id)) {
-    throw new Error("Plugin `id` may only contain letters, digits, dashes, or underscores");
+    throw new Error(t("installPlugin.error.invalidId"));
   }
   return {
     id,
@@ -74,10 +76,10 @@ function parseManifest(manifestText: string): FetchedPlugin["manifest"] {
   };
 }
 
-function siblingUrl(url: string, filename: string): string {
+function siblingUrl(url: string, filename: string, t: Translate): string {
   const baseUrl = url.replace(/[^/?#]+([?#].*)?$/, "");
   if (!baseUrl) {
-    throw new Error("Could not derive base URL from manifest URL");
+    throw new Error(t("installPlugin.error.baseUrl"));
   }
   return `${baseUrl}${filename}`;
 }
@@ -88,10 +90,10 @@ function addManifestUrl(manifestText: string, manifestUrl: string): string {
   return `${JSON.stringify({ ...parsed, manifestUrl }, null, 2)}\n`;
 }
 
-async function fetchText(url: string, label: string): Promise<string> {
+async function fetchText(url: string, label: string, t: Translate): Promise<string> {
   const response = await fetch(url, { credentials: "omit" });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status} while fetching ${label}`);
+    throw new Error(t("installPlugin.error.http", { status: response.status, label }));
   }
   return response.text();
 }
@@ -111,20 +113,26 @@ async function fetchPluginAssets(options: {
   readonly mainUrl?: string;
   readonly stylesUrl?: string;
   readonly updateManifestUrl?: string;
+  readonly t: Translate;
 }): Promise<FetchedPlugin> {
-  const rawManifestText = await fetchText(options.manifestUrl, "manifest");
-  const manifest = parseManifest(rawManifestText);
+  const rawManifestText = await fetchText(
+    options.manifestUrl,
+    options.t("installPlugin.asset.manifest"),
+    options.t,
+  );
+  const manifest = parseManifest(rawManifestText, options.t);
   const mainName =
     typeof manifest.main === "string" && manifest.main.trim() ? manifest.main.trim() : "main.js";
   if (mainName.includes("/") || mainName.includes("\\")) {
-    throw new Error("Plugin `main` must be a flat filename (no slashes)");
+    throw new Error(options.t("installPlugin.error.invalidMain"));
   }
   const mainText = await fetchText(
-    options.mainUrl ?? siblingUrl(options.manifestUrl, mainName),
+    options.mainUrl ?? siblingUrl(options.manifestUrl, mainName, options.t),
     mainName,
+    options.t,
   );
   const stylesText = await fetchOptionalText(
-    options.stylesUrl ?? siblingUrl(options.manifestUrl, "styles.css"),
+    options.stylesUrl ?? siblingUrl(options.manifestUrl, "styles.css", options.t),
   );
   return {
     manifestText: options.updateManifestUrl
@@ -139,18 +147,28 @@ async function fetchPluginAssets(options: {
 
 /** Fetch + validate a plugin from a manifest.json URL. Returns the fetched
  *  manifest + main.js text ready to write to disk. Throws on any failure. */
-async function fetchPlugin(url: string): Promise<FetchedPlugin> {
-  return fetchPluginAssets({ manifestUrl: url });
+async function fetchPlugin(url: string, t: Translate): Promise<FetchedPlugin> {
+  return fetchPluginAssets({ manifestUrl: url, t });
 }
 
 async function fetchPluginFromRegistry(
   entry: CommunityPluginRegistryEntry,
+  t: Translate,
 ): Promise<FetchedPlugin> {
   const updateManifestUrl = getCommunityPluginManifestUrl(entry);
-  const latestManifestText = await fetchText(updateManifestUrl, "community manifest");
-  const latestManifest = parseManifest(latestManifestText);
+  const latestManifestText = await fetchText(
+    updateManifestUrl,
+    t("installPlugin.asset.communityManifest"),
+    t,
+  );
+  const latestManifest = parseManifest(latestManifestText, t);
   if (latestManifest.id !== entry.id) {
-    throw new Error(`Registry entry "${entry.id}" points to manifest id "${latestManifest.id}"`);
+    throw new Error(
+      t("installPlugin.error.registryMismatch", {
+        entryId: entry.id,
+        manifestId: latestManifest.id,
+      }),
+    );
   }
   const urls = getCommunityPluginInstallUrls(entry, latestManifest.version);
   return fetchPluginAssets({
@@ -158,6 +176,7 @@ async function fetchPluginFromRegistry(
     mainUrl: urls.mainUrl,
     stylesUrl: urls.stylesUrl,
     updateManifestUrl: urls.updateManifestUrl,
+    t,
   });
 }
 
@@ -185,6 +204,7 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
   const [registryQuery, setRegistryQuery] = useState("");
   const [registryStatus, setRegistryStatus] = useState<"idle" | "loading" | "error">("idle");
   const [registryError, setRegistryError] = useState<string | null>(null);
+  const t = useI18n();
   const registryResults = useMemo(
     () => searchCommunityPluginRegistry(registry, registryQuery, 12),
     [registry, registryQuery],
@@ -220,7 +240,7 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
     setErrorMessage(null);
     setPreview(null);
     try {
-      const fetched = await fetchPlugin(u);
+      const fetched = await fetchPlugin(u, t);
       setPreview(fetched);
       setStatus("idle");
     } catch (err) {
@@ -236,10 +256,9 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
     try {
       await writePluginToVault(preview);
       setStatus("done");
-      noticeManager.show(
-        `Installed "${preview.manifest.name}". Enable it from Settings → Plugins.`,
-        { kind: "success" },
-      );
+      noticeManager.show(t("installPlugin.notice.installed", { name: preview.manifest.name }), {
+        kind: "success",
+      });
       onClose();
     } catch (err) {
       setStatus("error");
@@ -253,7 +272,7 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
     setPreview(null);
     setUrl(getCommunityPluginManifestUrl(entry));
     try {
-      const fetched = await fetchPluginFromRegistry(entry);
+      const fetched = await fetchPluginFromRegistry(entry, t);
       setPreview(fetched);
       setStatus("idle");
     } catch (err) {
@@ -267,16 +286,16 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
   const busy = fetching || writing;
 
   return (
-    <Modal open={open} onClose={onClose} title="Install community plugin" modifier="mod-narrow">
+    <Modal open={open} onClose={onClose} title={t("installPlugin.title")} modifier="mod-narrow">
       <p style={{ color: "var(--text-muted)", marginTop: 0, fontSize: "var(--font-ui-small)" }}>
-        Browse the official Obsidian community registry or paste a plugin <code>manifest.json</code>{" "}
-        URL. Granite writes plugin files into <code>.granite/plugins/&lt;id&gt;</code> and keeps
-        them disabled until you enable them in Settings.
+        {t("installPlugin.description.beforeManifest")} <code>manifest.json</code>{" "}
+        {t("installPlugin.description.afterManifest")} <code>.granite/plugins/&lt;id&gt;</code>{" "}
+        {t("installPlugin.description.afterPath")}
       </p>
       <div style={{ marginTop: "var(--size-4-3)" }}>
         <input
           type="search"
-          placeholder="Search community plugins"
+          placeholder={t("installPlugin.searchPlaceholder")}
           value={registryQuery}
           onChange={(e) => setRegistryQuery(e.currentTarget.value)}
           style={{ width: "100%" }}
@@ -284,7 +303,7 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
         />
         {registryStatus === "loading" && (
           <div style={{ color: "var(--text-faint)", marginTop: "var(--size-4-2)" }}>
-            Loading community registry…
+            {t("installPlugin.registry.loading")}
           </div>
         )}
         {registryError && (
@@ -356,7 +375,7 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
         }}
       >
         <div style={{ color: "var(--text-faint)", fontSize: "var(--font-ui-smaller)" }}>
-          Manual manifest URL
+          {t("installPlugin.manualUrl")}
         </div>
         <div style={{ display: "flex", gap: "var(--size-4-2)", marginTop: "var(--size-4-3)" }}>
           <input
@@ -374,7 +393,7 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
             }}
           />
           <button type="button" onClick={() => void onFetch()} disabled={busy || !url.trim()}>
-            {fetching ? "Fetching…" : "Fetch"}
+            {fetching ? t("installPlugin.fetching") : t("installPlugin.fetch")}
           </button>
         </div>
       </div>
@@ -413,7 +432,9 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
             }}
           >
             <code>{preview.manifest.id}</code>
-            {preview.manifest.author && <> · by {preview.manifest.author}</>}
+            {preview.manifest.author && (
+              <> · {t("installPlugin.byAuthor", { author: preview.manifest.author })}</>
+            )}
           </div>
           {preview.manifest.description && (
             <div
@@ -433,7 +454,9 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
               marginTop: "var(--size-4-2)",
             }}
           >
-            {(preview.mainText.length / 1024).toFixed(1)} KB of plugin code will be written to{" "}
+            {t("installPlugin.codeSize", {
+              kb: (preview.mainText.length / 1024).toFixed(1),
+            })}{" "}
             <code>.granite/plugins/{preview.manifest.id}/</code>
           </div>
         </div>
@@ -447,7 +470,7 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
         }}
       >
         <button type="button" onClick={onClose} disabled={busy}>
-          Cancel
+          {t("installPlugin.cancel")}
         </button>
         <button
           type="button"
@@ -455,7 +478,7 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
           onClick={() => void onInstall()}
           disabled={busy || !preview}
         >
-          {writing ? "Installing…" : "Install"}
+          {writing ? t("installPlugin.installing") : t("installPlugin.install")}
         </button>
       </div>
     </Modal>

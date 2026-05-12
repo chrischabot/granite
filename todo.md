@@ -131,7 +131,7 @@ mapping.
 
 - [x] Sentry-style error boundary integrated with Effect's error channel ← _shipped 2026-05-12 shared error reporter_
 - [ ] Lighthouse a11y audit
-- [ ] Public docs site (vault format + plugin API)
+- [x] Public docs site (vault format + plugin API) ← _shipped 2026-05-12 static docs + docs check_
 
 ---
 

@@ -18,6 +18,11 @@
 
 **Out of scope.** The Electron main process (`main/`), sandboxed iframes (`renderer/sandbox/`), the help app (`renderer/help.html`, `renderer/help.js`), the starter / first-run experience (`renderer/starter.html`, `renderer/starter.js`), and any UI provided by community plugins.
 
+## Public Docs
+
+The local public documentation site starts at [`docs/index.html`](docs/index.html).
+It links the vault format, plugin API, and contributor guide.
+
 ## Source-of-truth precedence
 
 When multiple sources describe the same property, resolve in this order:

@@ -59,6 +59,25 @@
 
 ---
 
+## 2026-05-12 — Public docs site
+
+- **Static docs entrypoint** — added `docs/index.html` and `docs/styles.css`
+  as a dependency-free public documentation site.
+- **Vault format docs** — added `docs/vault-format.md` covering `.granite/`,
+  Obsidian compatibility, accepted file formats, Markdown, JSON Canvas, Bases,
+  plugin data, atomic writes, and trash behavior.
+- **Plugin API docs** — added `docs/plugin-api.md` for the current `PluginApi`
+  surface, plus `docs/contributor-guide.md` and a README link.
+- **Docs drift check** — added `bun run docs:check`, which verifies the static
+  docs entrypoint, vault-format coverage terms, and every top-level `PluginApi`
+  member from `src/core/plugins/types.ts`.
+
+### Tests
+- Added `src/core/docs/public-docs.test.ts`.
+- Validation: `bun run docs:check` passes.
+
+---
+
 ## 2026-05-12 — Performance budget first pass
 
 - **Quick Switcher keystroke path** — extracted reusable fuzzy indexes and

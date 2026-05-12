@@ -1,10 +1,12 @@
 import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import {
+  addUserHotkey,
   captureHotkey,
   clearUserHotkey,
   formatHotkey,
-  getUserHotkey,
-  setUserHotkey,
+  getEffectiveHotkeys,
+  getUserHotkeys,
+  removeUserHotkey,
   subscribeHotkeys,
 } from "@core/commands/hotkeys";
 import { getDailyNotesSettings, setDailyNotesSettings } from "@core/plugins-core/daily-notes";
@@ -666,13 +668,14 @@ function HotkeyTable({ commands }: { commands: ReadonlyArray<Command> }) {
 
 function HotkeyRow({ cmd }: { cmd: Command }) {
   const [capturing, setCapturing] = useState(false);
-  const override = getUserHotkey(cmd.id);
-  const effective = override ?? cmd.hotkeys?.[0] ?? null;
+  const overrides = getUserHotkeys(cmd.id);
+  const effective = getEffectiveHotkeys(cmd.id);
+  const lastOverride = overrides.at(-1);
   const onEdit = async () => {
     setCapturing(true);
     try {
       const captured = await captureHotkey();
-      if (captured) setUserHotkey(cmd.id, captured);
+      if (captured) addUserHotkey(cmd.id, captured);
     } finally {
       setCapturing(false);
     }
@@ -702,14 +705,18 @@ function HotkeyRow({ cmd }: { cmd: Command }) {
       <span style={{ flex: "1 1 auto", color: "var(--text-normal)" }}>{cmd.name}</span>
       <span
         style={{
-          color: override ? "var(--text-accent)" : "var(--text-muted)",
+          color: overrides.length > 0 ? "var(--text-accent)" : "var(--text-muted)",
           fontFamily: "var(--font-monospace)",
           fontSize: "var(--font-ui-smaller)",
-          minWidth: 120,
+          minWidth: 180,
           textAlign: "right",
         }}
       >
-        {capturing ? "Press a key…" : effective ? formatHotkey(effective) : "—"}
+        {capturing
+          ? "Press a key…"
+          : effective.length > 0
+            ? effective.map(formatHotkey).join(", ")
+            : "—"}
       </span>
       <button
         type="button"
@@ -717,12 +724,22 @@ function HotkeyRow({ cmd }: { cmd: Command }) {
         disabled={capturing}
         style={{ minWidth: 64 }}
       >
-        Edit
+        Add
       </button>
+      {lastOverride && (
+        <button
+          type="button"
+          onClick={() => removeUserHotkey(cmd.id, lastOverride)}
+          disabled={capturing}
+          style={{ minWidth: 64 }}
+        >
+          Remove
+        </button>
+      )}
       <button
         type="button"
         onClick={() => clearUserHotkey(cmd.id)}
-        disabled={!override}
+        disabled={overrides.length === 0}
         style={{ minWidth: 64 }}
       >
         Reset

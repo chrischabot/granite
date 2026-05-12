@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-12 — Hotkey multi-binding
+
+- **Multiple custom bindings** — commands can now store and dispatch multiple
+  user-assigned hotkeys instead of replacing the whole command with one
+  override.
+- **Settings controls** — Settings → Hotkeys shows all effective bindings,
+  adds captured bindings without dropping existing ones, removes the most
+  recent custom binding, and still supports clearing all custom bindings.
+- **Default restoration** — default command hotkeys are suppressed only while a
+  command has custom bindings; clearing custom bindings restores defaults.
+
+### Tests
+- Added `core/commands/hotkeys.test.ts` covering multi-binding dispatch,
+  de-duplication, individual removal, and default restoration.
+- Validation: scoped `bunx biome check --write`, `bun run typecheck`,
+  targeted hotkey tests, `bun run test` (424 tests / 42 files), and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Interactive canvas embeds
 
 - **Reading-mode canvas embeds** — `![[file.canvas]]` now mounts the real

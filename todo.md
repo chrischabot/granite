@@ -64,7 +64,7 @@
 - [x] Plugin-added status items ← _shipped in Phase 9 (PluginApi.statusBar.add)_
 
 ### §24.14 Hotkeys
-- [ ] Multi-binding per command — Phase 16
+- [x] Multi-binding per command ← _shipped 2026-05-12 hotkeys sweep_
 - [ ] US-layout normalization with physical-key trigger
 
 ### §24.15 Settings — Phase 16

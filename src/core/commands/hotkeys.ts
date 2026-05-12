@@ -1,7 +1,6 @@
-import { commandRegistry, type Hotkey } from "./CommandRegistry";
+import { type Hotkey, commandRegistry } from "./CommandRegistry";
 
-const isMac =
-  typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 
 function eventToHotkey(e: KeyboardEvent): Hotkey {
   const modifiers: Hotkey["modifiers"][number][] = [];
@@ -63,6 +62,27 @@ export function setUserHotkey(commandId: string, hotkey: Hotkey | null): void {
   emitHotkeys();
 }
 
+export function addUserHotkey(commandId: string, hotkey: Hotkey): void {
+  const key = hotkeyKey(hotkey);
+  userOverrides = userOverrides.filter(
+    (u) => !(u.commandId === commandId && hotkeyKey(u.hotkey) === key),
+  );
+  userOverrides.push({ commandId, hotkey });
+  saveOverrides();
+  rebuild();
+  emitHotkeys();
+}
+
+export function removeUserHotkey(commandId: string, hotkey: Hotkey): void {
+  const key = hotkeyKey(hotkey);
+  userOverrides = userOverrides.filter(
+    (u) => !(u.commandId === commandId && hotkeyKey(u.hotkey) === key),
+  );
+  saveOverrides();
+  rebuild();
+  emitHotkeys();
+}
+
 export function clearUserHotkey(commandId: string): void {
   setUserHotkey(commandId, null);
 }
@@ -70,6 +90,16 @@ export function clearUserHotkey(commandId: string): void {
 export function getUserHotkey(commandId: string): Hotkey | null {
   const found = userOverrides.find((u) => u.commandId === commandId);
   return found?.hotkey ?? null;
+}
+
+export function getUserHotkeys(commandId: string): ReadonlyArray<Hotkey> {
+  return userOverrides.filter((u) => u.commandId === commandId).map((u) => u.hotkey);
+}
+
+export function getEffectiveHotkeys(commandId: string): ReadonlyArray<Hotkey> {
+  const user = getUserHotkeys(commandId);
+  if (user.length > 0) return user;
+  return commandRegistry.get(commandId)?.hotkeys ?? [];
 }
 
 export function subscribeHotkeys(listener: () => void): () => void {
@@ -121,9 +151,7 @@ export function initHotkeyDispatcher(): () => void {
     const target = e.target as HTMLElement | null;
     if (
       target &&
-      (target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable) &&
+      (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) &&
       !(e.ctrlKey || e.metaKey)
     ) {
       return;
@@ -187,4 +215,16 @@ export function captureHotkey(): Promise<Hotkey | null> {
     };
     window.addEventListener("keydown", onKey, true);
   });
+}
+
+export function resetHotkeysForTests(): void {
+  userOverrides = [];
+  lookup = new Map<string, string>();
+  cachedOverridesList = null;
+  initialized = false;
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* noop */
+  }
 }

@@ -16,6 +16,8 @@ export type LeafState =
       readonly mode: MarkdownViewMode;
       /** Cursor offset (CodeMirror) — restored on tab focus. */
       readonly cursorOffset?: number;
+      /** Folded CodeMirror document ranges, persisted with the workspace. */
+      readonly folds?: ReadonlyArray<{ readonly from: number; readonly to: number }>;
       /** Set true to disable replace-on-link (pinned tabs). */
       readonly pinned?: boolean;
       /** Heading or block fragment to scroll to (without the leading `#` or `#^`). */
@@ -76,9 +78,19 @@ export function leafTitle(leaf: Leaf): string {
     case "graph":
       return "Graph view";
     case "canvas":
-      return s.path ? s.path.split("/").pop()?.replace(/\.canvas$/i, "") ?? "Canvas" : "Canvas";
+      return s.path
+        ? (s.path
+            .split("/")
+            .pop()
+            ?.replace(/\.canvas$/i, "") ?? "Canvas")
+        : "Canvas";
     case "bases":
-      return s.path ? s.path.split("/").pop()?.replace(/\.base$/i, "") ?? "Base" : "Base";
+      return s.path
+        ? (s.path
+            .split("/")
+            .pop()
+            ?.replace(/\.base$/i, "") ?? "Base")
+        : "Base";
     case "empty":
       return "New tab";
   }

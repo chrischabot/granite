@@ -1,40 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  useSyncExternalStore,
-  type ReactNode,
-} from "react";
-import { Modal } from "../overlay/Modal";
-import { useTheme, type ThemeMode } from "../theme/ThemeProvider";
-import { useSettings } from "@core/settings/useSettings";
-import { settingsStore } from "@core/settings/store";
-import {
-  getDailyNotesSettings,
-  setDailyNotesSettings,
-} from "@core/plugins-core/daily-notes";
-import {
-  getTemplatesSettings,
-  setTemplatesSettings,
-} from "@core/plugins-core/templates";
-import { listSnippets, setEnabled, subscribe as subscribeSnippets } from "@core/snippets/loader";
-import {
-  activeThemePath,
-  listThemes,
-  setActiveTheme,
-  subscribe as subscribeThemes,
-} from "@core/themes/loader";
-import {
-  listPlugins,
-  setPluginEnabled,
-  subscribe as subscribePlugins,
-} from "@core/plugins/loader";
-import {
-  listSettingsTabs,
-  subscribeSettingsTabs,
-  type SettingsTabSpec,
-} from "@core/plugins/host-registries";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import {
   captureHotkey,
   clearUserHotkey,
@@ -43,18 +7,27 @@ import {
   setUserHotkey,
   subscribeHotkeys,
 } from "@core/commands/hotkeys";
-
-type BuiltinSection =
-  | "appearance"
-  | "editor"
-  | "files"
-  | "daily-notes"
-  | "templates"
-  | "hotkeys"
-  | "plugins";
-
-/** Either a builtin section id, or `plugin:<tabId>` for a plugin-supplied tab. */
-type SectionId = BuiltinSection | `plugin:${string}`;
+import { getDailyNotesSettings, setDailyNotesSettings } from "@core/plugins-core/daily-notes";
+import { getTemplatesSettings, setTemplatesSettings } from "@core/plugins-core/templates";
+import {
+  type SettingsTabSpec,
+  listSettingsTabs,
+  subscribeSettingsTabs,
+} from "@core/plugins/host-registries";
+import { listPlugins, setPluginEnabled, subscribe as subscribePlugins } from "@core/plugins/loader";
+import { settingsStore } from "@core/settings/store";
+import { useSettings } from "@core/settings/useSettings";
+import { listSnippets, setEnabled, subscribe as subscribeSnippets } from "@core/snippets/loader";
+import {
+  activeThemePath,
+  listThemes,
+  setActiveTheme,
+  subscribe as subscribeThemes,
+} from "@core/themes/loader";
+import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { Modal } from "../overlay/Modal";
+import { type ThemeMode, useTheme } from "../theme/ThemeProvider";
+import { type SettingsSectionId, getVisibleSettingsSections } from "./settings-filter";
 
 export interface SettingsModalProps {
   open: boolean;
@@ -62,7 +35,8 @@ export interface SettingsModalProps {
 }
 
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
-  const [section, setSection] = useState<SectionId>("appearance");
+  const [section, setSection] = useState<SettingsSectionId>("appearance");
+  const [settingsFilter, setSettingsFilter] = useState("");
   const settings = useSettings();
   const theme = useTheme();
   const [dailyNotes, setDailyNotes] = useState(() => getDailyNotesSettings());
@@ -85,21 +59,31 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     () => commandRegistry.list(),
     () => commandRegistry.list(),
   );
-  const hotkeyVersion = useSyncExternalStore(
-    subscribeHotkeys,
-    getHotkeyVersion,
-    getHotkeyVersion,
+  const hotkeyVersion = useSyncExternalStore(subscribeHotkeys, getHotkeyVersion, getHotkeyVersion);
+  const visibleSections = useMemo(
+    () => getVisibleSettingsSections(settingsFilter, pluginSettingsTabs),
+    [pluginSettingsTabs, settingsFilter],
   );
+  const visibleSectionIds = useMemo(
+    () => new Set(visibleSections.map((s) => s.id)),
+    [visibleSections],
+  );
+  const visibleOptionSections = visibleSections.filter((s) => s.group === "options");
+  const visiblePluginOptionSections = visibleSections.filter((s) => s.group === "plugin-options");
 
   // If the user is sitting on a plugin tab that just unregistered, fall back
   // to the appearance tab so the content area never points at nothing.
   useEffect(() => {
     if (!section.startsWith("plugin:")) return;
-    const stillExists = pluginSettingsTabs.some(
-      (t) => `plugin:${t.id}` === section,
-    );
+    const stillExists = pluginSettingsTabs.some((t) => `plugin:${t.id}` === section);
     if (!stillExists) setSection("appearance");
   }, [pluginSettingsTabs, section]);
+
+  useEffect(() => {
+    if (visibleSections.length === 0) return;
+    const firstVisible = visibleSections[0];
+    if (firstVisible && !visibleSectionIds.has(section)) setSection(firstVisible.id);
+  }, [section, visibleSectionIds, visibleSections]);
 
   const updateDaily = (patch: Partial<typeof dailyNotes>) => {
     const next = { ...dailyNotes, ...patch };
@@ -113,58 +97,50 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
   };
 
   const activePluginTab = section.startsWith("plugin:")
-    ? pluginSettingsTabs.find((t) => `plugin:${t.id}` === section) ?? null
+    ? (pluginSettingsTabs.find((t) => `plugin:${t.id}` === section) ?? null)
     : null;
 
   return (
     <Modal open={open} onClose={onClose} modifier="mod-sidebar-layout mod-settings">
       <div className="vertical-tabs-container">
         <div className="vertical-tab-header">
+          <div className="settings-search-container">
+            <input
+              type="search"
+              placeholder="Search settings"
+              value={settingsFilter}
+              onChange={(e) => setSettingsFilter(e.currentTarget.value)}
+            />
+          </div>
           <div className="vertical-tab-header-group">
             <div className="vertical-tab-header-group-title">Options</div>
             <div className="vertical-tab-header-group-items">
-              <SettingsTab id="appearance" current={section} onChange={setSection}>
-                Appearance
-              </SettingsTab>
-              <SettingsTab id="editor" current={section} onChange={setSection}>
-                Editor
-              </SettingsTab>
-              <SettingsTab id="files" current={section} onChange={setSection}>
-                Files & links
-              </SettingsTab>
-              <SettingsTab id="hotkeys" current={section} onChange={setSection}>
-                Hotkeys
-              </SettingsTab>
-              <SettingsTab id="plugins" current={section} onChange={setSection}>
-                Plugins
-              </SettingsTab>
-            </div>
-          </div>
-          <div className="vertical-tab-header-group">
-            <div className="vertical-tab-header-group-title">Plugin options</div>
-            <div className="vertical-tab-header-group-items">
-              <SettingsTab id="daily-notes" current={section} onChange={setSection}>
-                Daily notes
-              </SettingsTab>
-              <SettingsTab id="templates" current={section} onChange={setSection}>
-                Templates
-              </SettingsTab>
-              {pluginSettingsTabs.map((tab) => (
-                <SettingsTab
-                  key={tab.id}
-                  id={`plugin:${tab.id}`}
-                  current={section}
-                  onChange={setSection}
-                >
-                  {tab.name}
+              {visibleOptionSections.map((item) => (
+                <SettingsTab key={item.id} id={item.id} current={section} onChange={setSection}>
+                  {item.title}
                 </SettingsTab>
               ))}
             </div>
           </div>
+          {visiblePluginOptionSections.length > 0 && (
+            <div className="vertical-tab-header-group">
+              <div className="vertical-tab-header-group-title">Plugin options</div>
+              <div className="vertical-tab-header-group-items">
+                {visiblePluginOptionSections.map((item) => (
+                  <SettingsTab key={item.id} id={item.id} current={section} onChange={setSection}>
+                    {item.title}
+                  </SettingsTab>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="vertical-tab-content-container">
           <div className="vertical-tab-content">
-            {section === "appearance" && (
+            {visibleSections.length === 0 && (
+              <div style={{ color: "var(--text-faint)" }}>No settings match your search.</div>
+            )}
+            {visibleSectionIds.has(section) && section === "appearance" && (
               <>
                 <h2>Appearance</h2>
                 <SettingItem
@@ -235,8 +211,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
 
                 <h2 style={{ marginTop: "var(--size-4-8)" }}>Themes</h2>
                 <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-                  Drop a <code>.css</code> file in <code>.granite/themes/</code> at the
-                  vault root and select it below to apply it as the active theme.
+                  Drop a <code>.css</code> file in <code>.granite/themes/</code> at the vault root
+                  and select it below to apply it as the active theme.
                 </p>
                 <SettingItem
                   name="Active theme"
@@ -251,7 +227,9 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                       value={activeTheme ?? ""}
                       onChange={(e) => {
                         const v = e.currentTarget.value;
-                        void setActiveTheme(v === "" ? null : (v as typeof themes[number]["path"]));
+                        void setActiveTheme(
+                          v === "" ? null : (v as (typeof themes)[number]["path"]),
+                        );
                       }}
                       disabled={themes.length === 0}
                     >
@@ -267,9 +245,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
 
                 <h2 style={{ marginTop: "var(--size-4-8)" }}>CSS snippets</h2>
                 <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-                  Drop <code>.css</code> files in <code>.granite/snippets/</code> at the
-                  vault root to override styles. Toggle them on or off below — changes
-                  apply instantly.
+                  Drop <code>.css</code> files in <code>.granite/snippets/</code> at the vault root
+                  to override styles. Toggle them on or off below — changes apply instantly.
                 </p>
                 {snippets.length === 0 ? (
                   <div style={{ color: "var(--text-faint)" }}>No snippets found.</div>
@@ -298,7 +275,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 )}
               </>
             )}
-            {section === "editor" && (
+            {visibleSectionIds.has(section) && section === "editor" && (
               <>
                 <h2>Editor</h2>
                 <SettingItem
@@ -369,9 +346,27 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                     />
                   }
                 />
+                <SettingItem
+                  name="Editor key bindings"
+                  desc="Choose standard browser-style editing keys or Vim normal/insert/visual mode."
+                  control={
+                    <select
+                      className="dropdown"
+                      value={settings.editorKeymap}
+                      onChange={(e) =>
+                        settingsStore.update({
+                          editorKeymap: e.currentTarget.value as "standard" | "vim",
+                        })
+                      }
+                    >
+                      <option value="standard">Standard</option>
+                      <option value="vim">Vim</option>
+                    </select>
+                  }
+                />
               </>
             )}
-            {section === "files" && (
+            {visibleSectionIds.has(section) && section === "files" && (
               <>
                 <h2>Files & links</h2>
                 <SettingItem
@@ -425,28 +420,26 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 />
               </>
             )}
-            {section === "hotkeys" && (
+            {visibleSectionIds.has(section) && section === "hotkeys" && (
               <>
                 <h2>Hotkeys</h2>
                 <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-                  Click <em>Edit</em> on a row to capture the next keypress and save
-                  it as a user override. Press <kbd>Esc</kbd> while capturing to
-                  cancel. Use <em>Reset</em> to remove the override and restore the
-                  default.
+                  Click <em>Edit</em> on a row to capture the next keypress and save it as a user
+                  override. Press <kbd>Esc</kbd> while capturing to cancel. Use <em>Reset</em> to
+                  remove the override and restore the default.
                 </p>
                 <HotkeyTable key={hotkeyVersion} commands={commands} />
               </>
             )}
-            {section === "plugins" && (
+            {visibleSectionIds.has(section) && section === "plugins" && (
               <>
                 <h2>Plugins</h2>
                 <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-                  Drop plugin folders in <code>.granite/plugins/</code> at the vault
-                  root. Each folder needs a <code>manifest.json</code> (with{" "}
-                  <code>name</code>, <code>version</code>) and a{" "}
-                  <code>main.js</code>. Plugins are disabled by default — flip the
-                  toggle to enable. Disabling a plugin calls its{" "}
-                  <code>onUnload</code> hook.
+                  Drop plugin folders in <code>.granite/plugins/</code> at the vault root. Each
+                  folder needs a <code>manifest.json</code> (with <code>name</code>,{" "}
+                  <code>version</code>) and a <code>main.js</code>. Plugins are disabled by default
+                  — flip the toggle to enable. Disabling a plugin calls its <code>onUnload</code>{" "}
+                  hook.
                 </p>
                 <div
                   style={{
@@ -471,9 +464,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   </button>
                 </div>
                 {plugins.length === 0 ? (
-                  <div style={{ color: "var(--text-faint)" }}>
-                    No plugins found.
-                  </div>
+                  <div style={{ color: "var(--text-faint)" }}>No plugins found.</div>
                 ) : (
                   <div
                     style={{
@@ -499,7 +490,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 )}
               </>
             )}
-            {section === "daily-notes" && (
+            {visibleSectionIds.has(section) && section === "daily-notes" && (
               <>
                 <h2>Daily notes</h2>
                 <SettingItem
@@ -528,7 +519,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 />
               </>
             )}
-            {section === "templates" && (
+            {visibleSectionIds.has(section) && section === "templates" && (
               <>
                 <h2>Templates</h2>
                 <SettingItem
@@ -539,9 +530,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                       type="text"
                       placeholder="(no folder set)"
                       value={templates.templateFolder}
-                      onChange={(e) =>
-                        updateTemplates({ templateFolder: e.currentTarget.value })
-                      }
+                      onChange={(e) => updateTemplates({ templateFolder: e.currentTarget.value })}
                     />
                   }
                 />
@@ -553,9 +542,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                       type="text"
                       placeholder="YYYY-MM-DD"
                       value={templates.dateFormat}
-                      onChange={(e) =>
-                        updateTemplates({ dateFormat: e.currentTarget.value })
-                      }
+                      onChange={(e) => updateTemplates({ dateFormat: e.currentTarget.value })}
                     />
                   }
                 />
@@ -567,15 +554,15 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                       type="text"
                       placeholder="HH:mm"
                       value={templates.timeFormat}
-                      onChange={(e) =>
-                        updateTemplates({ timeFormat: e.currentTarget.value })
-                      }
+                      onChange={(e) => updateTemplates({ timeFormat: e.currentTarget.value })}
                     />
                   }
                 />
               </>
             )}
-            {activePluginTab && <PluginSettingsTabHost spec={activePluginTab} />}
+            {visibleSectionIds.has(section) && activePluginTab && (
+              <PluginSettingsTabHost spec={activePluginTab} />
+            )}
           </div>
         </div>
       </div>
@@ -589,9 +576,10 @@ function PluginSettingsTabHost({ spec }: { spec: SettingsTabSpec }) {
     const el = ref.current;
     if (!el) return;
     el.innerHTML = "";
-    let cleanup: void | (() => void);
+    let cleanup: undefined | (() => void);
     try {
-      cleanup = spec.render(el);
+      const renderCleanup = spec.render(el);
+      cleanup = typeof renderCleanup === "function" ? renderCleanup : undefined;
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(`[granite] settings tab "${spec.name}" render failed:`, err);
@@ -618,9 +606,8 @@ function PluginSettingsTabHost({ spec }: { spec: SettingsTabSpec }) {
 }
 
 function HotkeyTable({ commands }: { commands: ReadonlyArray<Command> }) {
-  const sorted = [...commands].sort((a, b) =>
-    (a.category ?? "").localeCompare(b.category ?? "") ||
-    a.name.localeCompare(b.name),
+  const sorted = [...commands].sort(
+    (a, b) => (a.category ?? "").localeCompare(b.category ?? "") || a.name.localeCompare(b.name),
   );
   return (
     <div
@@ -673,9 +660,7 @@ function HotkeyRow({ cmd }: { cmd: Command }) {
           {cmd.category}
         </span>
       )}
-      <span style={{ flex: "1 1 auto", color: "var(--text-normal)" }}>
-        {cmd.name}
-      </span>
+      <span style={{ flex: "1 1 auto", color: "var(--text-normal)" }}>{cmd.name}</span>
       <span
         style={{
           color: override ? "var(--text-accent)" : "var(--text-muted)",
@@ -713,23 +698,19 @@ function SettingsTab({
   onChange,
   children,
 }: {
-  id: SectionId;
-  current: SectionId;
-  onChange: (s: SectionId) => void;
+  id: SettingsSectionId;
+  current: SettingsSectionId;
+  onChange: (s: SettingsSectionId) => void;
   children: ReactNode;
 }) {
   return (
-    <div
+    <button
+      type="button"
       className={`vertical-tab-nav-item${current === id ? " is-active" : ""}`}
       onClick={() => onChange(id)}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") onChange(id);
-      }}
     >
       <span className="vertical-tab-nav-item-title">{children}</span>
-    </div>
+    </button>
   );
 }
 
@@ -788,8 +769,9 @@ function hslToHex(h: number, s: number, l: number): string {
 
 function hexToHsl(hex: string): { h: number; s: number; l: number } {
   const m = /^#([0-9a-f]{6})$/i.exec(hex.trim());
-  if (!m) return { h: 258, s: 88, l: 66 };
-  const v = parseInt(m[1]!, 16);
+  const raw = m?.[1];
+  if (!raw) return { h: 258, s: 88, l: 66 };
+  const v = Number.parseInt(raw, 16);
   const r = ((v >> 16) & 0xff) / 255;
   const g = ((v >> 8) & 0xff) / 255;
   const b = (v & 0xff) / 255;

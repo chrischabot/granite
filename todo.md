@@ -13,10 +13,10 @@
 - [ ] Multi-window simultaneous vaults
 
 ### §24.2 Editor — Phase 12
-- [ ] Vim key bindings (CM6 vim addon)
-- [ ] Multi-cursor (Alt+click) + rectangular Alt-drag
-- [ ] Code folding (heading + indent) with persisted fold state
-- [ ] Full live-preview decoration replacement (current decorations layer is "lite")
+- [x] Vim key bindings (CM6 vim addon) ← _shipped 2026-05-12 Phase 12 sweep_
+- [x] Multi-cursor (Alt+click) + rectangular Alt-drag ← _shipped 2026-05-12 Phase 12 sweep_
+- [x] Code folding (heading + indent) with persisted fold state ← _shipped 2026-05-12 Phase 12 sweep_
+- [ ] Full live-preview decoration replacement (expanded in Phase 12 sweep; table cells, nested/block-level edge cases, and browser verification remain)
 
 ### §24.3 Parser fidelity — Phase 14
 - [ ] CommonMark conformance harness
@@ -62,7 +62,7 @@
 - [ ] US-layout normalization with physical-key trigger
 
 ### §24.15 Settings — Phase 16
-- [ ] Live filter input
+- [x] Live filter input ← _shipped 2026-05-12 settings sweep_
 - [ ] All defaults persisted to `.granite/`
 
 ### §24.16 Themes & snippets — closed

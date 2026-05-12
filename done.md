@@ -4,6 +4,59 @@
 
 ---
 
+## 2026-05-12 — Settings live filter
+
+- **Settings search** — added a live search box to the Settings sidebar.
+  It filters built-in settings sections and plugin-supplied settings tabs by
+  visible title plus curated setting keywords, and automatically moves the
+  active panel to the first visible result when the current panel is filtered
+  out.
+- **Pure filter helper** — `ui/prompts/settings-filter.ts` keeps the matching
+  logic separate from the modal's plugin/theme/snippet stores.
+- **Tests** — `ui/prompts/settings-filter.test.ts` covers empty-query
+  behavior, built-in matching, all-term matching, and plugin-tab matching.
+
+---
+
+## 2026-05-12 — Phase 12 editor fidelity sweep
+
+- **Vim key bindings** — added `@replit/codemirror-vim` and a Settings →
+  Editor selector for Standard vs Vim source-editor key bindings. Vim mode is
+  wired into the CodeMirror extension stack when selected.
+- **Multi-cursor + rectangular selection** — source editor now enables
+  `EditorState.allowMultipleSelections`, `drawSelection({ drawRangeCursor:
+  true })`, `rectangularSelection()`, and `crosshairCursor()` so Alt/Option
+  multi-cursor and rectangular drag selection are supported by CM6.
+- **Code folding** — source editor now enables `codeFolding()`,
+  `foldGutter()`, and `foldKeymap`, adding heading/indent folding affordances
+  and keyboard commands.
+- **Fold-state persistence** — markdown leaf state now carries folded ranges;
+  `core/workspace/folds.ts` normalizes/collects ranges from CodeMirror and
+  restores them with `foldEffect`. Existing workspace persistence writes those
+  ranges to `.granite/workspace.json` / localStorage with the rest of the leaf
+  snapshot.
+- **Live-preview marker coverage expanded** — inactive-line decoration hiding
+  now covers double-underscore bold, triple bold+italic markers, asterisk
+  italic, Markdown links/images, Obsidian inline and block comment delimiters,
+  inline and block math delimiters, and callout type/fold markers in addition
+  to the existing bold, highlight, strikethrough, underscore italic, wikilink,
+  embed, fenced-code, and inline-code handling.
+- **Severe testing artifact** — `/Users/chabotc/Desktop/severe-testing.md`
+  now includes a Granite-specific severe-test matrix covering every
+  `24_acceptance_criteria.md` section and the current Phase 12 test set.
+
+### Tests
+- Added `core/workspace/folds.test.ts`.
+- Extended `core/markdown/cm-livepreview-decorations.test.ts` to 27 cases.
+- Extended `core/workspace/persist.test.ts` so folded markdown ranges are
+  explicitly proven to survive workspace save/restore.
+- Validation: scoped `bunx biome check --write`, `bun run typecheck`,
+  `bun run test` (388 tests / 35 files), and `bun run build` pass.
+  `bun run lint` still reflects the repo-wide Biome baseline and is not newly
+  green.
+
+---
+
 ## 2026-05-12 — Phases 9-11: plugin platform, search & Bases parity, graph completeness
 
 ### Phase 9 — Plugin platform completeness

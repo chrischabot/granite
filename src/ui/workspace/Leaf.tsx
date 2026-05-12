@@ -1,3 +1,7 @@
+import { commandRegistry } from "@core/commands/CommandRegistry";
+import { workspaceStore } from "@core/workspace/store";
+import type { Leaf } from "@core/workspace/types";
+import { leafTitle } from "@core/workspace/types";
 import {
   BookOpen,
   Edit3,
@@ -7,17 +11,13 @@ import {
   SplitSquareVertical,
 } from "lucide-react";
 import { ClickableIcon } from "../controls/ClickableIcon";
-import { workspaceStore } from "@core/workspace/store";
-import type { Leaf } from "@core/workspace/types";
-import { leafTitle } from "@core/workspace/types";
+import { useVault } from "../vault/VaultContext";
+import { BasesView } from "../views/BasesView";
+import { CanvasView } from "../views/CanvasView";
+import { GraphView } from "../views/GraphView";
 import { MarkdownView } from "../views/MarkdownView";
 import { ReadingView } from "../views/ReadingView";
 import { WebViewerView } from "../views/WebViewerView";
-import { GraphView } from "../views/GraphView";
-import { CanvasView } from "../views/CanvasView";
-import { BasesView } from "../views/BasesView";
-import { useVault } from "../vault/VaultContext";
-import { commandRegistry } from "@core/commands/CommandRegistry";
 
 export interface LeafBodyProps {
   leaf: Leaf;
@@ -58,9 +58,7 @@ function ViewHeader({ leaf, groupId: _groupId }: { leaf: Leaf; groupId?: string 
           <ClickableIcon
             ariaLabel={isReading ? "Edit this note" : "Read this note"}
             icon={isReading ? <Edit3 /> : <BookOpen />}
-            onClick={() =>
-              workspaceStore.setMode(leaf.id, isReading ? "source" : "reading")
-            }
+            onClick={() => workspaceStore.setMode(leaf.id, isReading ? "source" : "reading")}
           />
         )}
         {isMarkdown && (
@@ -87,7 +85,14 @@ function ViewBody({ leaf }: { leaf: Leaf }) {
   switch (s.type) {
     case "markdown":
       if (s.mode === "reading") return <ReadingView path={s.path} />;
-      return <MarkdownView path={s.path} fragment={s.fragment ?? null} />;
+      return (
+        <MarkdownView
+          leafId={leaf.id}
+          path={s.path}
+          fragment={s.fragment ?? null}
+          {...(s.folds ? { folds: s.folds } : {})}
+        />
+      );
     case "webviewer":
       return <WebViewerView url={s.url} />;
     case "graph":
@@ -141,8 +146,8 @@ function EmptyLeafBody() {
             color: "var(--text-muted)",
           }}
         >
-          A local-first, Markdown-native, linked-thinking knowledge base. Your notes are
-          stored as plain `.md` files; nothing leaves your computer.
+          A local-first, Markdown-native, linked-thinking knowledge base. Your notes are stored as
+          plain `.md` files; nothing leaves your computer.
         </div>
         <div style={{ display: "flex", gap: "var(--size-4-2)", marginTop: "var(--size-4-4)" }}>
           <button

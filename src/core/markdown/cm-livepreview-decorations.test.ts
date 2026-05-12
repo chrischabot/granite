@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { computeLivePreviewRanges } from "./cm-livepreview-decorations";
 
 function hiddenSlices(text: string, cursorLineIndex: number): string[] {
@@ -6,11 +6,37 @@ function hiddenSlices(text: string, cursorLineIndex: number): string[] {
   return ranges.map((r) => text.slice(r.from, r.to));
 }
 
+function rangeAt(
+  ranges: ReadonlyArray<{ from: number; to: number }>,
+  index: number,
+): { from: number; to: number } {
+  const range = ranges[index];
+  expect(range).toBeDefined();
+  if (!range) throw new Error(`Missing range ${index}`);
+  return range;
+}
+
 describe("computeLivePreviewRanges", () => {
   it("hides ** around bold runs on non-cursor lines", () => {
     const text = "say **hello** there";
     const slices = hiddenSlices(text, -1);
     expect(slices).toEqual(["**", "**"]);
+  });
+
+  it("hides __ around underscore-bold runs on non-cursor lines", () => {
+    const text = "say __hello__ there";
+    const slices = hiddenSlices(text, -1);
+    expect(slices).toEqual(["__", "__"]);
+  });
+
+  it("hides *** around bold-italic star runs", () => {
+    const slices = hiddenSlices("say ***hello*** there", -1);
+    expect(slices).toEqual(["***", "***"]);
+  });
+
+  it("hides ___ around bold-italic underscore runs", () => {
+    const slices = hiddenSlices("say ___hello___ there", -1);
+    expect(slices).toEqual(["___", "___"]);
   });
 
   it("leaves the cursor's line raw", () => {
@@ -32,6 +58,16 @@ describe("computeLivePreviewRanges", () => {
   it("hides _ around underscore-italic runs", () => {
     const slices = hiddenSlices("very _important_ text", -1);
     expect(slices).toEqual(["_", "_"]);
+  });
+
+  it("hides * around asterisk-italic runs", () => {
+    const slices = hiddenSlices("very *important* text", -1);
+    expect(slices).toEqual(["*", "*"]);
+  });
+
+  it("does not treat bold markers as asterisk italic", () => {
+    const slices = hiddenSlices("very **important** text", -1);
+    expect(slices).toEqual(["**", "**"]);
   });
 
   it("does not match underscores inside identifiers", () => {
@@ -69,11 +105,46 @@ describe("computeLivePreviewRanges", () => {
     expect(slices).toEqual(["![[", "]]"]);
   });
 
+  it("hides markdown-link chrome and URL while keeping label text visible", () => {
+    const slices = hiddenSlices("see [label](folder/note.md) now", -1);
+    expect(slices).toEqual(["[", "](folder/note.md)"]);
+  });
+
+  it("hides markdown-image chrome and URL while keeping alt text visible", () => {
+    const slices = hiddenSlices("see ![alt](image.png) now", -1);
+    expect(slices).toEqual(["![", "](image.png)"]);
+  });
+
+  it("hides Obsidian comment delimiters", () => {
+    const slices = hiddenSlices("keep %%private%% visible", -1);
+    expect(slices).toEqual(["%%", "%%"]);
+  });
+
+  it("hides block comment delimiters without decorating inside the comment", () => {
+    const text = "%%\n**private**\n%%\n**public**";
+    expect(hiddenSlices(text, -1)).toEqual(["%%", "%%", "**", "**"]);
+  });
+
+  it("hides inline math delimiters", () => {
+    const slices = hiddenSlices("Euler $e^{i\\pi}+1=0$ identity", -1);
+    expect(slices).toEqual(["$", "$"]);
+  });
+
+  it("hides block math delimiters without decorating inside the math block", () => {
+    const text = "$$\n**not markdown**\n$$\n**markdown**";
+    expect(hiddenSlices(text, -1)).toEqual(["$$", "$$", "**", "**"]);
+  });
+
+  it("hides callout type and fold marker while keeping title text", () => {
+    const slices = hiddenSlices("> [!warning]+ Careful", -1);
+    expect(slices).toEqual(["[!warning]+"]);
+  });
+
   it("returns ranges in ascending order", () => {
     const text = "**a** then [[Note|alias]] then **b**";
     const ranges = computeLivePreviewRanges(text, -1);
     for (let i = 1; i < ranges.length; i++) {
-      expect(ranges[i]!.from).toBeGreaterThanOrEqual(ranges[i - 1]!.from);
+      expect(rangeAt(ranges, i).from).toBeGreaterThanOrEqual(rangeAt(ranges, i - 1).from);
     }
   });
 
@@ -81,16 +152,18 @@ describe("computeLivePreviewRanges", () => {
     const text = "line one\n**bold** on line two";
     const ranges = computeLivePreviewRanges(text, -1);
     expect(ranges.length).toBe(2);
-    expect(text.slice(ranges[0]!.from, ranges[0]!.to)).toBe("**");
-    expect(text.slice(ranges[1]!.from, ranges[1]!.to)).toBe("**");
-    expect(ranges[0]!.from).toBeGreaterThan(text.indexOf("\n"));
+    const first = rangeAt(ranges, 0);
+    const second = rangeAt(ranges, 1);
+    expect(text.slice(first.from, first.to)).toBe("**");
+    expect(text.slice(second.from, second.to)).toBe("**");
+    expect(first.from).toBeGreaterThan(text.indexOf("\n"));
   });
 
   it("returns disjoint, non-overlapping ranges even for combined markup", () => {
     const text = "[[Target|alias]] mixed with **bold** here";
     const ranges = computeLivePreviewRanges(text, -1);
     for (let i = 1; i < ranges.length; i++) {
-      expect(ranges[i]!.from).toBeGreaterThanOrEqual(ranges[i - 1]!.to);
+      expect(rangeAt(ranges, i).from).toBeGreaterThanOrEqual(rangeAt(ranges, i - 1).to);
     }
   });
 });

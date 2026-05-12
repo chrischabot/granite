@@ -30,6 +30,14 @@
   border-inline-end: var(--border-width) solid var(--divider-color);
 }
 
+.settings-search-container {
+  padding: 0 0 var(--size-4-2);
+}
+
+.settings-search-container input[type="search"] {
+  width: 100%;
+}
+
 .vertical-tab-header-group {
   padding: var(--size-4-3) 0;
 }
@@ -49,6 +57,12 @@
 }
 
 .vertical-tab-nav-item {
+  appearance: none;
+  border: 0;
+  width: 100%;
+  color: inherit;
+  background-color: transparent;
+  text-align: start;
   padding: var(--size-4-1) var(--size-4-2);
   margin-bottom: 0;
   user-select: none;
@@ -92,7 +106,9 @@
   height: 100%;
 }
 
-.vertical-tab-content h1 { display: none; }
+.vertical-tab-content h1 {
+  display: none;
+}
 
 .vertical-tab-content h2 {
   font-size: var(--font-ui-medium);

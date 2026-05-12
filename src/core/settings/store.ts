@@ -24,6 +24,8 @@ export interface UserSettings {
   /** When true, format markers like `**`, `==`, and wikilink brackets are
    *  hidden on non-cursor lines for a cleaner reading experience. */
   livePreview: boolean;
+  /** Source-editor keybinding profile. */
+  editorKeymap: "standard" | "vim";
   /** Sort order applied to files inside each folder in the file explorer.
    *  Folders always come first (alphabetical) regardless of this setting. */
   fileExplorerSort: FileExplorerSort;
@@ -44,6 +46,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   excludedFiles: "",
   spellcheck: false,
   livePreview: true,
+  editorKeymap: "standard",
   fileExplorerSort: "name-asc",
   translucent: false,
 };

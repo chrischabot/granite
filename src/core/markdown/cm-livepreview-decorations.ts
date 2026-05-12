@@ -1,20 +1,37 @@
+import { RangeSetBuilder } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
-  EditorView,
+  type EditorView,
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { RangeSetBuilder } from "@codemirror/state";
 import { parseWikilink } from "@core/markdown/renderer";
 
 const BOLD_RE = /\*\*([^*\n]+)\*\*/g;
+const UNDERSCORE_BOLD_RE = /__([^_\n]+)__/g;
+const BOLD_ITALIC_STAR_RE = /\*\*\*([^*\n]+)\*\*\*/g;
+const BOLD_ITALIC_UNDERSCORE_RE = /___([^_\n]+)___/g;
+const ASTERISK_ITALIC_RE = /(?<!\*)\*([^*\n]+)\*(?!\*)/g;
 const HIGHLIGHT_RE = /==([^=\n]+)==/g;
 const STRIKE_RE = /~~([^~\n]+)~~/g;
 const UNDERSCORE_ITALIC_RE = /(?<![A-Za-z0-9_])_([^_\n]+)_(?![A-Za-z0-9_])/g;
 const WIKILINK_RE = /(!?)\[\[([^\]\n]+)\]\]/g;
+const MARKDOWN_LINK_RE = /(!?)\[([^\]\n]+)\]\(([^)\n]+)\)/g;
+const COMMENT_RE = /%%([^%\n]+)%%/g;
+const INLINE_MATH_RE = /(?<!\$)\$([^$\n]+)\$(?!\$)/g;
+const CALLOUT_RE = /^(\s*>+\s*)\[!([^\]\n]+)\]([+-])?/;
 
 const replaceDeco = Decoration.replace({});
+
+function forEachMatch(re: RegExp, line: string, visit: (match: RegExpExecArray) => void): void {
+  re.lastIndex = 0;
+  let match = re.exec(line);
+  while (match) {
+    visit(match);
+    match = re.exec(line);
+  }
+}
 
 /**
  * Compute which character ranges should be hidden on each non-cursor line.
@@ -30,6 +47,8 @@ export function computeLivePreviewRanges(
   let offset = 0;
   let inFence = false;
   let fenceMarker = "";
+  let inBlockComment = false;
+  let inBlockMath = false;
 
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx] ?? "";
@@ -40,7 +59,7 @@ export function computeLivePreviewRanges(
     if (fenceOpen) {
       if (!inFence) {
         inFence = true;
-        fenceMarker = fenceOpen[1]!;
+        fenceMarker = fenceOpen[1] ?? fenceOpen[0] ?? "";
       } else if (line.startsWith(fenceMarker)) {
         inFence = false;
         fenceMarker = "";
@@ -59,6 +78,29 @@ export function computeLivePreviewRanges(
       ranges.push({ from: lineStart + start, to: lineStart + end });
     };
 
+    const trimmed = line.trim();
+
+    if (trimmed === "$$") {
+      const start = line.indexOf("$$");
+      addReplace(start, start + 2);
+      inBlockMath = !inBlockMath;
+      offset = lineStart + line.length + 1;
+      continue;
+    }
+
+    if (trimmed === "%%") {
+      const start = line.indexOf("%%");
+      addReplace(start, start + 2);
+      inBlockComment = !inBlockComment;
+      offset = lineStart + line.length + 1;
+      continue;
+    }
+
+    if (inBlockMath || inBlockComment) {
+      offset = lineStart + line.length + 1;
+      continue;
+    }
+
     // Inline-code spans on this line — record their (start, end) pairs so we
     // can skip formatting inside them.
     const codeSpans: Array<[number, number]> = [];
@@ -76,58 +118,96 @@ export function computeLivePreviewRanges(
     const overlapsCode = (start: number, end: number): boolean =>
       codeSpans.some(([s, e]) => start < e && end > s);
 
-    // Bold: **text** — hide the opening and closing `**` markers.
-    BOLD_RE.lastIndex = 0;
-    let m: RegExpExecArray | null;
-    while ((m = BOLD_RE.exec(line))) {
-      const idx = m.index;
-      const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) continue;
-      addReplace(idx, idx + 2);
-      addReplace(idx + len - 2, idx + len);
+    // Callouts: > [!note]+ Title — hide the Obsidian type marker/fold sign,
+    // keeping the blockquote marker and human title visible.
+    const calloutMatch = line.match(CALLOUT_RE);
+    if (calloutMatch) {
+      const prefixLen = calloutMatch[1]?.length ?? 0;
+      const markerLen = calloutMatch[0].length - prefixLen;
+      addReplace(prefixLen, prefixLen + markerLen);
     }
 
-    // Highlight: ==text== — hide the opening and closing `==` markers.
-    HIGHLIGHT_RE.lastIndex = 0;
-    while ((m = HIGHLIGHT_RE.exec(line))) {
+    // Bold+italic: ***text*** / ___text___ — hide the combined markers.
+    forEachMatch(BOLD_ITALIC_STAR_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) continue;
+      if (overlapsCode(idx, idx + len)) return;
+      addReplace(idx, idx + 3);
+      addReplace(idx + len - 3, idx + len);
+    });
+
+    forEachMatch(BOLD_ITALIC_UNDERSCORE_RE, line, (m) => {
+      const idx = m.index;
+      const len = m[0].length;
+      if (overlapsCode(idx, idx + len)) return;
+      addReplace(idx, idx + 3);
+      addReplace(idx + len - 3, idx + len);
+    });
+
+    // Bold: **text** / __text__ — hide the opening and closing markers.
+    forEachMatch(BOLD_RE, line, (m) => {
+      const idx = m.index;
+      const len = m[0].length;
+      if (overlapsCode(idx, idx + len)) return;
       addReplace(idx, idx + 2);
       addReplace(idx + len - 2, idx + len);
-    }
+    });
 
-    // Strikethrough: ~~text~~ — hide the opening and closing `~~` markers.
-    STRIKE_RE.lastIndex = 0;
-    while ((m = STRIKE_RE.exec(line))) {
+    forEachMatch(UNDERSCORE_BOLD_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) continue;
+      if (overlapsCode(idx, idx + len)) return;
       addReplace(idx, idx + 2);
       addReplace(idx + len - 2, idx + len);
-    }
+    });
 
-    // Underscore italic: _word_ — hide the single `_` markers.
-    UNDERSCORE_ITALIC_RE.lastIndex = 0;
-    while ((m = UNDERSCORE_ITALIC_RE.exec(line))) {
+    // Asterisk italic: *word* — hide the single `*` markers without matching
+    // the markers inside `**bold**`.
+    forEachMatch(ASTERISK_ITALIC_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) continue;
+      if (overlapsCode(idx, idx + len)) return;
       addReplace(idx, idx + 1);
       addReplace(idx + len - 1, idx + len);
-    }
+    });
+
+    // Highlight: ==text== — hide the opening and closing `==` markers.
+    forEachMatch(HIGHLIGHT_RE, line, (m) => {
+      const idx = m.index;
+      const len = m[0].length;
+      if (overlapsCode(idx, idx + len)) return;
+      addReplace(idx, idx + 2);
+      addReplace(idx + len - 2, idx + len);
+    });
+
+    // Strikethrough: ~~text~~ — hide the opening and closing `~~` markers.
+    forEachMatch(STRIKE_RE, line, (m) => {
+      const idx = m.index;
+      const len = m[0].length;
+      if (overlapsCode(idx, idx + len)) return;
+      addReplace(idx, idx + 2);
+      addReplace(idx + len - 2, idx + len);
+    });
+
+    // Underscore italic: _word_ — hide the single `_` markers.
+    forEachMatch(UNDERSCORE_ITALIC_RE, line, (m) => {
+      const idx = m.index;
+      const len = m[0].length;
+      if (overlapsCode(idx, idx + len)) return;
+      addReplace(idx, idx + 1);
+      addReplace(idx + len - 1, idx + len);
+    });
 
     // Wikilinks: hide `[[`, `]]`, and (if alias) the `Target|` prefix.
-    WIKILINK_RE.lastIndex = 0;
-    while ((m = WIKILINK_RE.exec(line))) {
+    forEachMatch(WIKILINK_RE, line, (m) => {
       const isEmbed = m[1] === "!";
       const innerStr = m[2];
-      if (!innerStr) continue;
+      if (!innerStr) return;
       const parts = parseWikilink(innerStr);
-      if (!parts.target) continue;
+      if (!parts.target) return;
       const fullStart = m.index;
       const fullEnd = fullStart + m[0].length;
-      if (overlapsCode(fullStart, fullEnd)) continue;
+      if (overlapsCode(fullStart, fullEnd)) return;
       const openLen = isEmbed ? 3 : 2;
       // Opening `[[` (preceded by optional `!`).
       addReplace(fullStart, fullStart + openLen);
@@ -140,7 +220,41 @@ export function computeLivePreviewRanges(
       }
       // Closing `]]`.
       addReplace(fullEnd - 2, fullEnd);
-    }
+    });
+
+    // Markdown links and images: [label](path) / ![alt](path) — leave only
+    // the label/alt text visible.
+    forEachMatch(MARKDOWN_LINK_RE, line, (m) => {
+      const isEmbed = m[1] === "!";
+      const fullStart = m.index;
+      const fullEnd = fullStart + m[0].length;
+      if (overlapsCode(fullStart, fullEnd)) return;
+      const label = m[2];
+      if (!label) return;
+      const openLen = isEmbed ? 2 : 1;
+      const labelStart = fullStart + openLen;
+      const labelEnd = labelStart + label.length;
+      addReplace(fullStart, labelStart);
+      addReplace(labelEnd, fullEnd);
+    });
+
+    // Obsidian comments and inline math keep their content visible while
+    // hiding the delimiter characters on non-cursor lines.
+    forEachMatch(COMMENT_RE, line, (m) => {
+      const idx = m.index;
+      const len = m[0].length;
+      if (overlapsCode(idx, idx + len)) return;
+      addReplace(idx, idx + 2);
+      addReplace(idx + len - 2, idx + len);
+    });
+
+    forEachMatch(INLINE_MATH_RE, line, (m) => {
+      const idx = m.index;
+      const len = m[0].length;
+      if (overlapsCode(idx, idx + len)) return;
+      addReplace(idx, idx + 1);
+      addReplace(idx + len - 1, idx + len);
+    });
 
     offset = lineStart + line.length + 1;
   }
@@ -153,12 +267,13 @@ function mergeOverlapping(
   ranges: ReadonlyArray<{ from: number; to: number }>,
 ): Array<{ from: number; to: number }> {
   if (ranges.length === 0) return [];
-  const merged: Array<{ from: number; to: number }> = [
-    { from: ranges[0]!.from, to: ranges[0]!.to },
-  ];
+  const first = ranges[0];
+  if (!first) return [];
+  const merged: Array<{ from: number; to: number }> = [{ from: first.from, to: first.to }];
   for (let i = 1; i < ranges.length; i++) {
-    const last = merged[merged.length - 1]!;
-    const curr = ranges[i]!;
+    const last = merged[merged.length - 1];
+    const curr = ranges[i];
+    if (!last || !curr) continue;
     if (curr.from < last.to) {
       if (curr.to > last.to) last.to = curr.to;
     } else {

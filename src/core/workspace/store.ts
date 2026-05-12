@@ -1,3 +1,6 @@
+import type { VaultPath } from "@core/fs/types";
+import { settingsStore } from "@core/settings/store";
+import { addRecent } from "./recents";
 import type {
   Leaf,
   LeafId,
@@ -7,9 +10,6 @@ import type {
   TabGroupId,
   WorkspaceState,
 } from "./types";
-import type { VaultPath } from "@core/fs/types";
-import { settingsStore } from "@core/settings/store";
-import { addRecent } from "./recents";
 
 let counter = 0;
 const newId = (prefix: string) =>
@@ -47,7 +47,7 @@ function findColumnIndex(
   groupId: TabGroupId,
 ): number {
   for (let i = 0; i < columns.length; i++) {
-    if (columns[i]!.includes(groupId)) return i;
+    if (columns[i]?.includes(groupId)) return i;
   }
   return -1;
 }
@@ -78,21 +78,11 @@ function emit() {
   for (const s of subscribers) s();
 }
 
-function setState(next: Omit<WorkspaceState, "rootGroupIds"> & { rootGroupIds?: ReadonlyArray<TabGroupId> }) {
+function setState(
+  next: Omit<WorkspaceState, "rootGroupIds"> & { rootGroupIds?: ReadonlyArray<TabGroupId> },
+) {
   state = { ...next, rootGroupIds: flatten(next.columns) } as WorkspaceState;
   emit();
-}
-
-function withLeaf(leaf: Leaf): WorkspaceState {
-  const leaves = new Map(state.leaves);
-  leaves.set(leaf.id, leaf);
-  return { ...state, leaves };
-}
-
-function withGroup(group: TabGroup): WorkspaceState {
-  const groups = new Map(state.groups);
-  groups.set(group.id, group);
-  return { ...state, groups };
 }
 
 export const workspaceStore = {
@@ -138,6 +128,7 @@ export const workspaceStore = {
           ...(leaf.state.cursorOffset !== undefined
             ? { cursorOffset: leaf.state.cursorOffset }
             : {}),
+          ...(leaf.state.folds !== undefined ? { folds: leaf.state.folds } : {}),
           ...(leaf.state.pinned !== undefined ? { pinned: leaf.state.pinned } : {}),
           ...(opts.fragment ? { fragment: opts.fragment } : {}),
         };
@@ -213,7 +204,10 @@ export const workspaceStore = {
     for (const id of group.leafIds) {
       const leaf = state.leaves.get(id);
       if (leaf?.state.type === "webviewer" && leaf.state.url === url) {
-        setState({ ...state, groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }) });
+        setState({
+          ...state,
+          groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
+        });
         return id;
       }
     }
@@ -255,7 +249,10 @@ export const workspaceStore = {
     for (const id of group.leafIds) {
       const leaf = state.leaves.get(id);
       if (leaf?.state.type === "graph") {
-        setState({ ...state, groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }) });
+        setState({
+          ...state,
+          groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
+        });
         return id;
       }
     }
@@ -292,9 +289,7 @@ export const workspaceStore = {
     if (!groupId) throw new Error("Workspace has no active group");
     const group = state.groups.get(groupId);
     if (!group) throw new Error(`Active group ${groupId} not in workspace`);
-    const desired: LeafState = opts.path
-      ? { type: "canvas", path: opts.path }
-      : { type: "canvas" };
+    const desired: LeafState = opts.path ? { type: "canvas", path: opts.path } : { type: "canvas" };
 
     if (opts.path) {
       for (const id of group.leafIds) {
@@ -343,9 +338,7 @@ export const workspaceStore = {
     if (!groupId) throw new Error("Workspace has no active group");
     const group = state.groups.get(groupId);
     if (!group) throw new Error(`Active group ${groupId} not in workspace`);
-    const desired: LeafState = opts.path
-      ? { type: "bases", path: opts.path }
-      : { type: "bases" };
+    const desired: LeafState = opts.path ? { type: "bases", path: opts.path } : { type: "bases" };
 
     if (opts.path) {
       for (const id of group.leafIds) {
@@ -392,7 +385,7 @@ export const workspaceStore = {
     const leaves = new Map(state.leaves);
     leaves.delete(leafId);
     navHistory.delete(leafId);
-    let columns = state.columns.map((c) => [...c]);
+    const columns = state.columns.map((c) => [...c]);
     for (const [gid, g] of groups) {
       if (!g.leafIds.includes(leafId)) continue;
       const nextIds = g.leafIds.filter((id) => id !== leafId);
@@ -478,6 +471,20 @@ export const workspaceStore = {
     setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
   },
 
+  setMarkdownFolds(
+    leafId: LeafId,
+    folds: ReadonlyArray<{ readonly from: number; readonly to: number }>,
+  ): void {
+    const leaf = state.leaves.get(leafId);
+    if (!leaf || leaf.state.type !== "markdown") return;
+    const { folds: _prevFolds, ...stateWithoutFolds } = leaf.state;
+    const updated: Leaf = {
+      ...leaf,
+      state: folds.length > 0 ? { ...stateWithoutFolds, folds } : stateWithoutFolds,
+    };
+    setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
+  },
+
   togglePinned(leafId: LeafId): void {
     const leaf = state.leaves.get(leafId);
     if (!leaf || leaf.state.type !== "markdown") return;
@@ -497,9 +504,9 @@ export const workspaceStore = {
     const currentIdx = group.activeLeafId ? group.leafIds.indexOf(group.activeLeafId) : -1;
     if (currentIdx === -1) return;
     const len = group.leafIds.length;
-    const nextIdx =
-      direction === "next" ? (currentIdx + 1) % len : (currentIdx - 1 + len) % len;
-    const nextId = group.leafIds[nextIdx]!;
+    const nextIdx = direction === "next" ? (currentIdx + 1) % len : (currentIdx - 1 + len) % len;
+    const nextId = group.leafIds[nextIdx];
+    if (!nextId) return;
     const groups = new Map(s.groups);
     groups.set(group.id, { ...group, activeLeafId: nextId });
     setState({ ...s, groups });
@@ -557,7 +564,8 @@ export const workspaceStore = {
     if (direction === "right") {
       columns.splice(sourceColIdx + 1, 0, [newGroupId]);
     } else {
-      const col = columns[sourceColIdx]!;
+      const col = columns[sourceColIdx];
+      if (!col) throw new Error(`Column ${sourceColIdx} not found`);
       const sourceIdxInCol = col.indexOf(sourceGroupId);
       col.splice(sourceIdxInCol + 1, 0, newGroupId);
     }
@@ -586,7 +594,8 @@ export const workspaceStore = {
     if (state.activeGroupId === groupId) {
       // Prefer the previous group in the same column, then the column to the
       // left, then the first remaining group.
-      const sourceCol = state.columns[colIdx]!;
+      const sourceCol = state.columns[colIdx];
+      if (!sourceCol) return;
       const sourceIdxInCol = sourceCol.indexOf(groupId);
       nextActive =
         sourceCol[sourceIdxInCol - 1] ??
@@ -607,7 +616,8 @@ export const workspaceStore = {
     const slot = navHistory.get(leafId);
     if (!slot || slot.cursor <= 0) return false;
     slot.cursor -= 1;
-    const entry = slot.entries[slot.cursor]!;
+    const entry = slot.entries[slot.cursor];
+    if (!entry) return false;
     const leaf = state.leaves.get(leafId);
     if (!leaf) return false;
     const desired: LeafState = {
@@ -624,7 +634,8 @@ export const workspaceStore = {
     const slot = navHistory.get(leafId);
     if (!slot || slot.cursor >= slot.entries.length - 1) return false;
     slot.cursor += 1;
-    const entry = slot.entries[slot.cursor]!;
+    const entry = slot.entries[slot.cursor];
+    if (!entry) return false;
     const leaf = state.leaves.get(leafId);
     if (!leaf) return false;
     const desired: LeafState = {
@@ -683,9 +694,7 @@ export const workspaceStore = {
         },
   ): boolean {
     const isLegacy = "groups" in snapshot && !("columns" in snapshot);
-    const cols = isLegacy
-      ? snapshot.groups.map((g) => [g])
-      : snapshot.columns;
+    const cols = isLegacy ? snapshot.groups.map((g) => [g]) : snapshot.columns;
     if (cols.length === 0) return false;
 
     navHistory.clear();
@@ -725,11 +734,7 @@ export const workspaceStore = {
     return true;
   },
 
-  moveTab(
-    leafId: LeafId,
-    targetGroupId: TabGroupId,
-    beforeLeafId: LeafId | null,
-  ): void {
+  moveTab(leafId: LeafId, targetGroupId: TabGroupId, beforeLeafId: LeafId | null): void {
     let sourceGroupId: TabGroupId | null = null;
     for (const [gid, g] of state.groups) {
       if (g.leafIds.includes(leafId)) {
@@ -767,9 +772,8 @@ export const workspaceStore = {
     });
 
     const refreshedTarget =
-      sourceGroupId === targetGroupId
-        ? groups.get(targetGroupId)!
-        : targetGroup;
+      sourceGroupId === targetGroupId ? groups.get(targetGroupId) : targetGroup;
+    if (!refreshedTarget) return;
     let insertIdx = refreshedTarget.leafIds.length;
     if (beforeLeafId) {
       const at = refreshedTarget.leafIds.indexOf(beforeLeafId);
@@ -787,19 +791,19 @@ export const workspaceStore = {
     });
 
     let columns = state.columns.map((c) => [...c]);
-    let activeGroupId: TabGroupId | null = targetGroupId;
-    const sourceGroupAfter = groups.get(sourceGroupId)!;
+    const activeGroupId: TabGroupId | null = targetGroupId;
+    const sourceGroupAfter = groups.get(sourceGroupId);
+    if (!sourceGroupAfter) return;
     if (
       sourceGroupId !== targetGroupId &&
       sourceGroupAfter.leafIds.length === 0 &&
       flatten(columns).length > 1
     ) {
       groups.delete(sourceGroupId);
-      columns = columns.map((c) => c.filter((g) => g !== sourceGroupId)).filter((c) => c.length > 0);
-    } else if (
-      sourceGroupAfter.leafIds.length === 0 &&
-      flatten(columns).length === 1
-    ) {
+      columns = columns
+        .map((c) => c.filter((g) => g !== sourceGroupId))
+        .filter((c) => c.length > 0);
+    } else if (sourceGroupAfter.leafIds.length === 0 && flatten(columns).length === 1) {
       const emptyId = newId("l");
       leaves.set(emptyId, { id: emptyId, state: { type: "empty" } });
       groups.set(sourceGroupId, {

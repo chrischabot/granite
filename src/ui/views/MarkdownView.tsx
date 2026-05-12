@@ -1,33 +1,54 @@
-import { autocompletion, closeBrackets, type CompletionSource } from "@codemirror/autocomplete";
+import { hideHoverPopover, showHoverPopover } from "@/ui/overlay/HoverPopover";
+import { type CompletionSource, autocompletion, closeBrackets } from "@codemirror/autocomplete";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
-import { syntaxHighlighting, defaultHighlightStyle, indentOnInput } from "@codemirror/language";
+import {
+  codeFolding,
+  defaultHighlightStyle,
+  foldEffect,
+  foldGutter,
+  foldKeymap,
+  indentOnInput,
+  syntaxHighlighting,
+  unfoldEffect,
+} from "@codemirror/language";
 import { search, searchKeymap } from "@codemirror/search";
 import { EditorState } from "@codemirror/state";
-import { EditorView, drawSelection, keymap, lineNumbers } from "@codemirror/view";
-import { Effect } from "effect";
-import { useEffect, useRef, useState } from "react";
+import {
+  EditorView,
+  crosshairCursor,
+  drawSelection,
+  keymap,
+  lineNumbers,
+  rectangularSelection,
+} from "@codemirror/view";
 import { commandRegistry } from "@core/commands/CommandRegistry";
+import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { stem } from "@core/fs/path";
-import { FsNotFound, type FsError } from "@core/fs/types";
-import { isSupportedAttachmentMime, saveAttachment } from "@core/markdown/attach";
-import { unresolvedWikilinkExtension } from "@core/markdown/cm-unresolved-wikilinks";
-import { livePreviewDecorations } from "@core/markdown/cm-livepreview-decorations";
-import { metadataCache } from "@core/metadata/cache";
-import { parseWikilink } from "@core/markdown/renderer";
+import { type FsError, FsNotFound } from "@core/fs/types";
 import type { VaultPath } from "@core/fs/types";
-import { run } from "@core/effect/runtime";
+import { isSupportedAttachmentMime, saveAttachment } from "@core/markdown/attach";
+import { livePreviewDecorations } from "@core/markdown/cm-livepreview-decorations";
+import { unresolvedWikilinkExtension } from "@core/markdown/cm-unresolved-wikilinks";
+import { parseWikilink } from "@core/markdown/renderer";
+import { metadataCache } from "@core/metadata/cache";
+import { noticeManager } from "@core/notices/notice";
 import { useSettings } from "@core/settings/useSettings";
 import { markClean, markDirty } from "@core/workspace/dirty";
-import { noticeManager } from "@core/notices/notice";
-import { hideHoverPopover, showHoverPopover } from "@/ui/overlay/HoverPopover";
+import { collectFoldRanges, foldEffectsForRanges } from "@core/workspace/folds";
 import { workspaceStore } from "@core/workspace/store";
+import type { LeafId } from "@core/workspace/types";
+import { vim } from "@replit/codemirror-vim";
+import { Effect } from "effect";
+import { useEffect, useRef, useState } from "react";
 import { InlineTitle } from "./InlineTitle";
 
 export interface MarkdownViewProps {
+  leafId: LeafId;
   path: VaultPath;
   fragment?: string | null;
+  folds?: ReadonlyArray<{ readonly from: number; readonly to: number }>;
 }
 
 const SAVE_DEBOUNCE_MS = 500;
@@ -80,7 +101,7 @@ declare global {
   }
 }
 
-export function MarkdownView({ path, fragment }: MarkdownViewProps) {
+export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProps) {
   const settings = useSettings();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorView | null>(null);
@@ -91,6 +112,11 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const allowSaveRef = useRef(false);
   const attachmentListenersRef = useRef<(() => void) | null>(null);
+  const initialFoldsRef = useRef(folds);
+
+  useEffect(() => {
+    initialFoldsRef.current = folds;
+  }, [folds]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -116,7 +142,12 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
 
       const extensions = [
         history(),
-        drawSelection(),
+        EditorState.allowMultipleSelections.of(true),
+        drawSelection({ drawRangeCursor: true }),
+        rectangularSelection(),
+        crosshairCursor(),
+        codeFolding(),
+        foldGutter(),
         indentOnInput(),
         search({ top: true }),
         settings.showLineNumbers ? lineNumbers() : [],
@@ -174,8 +205,16 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
           },
           { dark: document.body.classList.contains("theme-dark") },
         ),
-        keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
+        settings.editorKeymap === "vim" ? vim({ status: true }) : [],
+        keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...foldKeymap]),
         EditorView.updateListener.of((update) => {
+          if (
+            update.transactions.some((tr) =>
+              tr.effects.some((effect) => effect.is(foldEffect) || effect.is(unfoldEffect)),
+            )
+          ) {
+            workspaceStore.setMarkdownFolds(leafId, collectFoldRanges(update.state));
+          }
           if (!update.docChanged) return;
           const docText = update.state.doc.toString();
           if (docText === lastSavedRef.current) {
@@ -197,18 +236,23 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
         extensions,
       });
 
+      const parent = containerRef.current;
+      if (!parent) return;
       const view = new EditorView({
         state,
-        parent: containerRef.current!,
+        parent,
       });
       editorRef.current = view;
+      const restoreFoldEffects = foldEffectsForRanges(
+        initialFoldsRef.current,
+        view.state.doc.length,
+      );
+      if (restoreFoldEffects.length > 0) {
+        view.dispatch({ effects: restoreFoldEffects });
+      }
       view.contentDOM.spellcheck = settings.spellcheck;
 
-      const insertAttachment = async (
-        bytes: Uint8Array,
-        mime: string,
-        nameHint?: string,
-      ) => {
+      const insertAttachment = async (bytes: Uint8Array, mime: string, nameHint?: string) => {
         try {
           const savedPath = await saveAttachment(bytes, mime, nameHint);
           const insert = `![[${savedPath}]]`;
@@ -218,10 +262,9 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
             selection: { anchor: sel.from + insert.length },
           });
         } catch (err) {
-          noticeManager.show(
-            err instanceof Error ? err.message : "Could not save attachment",
-            { kind: "error" },
-          );
+          noticeManager.show(err instanceof Error ? err.message : "Could not save attachment", {
+            kind: "error",
+          });
         }
       };
 
@@ -300,31 +343,19 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
         if (pos === null) return;
         const text = view.state.doc.toString();
         let inner = pos;
-        while (
-          inner > 0 &&
-          text.slice(inner - 2, inner) !== "[[" &&
-          text[inner - 1] !== "\n"
-        ) {
+        while (inner > 0 && text.slice(inner - 2, inner) !== "[[" && text[inner - 1] !== "\n") {
           inner -= 1;
         }
         const insideOpen = text.slice(inner - 2, inner) === "[[";
         if (insideOpen) {
           let end = pos;
-          while (
-            end < text.length &&
-            text.slice(end, end + 2) !== "]]" &&
-            text[end] !== "\n"
-          ) {
+          while (end < text.length && text.slice(end, end + 2) !== "]]" && text[end] !== "\n") {
             end += 1;
           }
           if (text.slice(end, end + 2) === "]]") {
             const fullStart = inner - 2;
             const fullEnd = end + 2;
-            if (
-              hoveredRange &&
-              hoveredRange.start === fullStart &&
-              hoveredRange.end === fullEnd
-            ) {
+            if (hoveredRange && hoveredRange.start === fullStart && hoveredRange.end === fullEnd) {
               return;
             }
             hoveredRange = { start: fullStart, end: fullEnd };
@@ -335,14 +366,8 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
               hideHoverPopover();
               return;
             }
-            const targetPath = parts.target.endsWith(".md")
-              ? parts.target
-              : `${parts.target}.md`;
-            const fragment = parts.heading
-              ? parts.heading
-              : parts.block
-                ? `^${parts.block}`
-                : null;
+            const targetPath = parts.target.endsWith(".md") ? parts.target : `${parts.target}.md`;
+            const fragment = parts.heading ? parts.heading : parts.block ? `^${parts.block}` : null;
             if (openTimer) clearTimeout(openTimer);
             openTimer = setTimeout(() => {
               if (!hoveredRange || hoveredRange.start !== fullStart) return;
@@ -358,15 +383,17 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
         const lineObj = view.state.doc.lineAt(pos);
         const local = pos - lineObj.from;
         const linkRe = /\[([^\]\n]+)\]\(([^)\n]+)\)/g;
-        let mdMatch: RegExpExecArray | null = null;
+        let mdMatch: RegExpExecArray | null = linkRe.exec(lineObj.text);
         let chosen: { start: number; end: number; href: string } | null = null;
-        while ((mdMatch = linkRe.exec(lineObj.text))) {
+        while (mdMatch) {
           const start = mdMatch.index;
           const end = start + mdMatch[0].length;
           if (local >= start && local <= end) {
-            chosen = { start, end, href: mdMatch[2]!.trim() };
+            const href = mdMatch[2]?.trim();
+            if (href) chosen = { start, end, href };
             break;
           }
+          mdMatch = linkRe.exec(lineObj.text);
         }
         if (!chosen) {
           if (hoveredRange || openTimer) {
@@ -394,11 +421,7 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
         }
         const fullStartMd = lineObj.from + chosen.start;
         const fullEndMd = lineObj.from + chosen.end;
-        if (
-          hoveredRange &&
-          hoveredRange.start === fullStartMd &&
-          hoveredRange.end === fullEndMd
-        ) {
+        if (hoveredRange && hoveredRange.start === fullStartMd && hoveredRange.end === fullEndMd) {
           return;
         }
         hoveredRange = { start: fullStartMd, end: fullEndMd };
@@ -442,29 +465,19 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
 
         // 1) Wikilink under cursor.
         let inner = pos;
-        while (
-          inner > 0 &&
-          text.slice(inner - 2, inner) !== "[[" &&
-          text[inner - 1] !== "\n"
-        ) {
+        while (inner > 0 && text.slice(inner - 2, inner) !== "[[" && text[inner - 1] !== "\n") {
           inner -= 1;
         }
         if (text.slice(inner - 2, inner) === "[[") {
           let end = pos;
-          while (
-            end < text.length &&
-            text.slice(end, end + 2) !== "]]" &&
-            text[end] !== "\n"
-          ) {
+          while (end < text.length && text.slice(end, end + 2) !== "]]" && text[end] !== "\n") {
             end += 1;
           }
           if (text.slice(end, end + 2) === "]]") {
             const parts = parseWikilink(text.slice(inner, end));
             if (parts.target) {
               ev.preventDefault();
-              const targetPath = parts.target.endsWith(".md")
-                ? parts.target
-                : `${parts.target}.md`;
+              const targetPath = parts.target.endsWith(".md") ? parts.target : `${parts.target}.md`;
               const fragment = parts.heading
                 ? parts.heading
                 : parts.block
@@ -486,12 +499,12 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
         const lineText = lineObj.text;
         const local = pos - lineStart;
         const linkRe = /\[([^\]\n]+)\]\(([^)\n]+)\)/g;
-        let mdMatch: RegExpExecArray | null;
-        while ((mdMatch = linkRe.exec(lineText))) {
+        let mdMatch: RegExpExecArray | null = linkRe.exec(lineText);
+        while (mdMatch) {
           const start = mdMatch.index;
           const end = start + mdMatch[0].length;
           if (local >= start && local <= end) {
-            const hrefRaw = mdMatch[2]!.trim();
+            const hrefRaw = mdMatch[2]?.trim();
             if (!hrefRaw) break;
             if (
               /^[a-z][a-z0-9+.-]*:/i.test(hrefRaw) ||
@@ -518,6 +531,7 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
             });
             return;
           }
+          mdMatch = linkRe.exec(lineText);
         }
       };
       view.contentDOM.addEventListener("click", onEditorClick);
@@ -632,14 +646,15 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
       const fileStem = stem(path);
       const existingMatch = lineObj.text.match(/\s\^([a-zA-Z0-9-]+)\s*$/);
       if (existingMatch) {
-        void navigator.clipboard
-          .writeText(`[[${fileStem}#^${existingMatch[1]}]]`)
-          .catch(() => {});
+        void navigator.clipboard.writeText(`[[${fileStem}#^${existingMatch[1]}]]`).catch(() => {});
         return;
       }
       const buf = new Uint8Array(4);
       crypto.getRandomValues(buf);
-      const id = [...buf].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 6);
+      const id = [...buf]
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("")
+        .slice(0, 6);
       const lineText = lineObj.text;
       const trimEnd = lineText.replace(/\s+$/, "");
       const insertion = `${trimEnd ? " " : ""}^${id}`;
@@ -647,9 +662,7 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
         changes: { from: lineObj.from + trimEnd.length, to: lineObj.to, insert: insertion },
         selection: { anchor: lineObj.from + trimEnd.length + insertion.length },
       });
-      void navigator.clipboard
-        .writeText(`[[${fileStem}#^${id}]]`)
-        .catch(() => {});
+      void navigator.clipboard.writeText(`[[${fileStem}#^${id}]]`).catch(() => {});
     };
     window.addEventListener("granite:insert-block-id", onInsertBlockId);
 
@@ -680,19 +693,20 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
       editorRef.current = null;
     };
   }, [
+    leafId,
     path,
     settings.showLineNumbers,
     settings.autoPairBrackets,
     settings.readableLineWidth,
     settings.spellcheck,
     settings.livePreview,
+    settings.editorKeymap,
   ]);
 
   useEffect(() => {
     if (!fragment || loadState !== "loaded") return;
     const id = setTimeout(async () => {
-      const meta =
-        metadataCache.getMetadata(path) ?? (await metadataCache.ensure(path));
+      const meta = metadataCache.getMetadata(path) ?? (await metadataCache.ensure(path));
       if (!meta) return;
       const isBlock = fragment.startsWith("^");
       const target = isBlock ? fragment.slice(1) : fragment;
@@ -702,9 +716,7 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
         line = blk?.line ?? null;
       } else {
         const wanted = target.trim().toLowerCase();
-        const h = meta.headings.find(
-          (heading) => heading.text.trim().toLowerCase() === wanted,
-        );
+        const h = meta.headings.find((heading) => heading.text.trim().toLowerCase() === wanted);
         line = h?.line ?? null;
       }
       if (line === null) return;
@@ -745,7 +757,7 @@ export function MarkdownView({ path, fragment }: MarkdownViewProps) {
         </div>
         <div
           ref={containerRef}
-          className="cm-host markdown-source-view mod-cm6"
+          className={`cm-host markdown-source-view mod-cm6${settings.livePreview ? " is-live-preview" : ""}`}
           style={{
             display: loadState === "loaded" || loadState === "missing" ? "block" : "none",
             flex: "1 1 auto",
@@ -838,9 +850,7 @@ const wikilinkCompletionSource: CompletionSource = (context) => {
   if (innerText.startsWith("^^")) {
     const query = innerText.slice(2).toLowerCase();
     const blocks = metadataCache.getAllBlocks();
-    const filtered = query
-      ? blocks.filter((b) => b.id.toLowerCase().includes(query))
-      : blocks;
+    const filtered = query ? blocks.filter((b) => b.id.toLowerCase().includes(query)) : blocks;
     return {
       from: before.from,
       options: filtered.slice(0, 100).map((b) => ({
@@ -864,9 +874,7 @@ const wikilinkCompletionSource: CompletionSource = (context) => {
     from: before.from,
     options: entries.map((entry) => {
       const targetStem = stem(entry.path);
-      const linkBody = entry.alias
-        ? `${targetStem}|${entry.alias}`
-        : targetStem;
+      const linkBody = entry.alias ? `${targetStem}|${entry.alias}` : targetStem;
       return {
         label: entry.displayName,
         detail: entry.alias ? `alias for ${targetStem}` : entry.path,
@@ -911,9 +919,7 @@ const tagCompletionSource: CompletionSource = (context) => {
   const query = matchText.slice(hashIdx + 1).toLowerCase();
 
   const all = metadataCache.getAllTags();
-  const filtered = query
-    ? all.filter((t) => t.name.toLowerCase().includes(query))
-    : all;
+  const filtered = query ? all.filter((t) => t.name.toLowerCase().includes(query)) : all;
   if (filtered.length === 0) return null;
   return {
     from: triggerFrom,

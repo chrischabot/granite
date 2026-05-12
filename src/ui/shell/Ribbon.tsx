@@ -1,3 +1,5 @@
+import { commandRegistry } from "@core/commands/CommandRegistry";
+import { workspaceStore } from "@core/workspace/store";
 import {
   Calendar,
   Dice5,
@@ -15,12 +17,11 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { ClickableIcon } from "../controls/ClickableIcon";
-import { commandRegistry } from "@core/commands/CommandRegistry";
-import { workspaceStore } from "@core/workspace/store";
+import { useI18n } from "../i18n/useI18n";
 
 interface RibbonItem {
   id: string;
-  label: string;
+  labelKey: string;
   icon: ReactNode;
   onClick: () => void;
 }
@@ -38,54 +39,85 @@ export function Ribbon({
   onOpenVaults,
   onOpenSettings,
 }: RibbonProps) {
+  const t = useI18n();
   const userActions: RibbonItem[] = [
-    { id: "switcher", label: "Open quick switcher", icon: <FileSearch />, onClick: onOpenSwitcher },
-    { id: "palette", label: "Open command palette", icon: <Terminal />, onClick: onOpenPalette },
-    { id: "graph", label: "Open graph view", icon: <GitFork />, onClick: () => workspaceStore.openGraph() },
-    { id: "canvas", label: "Create new canvas", icon: <LayoutDashboard />, onClick: () => workspaceStore.openCanvas() },
-    { id: "base", label: "Create new base", icon: <Table />, onClick: () => workspaceStore.openBase() },
+    {
+      id: "switcher",
+      labelKey: "ribbon.quickSwitcher",
+      icon: <FileSearch />,
+      onClick: onOpenSwitcher,
+    },
+    {
+      id: "palette",
+      labelKey: "ribbon.commandPalette",
+      icon: <Terminal />,
+      onClick: onOpenPalette,
+    },
+    {
+      id: "graph",
+      labelKey: "ribbon.graph",
+      icon: <GitFork />,
+      onClick: () => workspaceStore.openGraph(),
+    },
+    {
+      id: "canvas",
+      labelKey: "ribbon.canvas",
+      icon: <LayoutDashboard />,
+      onClick: () => workspaceStore.openCanvas(),
+    },
+    {
+      id: "base",
+      labelKey: "ribbon.base",
+      icon: <Table />,
+      onClick: () => workspaceStore.openBase(),
+    },
     {
       id: "daily",
-      label: "Open today's daily note",
+      labelKey: "ribbon.daily",
       icon: <Calendar />,
       onClick: () => void commandRegistry.run("daily-notes:open-today"),
     },
     {
       id: "workspaces",
-      label: "Manage workspace layouts",
+      labelKey: "ribbon.workspaces",
       icon: <PanelsTopLeft />,
       onClick: () => void commandRegistry.run("workspaces:save"),
     },
     {
       id: "template",
-      label: "Insert template",
+      labelKey: "ribbon.template",
       icon: <LayoutTemplate />,
       onClick: () => void commandRegistry.run("templates:insert"),
     },
     {
       id: "unique",
-      label: "Create new unique note",
+      labelKey: "ribbon.unique",
       icon: <Sheet />,
       onClick: () => void commandRegistry.run("unique-note:create"),
     },
     {
       id: "random",
-      label: "Open random note",
+      labelKey: "ribbon.random",
       icon: <Dice5 />,
       onClick: () => void commandRegistry.run("random-note:open"),
     },
     {
       id: "record",
-      label: "Start/stop recording",
+      labelKey: "ribbon.record",
       icon: <Mic />,
       onClick: () => void commandRegistry.run("audio-recorder:toggle"),
     },
   ];
 
   const systemActions: RibbonItem[] = [
-    { id: "vaults", label: "Manage vaults", icon: <PanelsTopLeft />, onClick: onOpenVaults },
-    { id: "help", label: "Open help", icon: <HelpCircle />, onClick: () => void commandRegistry.run("help:open-cheat-sheet") },
-    { id: "settings", label: "Open settings", icon: <Settings />, onClick: onOpenSettings },
+    { id: "vaults", labelKey: "ribbon.vaults", icon: <PanelsTopLeft />, onClick: onOpenVaults },
+    {
+      id: "help",
+      labelKey: "ribbon.help",
+      icon: <HelpCircle />,
+      onClick: () => void commandRegistry.run("help:open-cheat-sheet"),
+    },
+    { id: "settings", labelKey: "ribbon.settings", icon: <Settings />, onClick: onOpenSettings },
   ];
 
   return (
@@ -94,7 +126,7 @@ export function Ribbon({
         {userActions.map((item) => (
           <ClickableIcon
             key={item.id}
-            ariaLabel={item.label}
+            ariaLabel={t(item.labelKey)}
             icon={item.icon}
             modifier="side-dock-ribbon-action"
             onClick={item.onClick}
@@ -105,7 +137,7 @@ export function Ribbon({
         {systemActions.map((item) => (
           <ClickableIcon
             key={item.id}
-            ariaLabel={item.label}
+            ariaLabel={t(item.labelKey)}
             icon={item.icon}
             modifier="side-dock-ribbon-action"
             onClick={item.onClick}

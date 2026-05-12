@@ -1,11 +1,13 @@
+import { commandRegistry } from "@core/commands/CommandRegistry";
 import { ChevronsUpDown, Settings } from "lucide-react";
 import { useState } from "react";
 import { ClickableIcon } from "../controls/ClickableIcon";
-import { useVault } from "../vault/VaultContext";
+import { useI18n } from "../i18n/useI18n";
 import { VaultPicker } from "../prompts/VaultPicker";
-import { commandRegistry } from "@core/commands/CommandRegistry";
+import { useVault } from "../vault/VaultContext";
 
 export function VaultProfile() {
+  const t = useI18n();
   const { activeVault } = useVault();
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -15,11 +17,11 @@ export function VaultProfile() {
         <button
           type="button"
           className="workspace-drawer-vault-switcher"
-          aria-label="Switch vault"
+          aria-label={t("vaultProfile.switch")}
           onClick={() => setPickerOpen(true)}
         >
           <span className="workspace-drawer-vault-name">
-            {activeVault?.entry.name ?? "No vault"}
+            {activeVault?.entry.name ?? t("vaultProfile.noVault")}
           </span>
           <span className="workspace-drawer-vault-switcher-icon">
             <ChevronsUpDown />
@@ -27,7 +29,7 @@ export function VaultProfile() {
         </button>
         <div className="workspace-drawer-vault-actions">
           <ClickableIcon
-            ariaLabel="Open settings"
+            ariaLabel={t("ribbon.settings")}
             icon={<Settings />}
             onClick={() => void commandRegistry.run("app:open-settings")}
           />

@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-12 — Shell ribbon and status i18n ratchet
+
+- **Ribbon actions** — routed quick switcher, command palette, graph, canvas,
+  base, daily note, workspace, template, unique note, random note, recorder,
+  vaults, help, and settings action labels through `t()`.
+- **Status bar** — routed local-only, word-count labels, edit/read mode chip,
+  and toggle tooltip/aria labels through `t()`; removed misleading button
+  semantics from the non-clickable local-only status item.
+- **Vault profile** — routed switch-vault, no-vault fallback, and settings
+  action labels through `t()`.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if the old shell literals return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Property sidebar i18n ratchet
 
 - **File properties pane** — routed property add/remove prompts, empty states,

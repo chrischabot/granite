@@ -107,6 +107,37 @@ const ALL_PROPERTIES_VIEW_FORBIDDEN_PATTERNS = [
   /`\$\{p\.count\} note\$\{p\.count === 1 \? "" : "s"\} use this property`/,
 ];
 
+const RIBBON_FORBIDDEN_PATTERNS = [
+  /label: "Open quick switcher"/,
+  /label: "Open command palette"/,
+  /label: "Open graph view"/,
+  /label: "Create new canvas"/,
+  /label: "Create new base"/,
+  /label: "Open today's daily note"/,
+  /label: "Manage workspace layouts"/,
+  /label: "Insert template"/,
+  /label: "Create new unique note"/,
+  /label: "Open random note"/,
+  /label: "Start\/stop recording"/,
+  /label: "Manage vaults"/,
+  /label: "Open help"/,
+  /label: "Open settings"/,
+];
+
+const STATUS_BAR_FORBIDDEN_PATTERNS = [
+  />\s*Local-only\s*</,
+  /\? "word" : "words"/,
+  /aria-label="Toggle editing \/ reading mode"/,
+  /title="Click to toggle editing \/ reading mode"/,
+  /\? "Read" : "Edit"/,
+];
+
+const VAULT_PROFILE_FORBIDDEN_PATTERNS = [
+  /aria-label="Switch vault"/,
+  /\?\? "No vault"/,
+  /ariaLabel="Open settings"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -333,6 +364,59 @@ describe("UI string externalization audit", () => {
       "properties.notes",
       "propertyType.",
     ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps Ribbon labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/shell/Ribbon.tsx`, "utf8");
+    const violations = RIBBON_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of [
+      "ribbon.quickSwitcher",
+      "ribbon.commandPalette",
+      "ribbon.graph",
+      "ribbon.canvas",
+      "ribbon.base",
+      "ribbon.daily",
+      "ribbon.workspaces",
+      "ribbon.template",
+      "ribbon.unique",
+      "ribbon.random",
+      "ribbon.record",
+      "ribbon.vaults",
+      "ribbon.help",
+      "ribbon.settings",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps Status Bar labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/shell/StatusBar.tsx`, "utf8");
+    const violations = STATUS_BAR_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of [
+      "status.localOnly",
+      "status.word",
+      "status.words",
+      "status.toggleMode",
+      "status.toggleModeTitle",
+      "status.mode.read",
+      "status.mode.edit",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps Vault Profile labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/shell/VaultProfile.tsx`, "utf8");
+    const violations = VAULT_PROFILE_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of ["vaultProfile.switch", "vaultProfile.noVault", "ribbon.settings"]) {
       expect(source).toContain(requiredKey);
     }
 

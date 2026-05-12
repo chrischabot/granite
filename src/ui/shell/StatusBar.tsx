@@ -1,14 +1,12 @@
-import { BookOpen, Cloud, Edit3 } from "lucide-react";
-import { Effect } from "effect";
-import { useEffect, useState, useSyncExternalStore } from "react";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
+import { listStatusBarItems, subscribeStatusBarItems } from "@core/plugins/host-registries";
 import { workspaceStore } from "@core/workspace/store";
 import { useWorkspace } from "@core/workspace/useWorkspace";
-import {
-  listStatusBarItems,
-  subscribeStatusBarItems,
-} from "@core/plugins/host-registries";
+import { Effect } from "effect";
+import { BookOpen, Cloud, Edit3 } from "lucide-react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { useI18n } from "../i18n/useI18n";
 import { useVault } from "../vault/VaultContext";
 
 const CJK_CHAR_RE =
@@ -29,6 +27,7 @@ function countWords(text: string): number {
 }
 
 export function StatusBar() {
+  const t = useI18n();
   const { activeVault } = useVault();
   const { groups, leaves, activeGroupId } = useWorkspace();
   const [wordCount, setWordCount] = useState<number | null>(null);
@@ -102,32 +101,31 @@ export function StatusBar() {
 
   return (
     <div className="status-bar">
-      <div className="status-bar-item mod-clickable" role="button" tabIndex={0}>
+      <div className="status-bar-item">
         <span className="status-bar-item-icon">
           <Cloud width="13" height="13" />
         </span>
-        <span className="status-bar-item-segment">Local-only</span>
+        <span className="status-bar-item-segment">{t("status.localOnly")}</span>
       </div>
       {wordCount !== null && (
         <div className="status-bar-item">
           <span className="status-bar-item-segment">
-            {wordCount.toLocaleString()} {wordCount === 1 ? "word" : "words"}
+            {wordCount.toLocaleString()} {t(wordCount === 1 ? "status.word" : "status.words")}
           </span>
         </div>
       )}
       {activeMode && (
-        <div
+        <button
+          type="button"
           className="status-bar-item mod-clickable"
-          role="button"
-          tabIndex={0}
-          aria-label="Toggle editing / reading mode"
-          title="Click to toggle editing / reading mode"
+          aria-label={t("status.toggleMode")}
+          title={t("status.toggleModeTitle")}
           onClick={cycleMode}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              cycleMode();
-            }
+          style={{
+            background: "transparent",
+            border: 0,
+            color: "inherit",
+            font: "inherit",
           }}
         >
           <span className="status-bar-item-icon">
@@ -138,9 +136,9 @@ export function StatusBar() {
             )}
           </span>
           <span className="status-bar-item-segment">
-            {activeMode === "reading" ? "Read" : "Edit"}
+            {t(activeMode === "reading" ? "status.mode.read" : "status.mode.edit")}
           </span>
-        </div>
+        </button>
       )}
       {pluginItems.map((item) => (
         <div

@@ -80,5 +80,8 @@ describe("i18n", () => {
     expect(t("markdown.status.saving")).toBe("שומר…");
     expect(t("markdown.error.read")).toBe("לא ניתן לקרוא את הקובץ הזה.");
     expect(t("webViewer.urlPlaceholder")).toBe("הזנת כתובת URL...");
+    expect(t("reading.embed.open")).toBe("פתיחה");
+    expect(t("reading.query.noResults")).toBe("אין תוצאות.");
+    expect(t("reading.properties.count", { count: "3" })).toBe("מאפיינים · 3");
   });
 });

@@ -20,6 +20,7 @@ import { useWorkspace } from "@core/workspace/useWorkspace";
 import { Effect } from "effect";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type Root, createRoot } from "react-dom/client";
+import { useI18n } from "../i18n/useI18n";
 import { CanvasView } from "./CanvasView";
 
 export interface ReadingViewProps {
@@ -78,6 +79,7 @@ function mimeForExtension(ext: string): string {
 }
 
 export function ReadingView({ path }: ReadingViewProps) {
+  const t = useI18n();
   const [content, setContent] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -346,13 +348,23 @@ export function ReadingView({ path }: ReadingViewProps) {
           const canvas = parseCanvas(text);
           const n = canvas.nodes.length;
           const ec = canvas.edges.length;
-          summary = `${n} node${n === 1 ? "" : "s"} · ${ec} edge${ec === 1 ? "" : "s"}`;
+          summary = t("reading.embed.canvasSummary", {
+            nodes: String(n),
+            nodeLabel: t(n === 1 ? "reading.embed.node" : "reading.embed.nodes"),
+            edges: String(ec),
+            edgeLabel: t(ec === 1 ? "reading.embed.edge" : "reading.embed.edges"),
+          });
         } else {
           const config = parseBaseConfig(text);
           const filter = config.filter.trim();
           summary = filter
-            ? `Filter: ${filter}`
-            : `${config.columns.length} column${config.columns.length === 1 ? "" : "s"}`;
+            ? t("reading.embed.filterSummary", { filter })
+            : t("reading.embed.columnSummary", {
+                count: String(config.columns.length),
+                columnLabel: t(
+                  config.columns.length === 1 ? "reading.embed.column" : "reading.embed.columns",
+                ),
+              });
         }
       } catch {
         el.classList.add("is-unresolved");
@@ -381,8 +393,11 @@ export function ReadingView({ path }: ReadingViewProps) {
         const openButton = document.createElement("button");
         openButton.type = "button";
         openButton.className = "clickable-icon";
-        openButton.textContent = "Open";
-        openButton.setAttribute("aria-label", `Open ${stem(cleanPath)} canvas`);
+        openButton.textContent = t("reading.embed.open");
+        openButton.setAttribute(
+          "aria-label",
+          t("reading.embed.openCanvas", { name: stem(cleanPath) }),
+        );
         openButton.addEventListener("click", (clickEvt) => {
           clickEvt.preventDefault();
           clickEvt.stopPropagation();
@@ -411,7 +426,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       card.tabIndex = 0;
       card.setAttribute("data-href", cleanPath);
       const fileName = stem(cleanPath);
-      const kindLabel = "Base";
+      const kindLabel = t("reading.embed.base");
       card.innerHTML = `
         <div class="embed-kind">${escapeAttr(kindLabel)}</div>
         <div class="embed-title">${escapeAttr(fileName)}</div>
@@ -442,7 +457,7 @@ export function ReadingView({ path }: ReadingViewProps) {
         queueMicrotask(() => embeddedRoot.unmount());
       }
     };
-  }, [html]);
+  }, [html, t]);
 
   // Resolve markdown embeds (`![[Note]]`, `![[Note#Heading]]`, `![[Note#^block]]`).
   useEffect(() => {
@@ -468,7 +483,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       if (visited.has(cycleKey)) {
         const stub = document.createElement("div");
         stub.className = "markdown-embed is-resolved is-cyclic";
-        stub.innerHTML = `<div class="markdown-embed-title">${escapeAttr(stem(targetPath))}${fragmentText ? ` · ${escapeAttr(fragmentText)}` : ""}</div><div class="markdown-embed-content"><em>Circular embed — already on screen.</em></div>`;
+        stub.innerHTML = `<div class="markdown-embed-title">${escapeAttr(stem(targetPath))}${fragmentText ? ` · ${escapeAttr(fragmentText)}` : ""}</div><div class="markdown-embed-content"><em>${escapeAttr(t("reading.embed.circular"))}</em></div>`;
         el.replaceWith(stub);
         return;
       }
@@ -484,7 +499,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       } catch {
         const stub = document.createElement("div");
         stub.className = "markdown-embed is-resolved is-unresolved";
-        stub.innerHTML = `<div class="markdown-embed-title">${escapeAttr(stem(targetPath))}</div><div class="markdown-embed-content"><em>File not found: ${escapeAttr(targetPath)}</em></div>`;
+        stub.innerHTML = `<div class="markdown-embed-title">${escapeAttr(stem(targetPath))}</div><div class="markdown-embed-content"><em>${escapeAttr(t("reading.embed.fileNotFound", { path: targetPath }))}</em></div>`;
         el.replaceWith(stub);
         return;
       }
@@ -507,7 +522,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       const wrap = document.createElement("div");
       wrap.className = "markdown-embed is-resolved";
       wrap.innerHTML = `
-        <a class="markdown-embed-link internal-link" data-href="${escapeAttr(href)}" href="${escapeAttr(href)}" title="Open ${escapeAttr(stem(targetPath))}">↗</a>
+        <a class="markdown-embed-link internal-link" data-href="${escapeAttr(href)}" href="${escapeAttr(href)}" title="${escapeAttr(t("reading.embed.openNote", { name: stem(targetPath) }))}">↗</a>
         <div class="markdown-embed-title">${escapeAttr(stem(targetPath))}${fragmentText ? ` · ${escapeAttr(fragmentText)}` : ""}</div>
         <div class="markdown-embed-content markdown-rendered">${inner}</div>
       `;
@@ -532,7 +547,7 @@ export function ReadingView({ path }: ReadingViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [html]);
+  }, [html, t]);
 
   // Resolve embedded base blocks: ```base …``` → live filtered table.
   useEffect(() => {
@@ -554,7 +569,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       const yamlText = (code.textContent ?? "").trim();
       const wrap = document.createElement("div");
       wrap.className = "bases-fence";
-      wrap.innerHTML = `<div class="bases-fence-header"><span class="bases-fence-name">Base</span></div><div class="bases-fence-body">Loading…</div>`;
+      wrap.innerHTML = `<div class="bases-fence-header"><span class="bases-fence-name">${escapeAttr(t("reading.embed.base"))}</span></div><div class="bases-fence-body">${escapeAttr(t("reading.loading"))}</div>`;
       pre.replaceWith(wrap);
       handles.push({ wrap, yamlText });
       wrap.classList.add("is-resolved");
@@ -592,7 +607,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       unsub();
       for (const handle of handles) handle.cleanup?.();
     };
-  }, [html, path]);
+  }, [html, path, t]);
 
   // Resolve embedded query blocks: ```query …``` → live result list.
   useEffect(() => {
@@ -646,7 +661,7 @@ export function ReadingView({ path }: ReadingViewProps) {
         }
         if (cancelled) return;
         if (matches.length === 0) {
-          list.innerHTML = `<div class="query-results-empty">No results.</div>`;
+          list.innerHTML = `<div class="query-results-empty">${escapeAttr(t("reading.query.noResults"))}</div>`;
         } else {
           const rows = matches
             .slice(0, 50)
@@ -671,7 +686,7 @@ export function ReadingView({ path }: ReadingViewProps) {
         const list2 = wrap.querySelector(".query-results-list");
         if (list2)
           list2.innerHTML = `<div class="query-results-error">${escapeAttr(
-            err instanceof Error ? err.message : "Query failed",
+            err instanceof Error ? err.message : t("reading.query.failed"),
           )}</div>`;
       }
     };
@@ -682,7 +697,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       const queryText = (code.textContent ?? "").trim();
       const wrap = document.createElement("div");
       wrap.className = "query-results-block";
-      wrap.innerHTML = `<div class="query-results-header">query: <code>${escapeAttr(queryText)}</code></div><div class="query-results-list">Running…</div>`;
+      wrap.innerHTML = `<div class="query-results-header">${escapeAttr(t("reading.query.header"))}: <code>${escapeAttr(queryText)}</code></div><div class="query-results-list">${escapeAttr(t("reading.query.running"))}</div>`;
       pre.replaceWith(wrap);
       handles.push({ wrap, queryText });
     }
@@ -706,7 +721,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       if (refreshTimer) clearTimeout(refreshTimer);
       unsub();
     };
-  }, [html]);
+  }, [html, t]);
 
   // Resolve embedded `backlinks` fences into a live list of incoming links
   // for the current file.
@@ -722,7 +737,7 @@ export function ReadingView({ path }: ReadingViewProps) {
     )) {
       const wrap = document.createElement("div");
       wrap.className = "backlinks-block";
-      wrap.innerHTML = `<div class="backlinks-block-header">Backlinks</div><div class="backlinks-block-list">Loading…</div>`;
+      wrap.innerHTML = `<div class="backlinks-block-header">${escapeAttr(t("reading.backlinks.title"))}</div><div class="backlinks-block-list">${escapeAttr(t("reading.loading"))}</div>`;
       pre.replaceWith(wrap);
       wraps.push(wrap);
     }
@@ -734,7 +749,7 @@ export function ReadingView({ path }: ReadingViewProps) {
         const list = wrap.querySelector(".backlinks-block-list");
         if (!list) continue;
         if (incoming.length === 0) {
-          list.innerHTML = `<div class="backlinks-block-empty">No backlinks yet.</div>`;
+          list.innerHTML = `<div class="backlinks-block-empty">${escapeAttr(t("reading.backlinks.empty"))}</div>`;
           continue;
         }
         list.innerHTML = incoming
@@ -742,7 +757,16 @@ export function ReadingView({ path }: ReadingViewProps) {
             (l) =>
               `<div class="backlinks-block-row" data-href="${escapeAttr(l.source)}">
                  <div class="backlinks-block-title">${escapeAttr(stem(l.source))}</div>
-                 <div class="backlinks-block-count">${l.lines.length} reference${l.lines.length === 1 ? "" : "s"}</div>
+                 <div class="backlinks-block-count">${escapeAttr(
+                   t("reading.backlinks.references", {
+                     count: String(l.lines.length),
+                     referenceLabel: t(
+                       l.lines.length === 1
+                         ? "reading.backlinks.reference"
+                         : "reading.backlinks.referencePlural",
+                     ),
+                   }),
+                 )}</div>
                </div>`,
           )
           .join("");
@@ -765,7 +789,7 @@ export function ReadingView({ path }: ReadingViewProps) {
       cancelled = true;
       unsub();
     };
-  }, [html, path]);
+  }, [html, path, t]);
 
   // After rendering, if the active leaf has a fragment, scroll to it.
   useEffect(() => {
@@ -858,7 +882,7 @@ export function ReadingView({ path }: ReadingViewProps) {
             {error ? (
               <div className="message mod-error">{error}</div>
             ) : loading && !content ? (
-              <div style={{ color: "var(--text-faint)" }}>Loading…</div>
+              <div style={{ color: "var(--text-faint)" }}>{t("reading.loading")}</div>
             ) : (
               <>
                 {frontmatterEntries.length > 0 && (
@@ -923,6 +947,7 @@ function PropertiesStrip({
   path: string;
   entries: ReadonlyArray<[string, unknown]>;
 }) {
+  const t = useI18n();
   const [collapsed, setCollapsedState] = useState<boolean>(
     () => propertiesCollapsed.get(path) ?? false,
   );
@@ -968,7 +993,7 @@ function PropertiesStrip({
         }}
         aria-expanded={!collapsed}
       >
-        <span>Properties · {entries.length}</span>
+        <span>{t("reading.properties.count", { count: String(entries.length) })}</span>
         <span aria-hidden="true">{collapsed ? "▸" : "▾"}</span>
       </button>
       {!collapsed && (

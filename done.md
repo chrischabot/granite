@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — Reading view i18n ratchet
+
+- **Reading view embeds** — routed canvas/base embed summaries, open labels,
+  circular/file-missing markdown embed messages, embedded base loading state,
+  query block labels/status/errors, and backlinks block labels/counts through
+  `t()`.
+- **Reading view chrome** — routed loading state and frontmatter properties
+  strip count through locale keys.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if Reading view's formerly hard-coded imperative-rendered labels return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n/ReadingView tests, full
+  `bun run test`, and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Markdown and Web Viewer i18n ratchet
 
 - **Markdown source view** — routed read-failure copy, attachment-save fallback

@@ -466,6 +466,28 @@ const WEB_VIEWER_FORBIDDEN_PATTERNS = [
   /placeholder="Enter a URL\.\.\."/,
 ];
 
+const READING_VIEW_FORBIDDEN_PATTERNS = [
+  /openButton\.textContent = "Open"/,
+  /`Open \$\{stem\(cleanPath\)\} canvas`/,
+  /const kindLabel = "Base"/,
+  /node\$\{n === 1 \? "" : "s"\}/,
+  /edge\$\{ec === 1 \? "" : "s"\}/,
+  /`Filter: \$\{filter\}`/,
+  /column\$\{config\.columns\.length === 1 \? "" : "s"\}/,
+  /Circular embed — already on screen\./,
+  /File not found: \$\{escapeAttr\(targetPath\)\}/,
+  /title="Open \$\{escapeAttr\(stem\(targetPath\)\)\}"/,
+  />Base</,
+  />Loading…</,
+  />No results\.</,
+  />Running…</,
+  />Backlinks</,
+  />No backlinks yet\.</,
+  /"Query failed"/,
+  /reference\$\{l\.lines\.length === 1 \? "" : "s"\}/,
+  />Properties · \{entries\.length\}</,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1128,6 +1150,36 @@ describe("UI string externalization audit", () => {
       "webViewer.urlPlaceholder",
     ]) {
       expect(webViewerSource).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Reading view imperative labels and embed copy routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/ReadingView.tsx`, "utf8");
+    const violations = READING_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+
+    for (const requiredKey of [
+      "reading.loading",
+      "reading.embed.open",
+      "reading.embed.openCanvas",
+      "reading.embed.openNote",
+      "reading.embed.base",
+      "reading.embed.canvasSummary",
+      "reading.embed.filterSummary",
+      "reading.embed.columnSummary",
+      "reading.embed.circular",
+      "reading.embed.fileNotFound",
+      "reading.query.header",
+      "reading.query.running",
+      "reading.query.noResults",
+      "reading.query.failed",
+      "reading.backlinks.title",
+      "reading.backlinks.empty",
+      "reading.backlinks.references",
+      "reading.properties.count",
+    ]) {
+      expect(source).toContain(requiredKey);
     }
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);

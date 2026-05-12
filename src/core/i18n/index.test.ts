@@ -55,5 +55,6 @@ describe("i18n", () => {
     expect(t("search.sort.relevance")).toBe("רלוונטיות");
     expect(t("tags.showNested")).toBe("הצגת תגיות מקוננות");
     expect(t("backlinks.unlinked.title")).toBe("אזכורים לא מקושרים");
+    expect(t("outline.filterPlaceholder")).toBe("סינון כותרות…");
   });
 });

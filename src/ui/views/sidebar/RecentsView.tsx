@@ -1,17 +1,15 @@
-import { useSyncExternalStore } from "react";
-import { Trash2 } from "lucide-react";
 import { stem } from "@core/fs/path";
 import { listRecents, removeRecent, subscribeRecents } from "@core/workspace/recents";
 import { workspaceStore } from "@core/workspace/store";
+import { Trash2 } from "lucide-react";
+import { useSyncExternalStore } from "react";
+import { useI18n } from "../../i18n/useI18n";
 
 export function RecentsView() {
+  const t = useI18n();
   const recents = useSyncExternalStore(subscribeRecents, listRecents, listRecents);
   if (recents.length === 0) {
-    return (
-      <div className="workspace-sidedock-empty-state">
-        No recent files yet. Open a note to start the list.
-      </div>
-    );
+    return <div className="workspace-sidedock-empty-state">{t("recents.empty")}</div>;
   }
   return (
     <div className="recents-pane">
@@ -19,43 +17,44 @@ export function RecentsView() {
         {recents.map((p) => (
           <div
             key={p}
-            className="tree-item-self is-clickable"
+            className="tree-item-self"
             style={{
               paddingInlineStart: 24,
               display: "flex",
               alignItems: "center",
               gap: "var(--size-4-2)",
             }}
-            onClick={(e) =>
-              workspaceStore.openFile(p, { newTab: e.metaKey || e.ctrlKey })
-            }
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                workspaceStore.openFile(p);
-              }
-            }}
           >
-            <span className="tree-item-inner" style={{ flex: 1, minWidth: 0 }}>
-              <span className="tree-item-inner-text">{stem(p)}</span>
-            </span>
-            <span
-              className="tree-item-flair-outer"
-              style={{ marginInlineStart: "auto" }}
-            >
-              <span
-                className="tree-item-flair"
-                style={{ color: "var(--text-faint)" }}
-                title={p}
-              >
-                {p.split("/").slice(0, -1).join("/") || "/"}
-              </span>
-            </span>
             <button
               type="button"
-              aria-label="Remove from recents"
+              onClick={(e) => workspaceStore.openFile(p, { newTab: e.metaKey || e.ctrlKey })}
+              style={{
+                alignItems: "center",
+                background: "transparent",
+                border: 0,
+                color: "inherit",
+                cursor: "var(--cursor)",
+                display: "flex",
+                flex: 1,
+                font: "inherit",
+                gap: "var(--size-4-2)",
+                minWidth: 0,
+                padding: 0,
+                textAlign: "start",
+              }}
+            >
+              <span className="tree-item-inner" style={{ flex: 1, minWidth: 0 }}>
+                <span className="tree-item-inner-text">{stem(p)}</span>
+              </span>
+              <span className="tree-item-flair-outer" style={{ marginInlineStart: "auto" }}>
+                <span className="tree-item-flair" style={{ color: "var(--text-faint)" }} title={p}>
+                  {p.split("/").slice(0, -1).join("/") || "/"}
+                </span>
+              </span>
+            </button>
+            <button
+              type="button"
+              aria-label={t("recents.remove")}
               className="clickable-icon"
               onClick={(e) => {
                 e.stopPropagation();

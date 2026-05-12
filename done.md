@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-12 — Recents, footnotes, and outline i18n ratchet
+
+- **Sidebar utility panes** — routed Recents, Footnotes, and Outline empty
+  states, labels, placeholders, footnote tooltip text, and remove action labels
+  through `t()`.
+- **Keyboard semantics** — replaced clickable `div` rows in Footnotes and
+  Outline with semantic buttons; split Recents into a file-open button plus a
+  separate remove button to avoid nested interactive controls.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` so
+  the old hard-coded Recents, Footnotes, and Outline strings fail if they
+  return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Backlinks and outgoing links i18n ratchet
 
 - **Sidebar link panes** — routed Backlinks and Outgoing Links empty states,

@@ -38,6 +38,26 @@ const BACKLINKS_VIEW_FORBIDDEN_PATTERNS = [
   />\s*L\{match\.line \+ 1\}\s*</,
 ];
 
+const RECENTS_VIEW_FORBIDDEN_PATTERNS = [
+  />\s*No recent files yet\. Open a note to start the list\.\s*</,
+  /aria-label="Remove from recents"/,
+];
+
+const FOOTNOTES_VIEW_FORBIDDEN_PATTERNS = [
+  />\s*Open a note to see its footnotes\.\s*</,
+  />\s*No footnotes in this note\.\s*</,
+  /"No definition for this footnote reference"/,
+  /reference\$\{fn\.references\.length === 1 \? "" : "s"\}/,
+  />\s*missing\s*</,
+];
+
+const OUTLINE_VIEW_FORBIDDEN_PATTERNS = [
+  />\s*Open a note to see its outline\.\s*</,
+  />\s*No headings in this note\.\s*</,
+  /placeholder="Filter headings…"/,
+  />\s*No headings match filter\.\s*</,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -101,6 +121,47 @@ describe("UI string externalization audit", () => {
       "backlinks.line",
       "backlinks.lineShort",
       "backlinks.matchTitle",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps Recents view labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/RecentsView.tsx`, "utf8");
+    const violations = RECENTS_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of ["recents.empty", "recents.remove"]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps Footnotes view labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/FootnotesView.tsx`, "utf8");
+    const violations = FOOTNOTES_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of [
+      "footnotes.empty.noActive",
+      "footnotes.empty.noFootnotes",
+      "footnotes.noDefinitionTitle",
+      "footnotes.referenceTitle",
+      "footnotes.missing",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps Outline view labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/OutlineView.tsx`, "utf8");
+    const violations = OUTLINE_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of [
+      "outline.empty.noActive",
+      "outline.empty.noHeadings",
+      "outline.filterPlaceholder",
+      "outline.empty.noFilterMatch",
     ]) {
       expect(source).toContain(requiredKey);
     }

@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
 import { useFileMetadata } from "@core/metadata/useMetadata";
 import { workspaceStore } from "@core/workspace/store";
 import { useWorkspace } from "@core/workspace/useWorkspace";
+import { useEffect, useMemo, useState } from "react";
+import { useI18n } from "../../i18n/useI18n";
 
 export function OutlineView() {
+  const t = useI18n();
   const { activeGroupId, groups, leaves } = useWorkspace();
   const activePath = (() => {
     const group = activeGroupId ? groups.get(activeGroupId) : null;
@@ -17,6 +19,7 @@ export function OutlineView() {
 
   // Reset selection + filter on path change.
   useEffect(() => {
+    void activePath;
     setActiveIndex(null);
     setFilter("");
   }, [activePath]);
@@ -31,10 +34,10 @@ export function OutlineView() {
   }, [meta, filter]);
 
   if (!activePath) {
-    return <div className="workspace-sidedock-empty-state">Open a note to see its outline.</div>;
+    return <div className="workspace-sidedock-empty-state">{t("outline.empty.noActive")}</div>;
   }
   if (!meta || meta.headings.length === 0) {
-    return <div className="workspace-sidedock-empty-state">No headings in this note.</div>;
+    return <div className="workspace-sidedock-empty-state">{t("outline.empty.noHeadings")}</div>;
   }
 
   return (
@@ -42,19 +45,20 @@ export function OutlineView() {
       <div className="nav-header" style={{ padding: "var(--size-4-1) var(--size-4-3)" }}>
         <input
           type="search"
-          placeholder="Filter headings…"
+          placeholder={t("outline.filterPlaceholder")}
           value={filter}
           onChange={(e) => setFilter(e.currentTarget.value)}
           style={{ width: "100%" }}
         />
       </div>
       {filtered.length === 0 ? (
-        <div className="workspace-sidedock-empty-state">No headings match filter.</div>
+        <div className="workspace-sidedock-empty-state">{t("outline.empty.noFilterMatch")}</div>
       ) : (
         <div className="nav-files-container">
           {filtered.map(({ heading: h, index: i }) => (
-            <div
-              key={i}
+            <button
+              type="button"
+              key={`${h.line}:${h.text}`}
               className={`tree-item-self is-clickable${activeIndex === i ? " is-active" : ""}`}
               style={{ paddingInlineStart: 24 + (h.level - 1) * 16 }}
               onClick={() => {
@@ -69,19 +73,11 @@ export function OutlineView() {
                   }),
                 );
               }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  (e.currentTarget as HTMLElement).click();
-                }
-              }}
             >
               <span className="tree-item-inner">
                 <span className="tree-item-inner-text">{h.text}</span>
               </span>
-            </div>
+            </button>
           ))}
         </div>
       )}

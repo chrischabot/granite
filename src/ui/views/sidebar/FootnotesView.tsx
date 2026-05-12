@@ -1,8 +1,10 @@
 import { useFileMetadata } from "@core/metadata/useMetadata";
-import { useWorkspace } from "@core/workspace/useWorkspace";
 import { workspaceStore } from "@core/workspace/store";
+import { useWorkspace } from "@core/workspace/useWorkspace";
+import { useI18n } from "../../i18n/useI18n";
 
 export function FootnotesView() {
+  const t = useI18n();
   const { activeGroupId, groups, leaves } = useWorkspace();
   const activePath = (() => {
     const group = activeGroupId ? groups.get(activeGroupId) : null;
@@ -13,10 +15,10 @@ export function FootnotesView() {
   const meta = useFileMetadata(activePath);
 
   if (!activePath) {
-    return <div className="workspace-sidedock-empty-state">Open a note to see its footnotes.</div>;
+    return <div className="workspace-sidedock-empty-state">{t("footnotes.empty.noActive")}</div>;
   }
   if (!meta || meta.footnotes.length === 0) {
-    return <div className="workspace-sidedock-empty-state">No footnotes in this note.</div>;
+    return <div className="workspace-sidedock-empty-state">{t("footnotes.empty.noFootnotes")}</div>;
   }
 
   return (
@@ -25,8 +27,12 @@ export function FootnotesView() {
         {meta.footnotes.map((fn) => {
           const targetLine = fn.definitionLine ?? fn.references[0] ?? null;
           const orphan = fn.definitionLine === null;
+          const referenceLabel = t(
+            fn.references.length === 1 ? "footnotes.reference" : "footnotes.references",
+          );
           return (
-            <div
+            <button
+              type="button"
               key={fn.id}
               className="tree-item-self is-clickable"
               style={{ paddingInlineStart: 24, paddingTop: 6, paddingBottom: 6 }}
@@ -40,20 +46,10 @@ export function FootnotesView() {
                   }),
                 );
               }}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  (e.currentTarget as HTMLElement).click();
-                }
-              }}
             >
               <span className="tree-item-inner">
                 <span className="tree-item-inner-text">
-                  <span style={{ color: "var(--text-accent)", fontWeight: 600 }}>
-                    [^{fn.id}]
-                  </span>
+                  <span style={{ color: "var(--text-accent)", fontWeight: 600 }}>[^{fn.id}]</span>
                   {fn.definitionBody && (
                     <span style={{ color: "var(--text-muted)", marginInlineStart: 6 }}>
                       {fn.definitionBody.slice(0, 80)}
@@ -67,17 +63,20 @@ export function FootnotesView() {
                   className="tree-item-flair"
                   title={
                     orphan
-                      ? "No definition for this footnote reference"
-                      : `${fn.references.length} reference${fn.references.length === 1 ? "" : "s"}`
+                      ? t("footnotes.noDefinitionTitle")
+                      : t("footnotes.referenceTitle", {
+                          count: fn.references.length,
+                          referenceLabel,
+                        })
                   }
                   style={{
                     color: orphan ? "var(--text-error)" : undefined,
                   }}
                 >
-                  {orphan ? "missing" : fn.references.length}
+                  {orphan ? t("footnotes.missing") : fn.references.length}
                 </span>
               </span>
-            </div>
+            </button>
           );
         })}
       </div>

@@ -488,6 +488,32 @@ const READING_VIEW_FORBIDDEN_PATTERNS = [
   />Properties · \{entries\.length\}</,
 ];
 
+const CANVAS_VIEW_FORBIDDEN_PATTERNS = [
+  /"Could not save canvas"/,
+  /prompt\("Text for the new node:", ""\)/,
+  />\s*Open or create a `\.canvas` file to use this view\.\s*</,
+  />\s*Loading canvas…\s*</,
+  /aria-label="Add text node"/,
+  /title="Add text node"/,
+  /aria-label=\{snapToGrid \? "Disable snap to grid" : "Enable snap to grid"\}/,
+  /data-tooltip=\{snapToGrid \? "Disable snap to grid" : "Enable snap to grid"\}/,
+  /aria-label="Zoom in"/,
+  /aria-label="Zoom out"/,
+  /aria-label="Fit to content"/,
+  /title="Fit to content"/,
+  /aria-label="Node color"/,
+  /\? "No color" : `Color \$\{c\}`/,
+  /\? "Clear color" : `Set color \$\{c\}`/,
+  /aria-label="Delete selected"/,
+  /title="Delete selected"/,
+  /node\s*\{canvas\.nodes\.length === 1 \? "" : "s"\}/,
+  /`Drag to connect \(\$\{s\.side\}\)`/,
+  /title="Drag to resize"/,
+  /"\(no file\)"/,
+  />\s*Double-click to open the file in a new tab\.\s*</,
+  />\s*Link\s*</,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1178,6 +1204,38 @@ describe("UI string externalization audit", () => {
       "reading.backlinks.empty",
       "reading.backlinks.references",
       "reading.properties.count",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Canvas view toolbar, status, and node labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/CanvasView.tsx`, "utf8");
+    const violations = CANVAS_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+
+    for (const requiredKey of [
+      "canvas.error.save",
+      "canvas.prompt.newTextNode",
+      "canvas.empty.noPath",
+      "canvas.loading",
+      "canvas.action.addText",
+      "canvas.action.enableSnap",
+      "canvas.action.disableSnap",
+      "canvas.action.zoomIn",
+      "canvas.action.zoomOut",
+      "canvas.action.fit",
+      "canvas.action.deleteSelected",
+      "canvas.color.nodeColor",
+      "canvas.color.clear",
+      "canvas.color.set",
+      "canvas.stats",
+      "canvas.anchor.dragToConnect",
+      "canvas.node.resize",
+      "canvas.file.noFile",
+      "canvas.file.openHint",
+      "canvas.link.label",
     ]) {
       expect(source).toContain(requiredKey);
     }

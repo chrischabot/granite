@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-12 — Canvas view i18n ratchet
+
+- **Canvas toolbar** — routed add-text, snap-to-grid, zoom, fit, color, delete,
+  and stats labels through `t()`.
+- **Canvas nodes** — routed save fallback error, new-text prompt, no-path/loading
+  states, anchor/resize tooltips, file-node fallback/open hint, and link-node
+  label through locale keys.
+- **Accessibility cleanup** — documented the existing Canvas Markdown render
+  safety at the local `dangerouslySetInnerHTML` callsite.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if Canvas view's formerly hard-coded labels return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n/canvas tests, full `bun run test`,
+  and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Reading view i18n ratchet
 
 - **Reading view embeds** — routed canvas/base embed summaries, open labels,

@@ -83,5 +83,9 @@ describe("i18n", () => {
     expect(t("reading.embed.open")).toBe("פתיחה");
     expect(t("reading.query.noResults")).toBe("אין תוצאות.");
     expect(t("reading.properties.count", { count: "3" })).toBe("מאפיינים · 3");
+    expect(t("canvas.action.addText")).toBe("הוספת צומת טקסט");
+    expect(t("canvas.stats", { zoom: "125", count: "2", nodeLabel: t("canvas.nodes") })).toBe(
+      "125% · 2 צמתים",
+    );
   });
 });

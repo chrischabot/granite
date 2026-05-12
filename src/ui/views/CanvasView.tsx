@@ -28,6 +28,7 @@ import { noticeManager } from "@core/notices/notice";
 import { workspaceStore } from "@core/workspace/store";
 import { FileText, LinkIcon, Magnet, Maximize2, Trash2, Type, ZoomIn, ZoomOut } from "lucide-react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useI18n } from "../i18n/useI18n";
 
 export interface CanvasViewProps {
   path: string | undefined;
@@ -93,6 +94,7 @@ function sideAnchor(box: NodeBox, side: EdgeSide | undefined): { x: number; y: n
 }
 
 export function CanvasView({ path }: CanvasViewProps) {
+  const t = useI18n();
   const [canvas, setCanvas] = useState<Canvas>(EMPTY_CANVAS);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
@@ -148,13 +150,13 @@ export function CanvasView({ path }: CanvasViewProps) {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => {
       void writeCanvasFile(path, canvasRef.current).catch((err) => {
-        noticeManager.show(err instanceof Error ? err.message : "Could not save canvas", {
+        noticeManager.show(err instanceof Error ? err.message : t("canvas.error.save"), {
           kind: "error",
         });
       });
       dirtyRef.current = false;
     }, SAVE_DEBOUNCE_MS);
-  }, [path]);
+  }, [path, t]);
 
   const canvasRef = useRef<Canvas>(canvas);
   useEffect(() => {
@@ -227,7 +229,7 @@ export function CanvasView({ path }: CanvasViewProps) {
     const rect = el.getBoundingClientRect();
     const cx = (rect.width / 2 - view.x) / view.scale;
     const cy = (rect.height / 2 - view.y) / view.scale;
-    const text = prompt("Text for the new node:", "");
+    const text = prompt(t("canvas.prompt.newTextNode"), "");
     if (text === null) return;
     const node: TextNode = {
       id: newCanvasId(),
@@ -240,7 +242,7 @@ export function CanvasView({ path }: CanvasViewProps) {
     };
     mutate({ ...canvasRef.current, nodes: [...canvasRef.current.nodes, node] });
     setSelectedIds([node.id]);
-  }, [view, mutate, snapToGrid]);
+  }, [view, mutate, snapToGrid, t]);
 
   const commitTextEdit = useCallback(
     (id: string, next: string) => {
@@ -564,7 +566,7 @@ export function CanvasView({ path }: CanvasViewProps) {
           textAlign: "center",
         }}
       >
-        Open or create a `.canvas` file to use this view.
+        {t("canvas.empty.noPath")}
       </div>
     );
   }
@@ -632,7 +634,7 @@ export function CanvasView({ path }: CanvasViewProps) {
             color: "var(--text-faint)",
           }}
         >
-          Loading canvas…
+          {t("canvas.loading")}
         </div>
       ) : (
         <>
@@ -764,26 +766,26 @@ export function CanvasView({ path }: CanvasViewProps) {
         <button
           type="button"
           className="clickable-icon"
-          aria-label="Add text node"
+          aria-label={t("canvas.action.addText")}
           onClick={addTextNode}
-          title="Add text node"
+          title={t("canvas.action.addText")}
         >
           <Type size={14} />
         </button>
         <button
           type="button"
           className={`clickable-icon${snapToGrid ? " is-active" : ""}`}
-          aria-label={snapToGrid ? "Disable snap to grid" : "Enable snap to grid"}
+          aria-label={t(snapToGrid ? "canvas.action.disableSnap" : "canvas.action.enableSnap")}
           aria-pressed={snapToGrid}
           onClick={() => setSnapToGrid((v) => !v)}
-          data-tooltip={snapToGrid ? "Disable snap to grid" : "Enable snap to grid"}
+          data-tooltip={t(snapToGrid ? "canvas.action.disableSnap" : "canvas.action.enableSnap")}
         >
           <Magnet size={14} />
         </button>
         <button
           type="button"
           className="clickable-icon"
-          aria-label="Zoom in"
+          aria-label={t("canvas.action.zoomIn")}
           onClick={() => setView((v) => ({ ...v, scale: Math.min(3, v.scale * 1.2) }))}
         >
           <ZoomIn size={14} />
@@ -791,7 +793,7 @@ export function CanvasView({ path }: CanvasViewProps) {
         <button
           type="button"
           className="clickable-icon"
-          aria-label="Zoom out"
+          aria-label={t("canvas.action.zoomOut")}
           onClick={() => setView((v) => ({ ...v, scale: Math.max(0.2, v.scale * 0.83) }))}
         >
           <ZoomOut size={14} />
@@ -799,9 +801,9 @@ export function CanvasView({ path }: CanvasViewProps) {
         <button
           type="button"
           className="clickable-icon"
-          aria-label="Fit to content"
+          aria-label={t("canvas.action.fit")}
           onClick={() => fitToContent(canvas)}
-          title="Fit to content"
+          title={t("canvas.action.fit")}
         >
           <Maximize2 size={14} />
         </button>
@@ -818,14 +820,18 @@ export function CanvasView({ path }: CanvasViewProps) {
                 borderBottom: 0,
                 marginInlineStart: 4,
               }}
-              aria-label="Node color"
+              aria-label={t("canvas.color.nodeColor")}
             >
               {NODE_COLOR_SWATCHES.map((c) => (
                 <button
                   key={c ?? "none"}
                   type="button"
-                  title={c === null ? "No color" : `Color ${c}`}
-                  aria-label={c === null ? "Clear color" : `Set color ${c}`}
+                  title={
+                    c === null ? t("canvas.color.none") : t("canvas.color.color", { color: c })
+                  }
+                  aria-label={
+                    c === null ? t("canvas.color.clear") : t("canvas.color.set", { color: c })
+                  }
                   onClick={() => {
                     setNodeColor(selectedNode.id, c);
                   }}
@@ -850,9 +856,9 @@ export function CanvasView({ path }: CanvasViewProps) {
             <button
               type="button"
               className="clickable-icon"
-              aria-label="Delete selected"
+              aria-label={t("canvas.action.deleteSelected")}
               onClick={deleteSelected}
-              title="Delete selected"
+              title={t("canvas.action.deleteSelected")}
               style={{ color: "var(--text-error)" }}
             >
               <Trash2 size={14} />
@@ -863,9 +869,9 @@ export function CanvasView({ path }: CanvasViewProps) {
           <button
             type="button"
             className="clickable-icon"
-            aria-label="Delete selected"
+            aria-label={t("canvas.action.deleteSelected")}
             onClick={deleteSelected}
-            title="Delete selected"
+            title={t("canvas.action.deleteSelected")}
             style={{ color: "var(--text-error)" }}
           >
             <Trash2 size={14} />
@@ -878,8 +884,11 @@ export function CanvasView({ path }: CanvasViewProps) {
             marginLeft: 6,
           }}
         >
-          {Math.round(view.scale * 100)}% · {canvas.nodes.length} node
-          {canvas.nodes.length === 1 ? "" : "s"}
+          {t("canvas.stats", {
+            zoom: String(Math.round(view.scale * 100)),
+            count: String(canvas.nodes.length),
+            nodeLabel: t(canvas.nodes.length === 1 ? "canvas.node" : "canvas.nodes"),
+          })}
         </span>
       </div>
     </div>
@@ -968,6 +977,7 @@ function CanvasNodeView({
                 overflow: "auto",
                 fontSize: "var(--font-text-size)",
               }}
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: Canvas text nodes use Granite's Markdown renderer with HTML disabled.
               dangerouslySetInnerHTML={{
                 __html: renderMarkdown(node.text ?? ""),
               }}
@@ -1017,6 +1027,7 @@ function NodeAnchors({
   node: CanvasNode;
   onMouseDown: (side: EdgeSide, e: React.MouseEvent) => void;
 }) {
+  const t = useI18n();
   const r = 6;
   const sides: Array<{ side: EdgeSide; cx: number; cy: number }> = [
     { side: "top", cx: node.x + node.width / 2, cy: node.y },
@@ -1046,7 +1057,7 @@ function NodeAnchors({
             zIndex: 2,
             pointerEvents: "auto",
           }}
-          title={`Drag to connect (${s.side})`}
+          title={t("canvas.anchor.dragToConnect", { side: t(canvasSideKey(s.side)) })}
         />
       ))}
     </>
@@ -1060,6 +1071,7 @@ function NodeResizeHandle({
   node: CanvasNode;
   onMouseDown: (e: React.MouseEvent) => void;
 }) {
+  const t = useI18n();
   const size = 12;
   return (
     <div
@@ -1078,9 +1090,22 @@ function NodeResizeHandle({
         pointerEvents: "auto",
         zIndex: 2,
       }}
-      title="Drag to resize"
+      title={t("canvas.node.resize")}
     />
   );
+}
+
+function canvasSideKey(side: EdgeSide): string {
+  switch (side) {
+    case "top":
+      return "canvas.side.top";
+    case "right":
+      return "canvas.side.right";
+    case "bottom":
+      return "canvas.side.bottom";
+    case "left":
+      return "canvas.side.left";
+  }
 }
 
 function CanvasGroupNode({
@@ -1134,7 +1159,8 @@ function CanvasFileNode({
   onMouseDown: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
 }) {
-  const display = node.file ? stem(node.file) : "(no file)";
+  const t = useI18n();
+  const display = node.file ? stem(node.file) : t("canvas.file.noFile");
   return (
     <div
       data-canvas-node={node.id}
@@ -1167,7 +1193,7 @@ function CanvasFileNode({
           color: "var(--text-muted)",
         }}
       >
-        Double-click to open the file in a new tab.
+        {t("canvas.file.openHint")}
       </div>
     </div>
   );
@@ -1184,6 +1210,7 @@ function CanvasLinkNode({
   onMouseDown: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
 }) {
+  const t = useI18n();
   return (
     <div
       data-canvas-node={node.id}
@@ -1203,7 +1230,7 @@ function CanvasLinkNode({
           gap: 6,
         }}
       >
-        <LinkIcon size={12} /> Link
+        <LinkIcon size={12} /> {t("canvas.link.label")}
       </div>
       <div
         style={{

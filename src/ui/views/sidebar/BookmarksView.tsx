@@ -1,24 +1,25 @@
+import { ClickableIcon } from "@/ui/controls/ClickableIcon";
+import { useI18n } from "@/ui/i18n/useI18n";
+import { useVault } from "@/ui/vault/VaultContext";
+import { stem } from "@core/fs/path";
+import { useFileMetadata } from "@core/metadata/useMetadata";
+import { noticeManager } from "@core/notices/notice";
+import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
+import { workspaceStore } from "@core/workspace/store";
+import { useWorkspace } from "@core/workspace/useWorkspace";
 import {
   BookmarkPlus,
   ChevronDown,
   ChevronRight,
   FolderPlus,
   Heading,
+  type LucideIcon,
   Search as SearchIcon,
   SquareStack,
   Trash2,
-  type LucideIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ClickableIcon } from "@/ui/controls/ClickableIcon";
-import { workspaceStore } from "@core/workspace/store";
-import { useWorkspace } from "@core/workspace/useWorkspace";
-import { stem } from "@core/fs/path";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { setSearchQuery } from "./SearchView";
-import { useFileMetadata } from "@core/metadata/useMetadata";
-import { noticeManager } from "@core/notices/notice";
-import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
-import { useVault } from "@/ui/vault/VaultContext";
 
 type BookmarkKind = "file" | "heading" | "block" | "search";
 
@@ -56,6 +57,15 @@ const LEGACY_KEY_V1 = "granite.bookmarks.v1";
 const GROUPS_KEY = "granite.bookmark-groups.v1";
 const DISK_CONFIG_NAME = "bookmarks";
 const DEFAULT_GROUP = "Bookmarks";
+const MENU_BUTTON_STYLE = {
+  width: "100%",
+  border: 0,
+  background: "transparent",
+  color: "inherit",
+  font: "inherit",
+  textAlign: "inherit",
+  boxShadow: "none",
+} satisfies CSSProperties;
 
 function load(): Bookmark[] {
   try {
@@ -132,6 +142,11 @@ export function BookmarksView() {
   const [activeGroup, setActiveGroup] = useState<string>(DEFAULT_GROUP);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const t = useI18n();
+  const displayGroupName = useCallback(
+    (name: string) => (name === DEFAULT_GROUP ? t("bookmarks.defaultGroup") : name),
+    [t],
+  );
 
   const activePath = (() => {
     const group = activeGroupId ? groups.get(activeGroupId) : null;
@@ -204,7 +219,15 @@ export function BookmarksView() {
   const addFile = useCallback(() => {
     if (!activePath) return;
     setBookmarks((prev) => {
-      if (prev.some((b) => b.kind === "file" && b.path === activePath && (b.group ?? DEFAULT_GROUP) === activeGroup)) return prev;
+      if (
+        prev.some(
+          (b) =>
+            b.kind === "file" &&
+            b.path === activePath &&
+            (b.group ?? DEFAULT_GROUP) === activeGroup,
+        )
+      )
+        return prev;
       return [
         ...prev,
         {
@@ -220,12 +243,12 @@ export function BookmarksView() {
 
   const addHeading = useCallback(() => {
     if (!activePath || !meta || meta.headings.length === 0) {
-      noticeManager.show("This note has no headings to bookmark.", { kind: "warning" });
+      noticeManager.show(t("bookmarks.notice.noHeadings"), { kind: "warning" });
       return;
     }
     const labels = meta.headings.map((h, i) => `${i + 1}. ${h.text}`).join("\n");
-    const pick = prompt(`Pick a heading:\n${labels}\n\nEnter number:`);
-    const n = pick ? parseInt(pick, 10) - 1 : -1;
+    const pick = prompt(t("bookmarks.prompt.pickHeading", { labels }));
+    const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
     const h = meta.headings[n];
     if (!h) return;
     setBookmarks((prev) => [
@@ -239,20 +262,20 @@ export function BookmarksView() {
         group: activeGroup,
       },
     ]);
-  }, [activePath, meta, activeGroup]);
+  }, [activePath, meta, activeGroup, t]);
 
   const addBlock = useCallback(() => {
     if (!activePath || !meta || meta.blocks.length === 0) {
-      noticeManager.show("No block IDs in this note. Use the 'Insert block id' command first.", {
+      noticeManager.show(t("bookmarks.notice.noBlocks"), {
         kind: "warning",
       });
       return;
     }
     const labels = meta.blocks
-      .map((b, i) => `${i + 1}. ^${b.id} (line ${b.line + 1})`)
+      .map((b, i) => `${i + 1}. ^${b.id} (${t("bookmarks.line", { line: b.line + 1 })})`)
       .join("\n");
-    const pick = prompt(`Pick a block id:\n${labels}\n\nEnter number:`);
-    const n = pick ? parseInt(pick, 10) - 1 : -1;
+    const pick = prompt(t("bookmarks.prompt.pickBlock", { labels }));
+    const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
     const blk = meta.blocks[n];
     if (!blk) return;
     setBookmarks((prev) => [
@@ -266,10 +289,10 @@ export function BookmarksView() {
         group: activeGroup,
       },
     ]);
-  }, [activePath, meta, activeGroup]);
+  }, [activePath, meta, activeGroup, t]);
 
   const addSearch = useCallback(() => {
-    const query = prompt("Search query to bookmark:", "");
+    const query = prompt(t("bookmarks.prompt.searchQuery"), "");
     if (!query) return;
     setBookmarks((prev) => [
       ...prev,
@@ -281,16 +304,16 @@ export function BookmarksView() {
         group: activeGroup,
       },
     ]);
-  }, [activeGroup]);
+  }, [activeGroup, t]);
 
   const addGroup = useCallback(() => {
-    const name = prompt("New bookmark group name:", "");
+    const name = prompt(t("bookmarks.prompt.groupName"), "");
     if (!name) return;
     const trimmed = name.trim();
     if (!trimmed) return;
     setExtraGroups((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]));
     setActiveGroup(trimmed);
-  }, []);
+  }, [t]);
 
   const removeBookmarkAt = useCallback((bookmark: Bookmark) => {
     setBookmarks((prev) => prev.filter((b) => b !== bookmark));
@@ -341,7 +364,7 @@ export function BookmarksView() {
       >
         <div ref={menuRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
           <ClickableIcon
-            ariaLabel="Add bookmark…"
+            ariaLabel={t("bookmarks.add")}
             icon={
               <span style={{ display: "inline-flex", alignItems: "center" }}>
                 <BookmarkPlus />
@@ -364,10 +387,11 @@ export function BookmarksView() {
               }}
             >
               <div className="menu-scroll">
-                <div
+                <button
+                  type="button"
                   className="menu-item"
                   role="menuitem"
-                  tabIndex={0}
+                  style={MENU_BUTTON_STYLE}
                   onClick={() => {
                     addFile();
                     setMenuOpen(false);
@@ -376,12 +400,13 @@ export function BookmarksView() {
                   <span className="menu-item-icon">
                     <BookmarkPlus size={14} />
                   </span>
-                  <span className="menu-item-title">Bookmark current note</span>
-                </div>
-                <div
+                  <span className="menu-item-title">{t("bookmarks.menu.currentNote")}</span>
+                </button>
+                <button
+                  type="button"
                   className="menu-item"
                   role="menuitem"
-                  tabIndex={0}
+                  style={MENU_BUTTON_STYLE}
                   onClick={() => {
                     addHeading();
                     setMenuOpen(false);
@@ -390,12 +415,13 @@ export function BookmarksView() {
                   <span className="menu-item-icon">
                     <Heading size={14} />
                   </span>
-                  <span className="menu-item-title">Bookmark current heading…</span>
-                </div>
-                <div
+                  <span className="menu-item-title">{t("bookmarks.menu.currentHeading")}</span>
+                </button>
+                <button
+                  type="button"
                   className="menu-item"
                   role="menuitem"
-                  tabIndex={0}
+                  style={MENU_BUTTON_STYLE}
                   onClick={() => {
                     addBlock();
                     setMenuOpen(false);
@@ -404,12 +430,13 @@ export function BookmarksView() {
                   <span className="menu-item-icon">
                     <SquareStack size={14} />
                   </span>
-                  <span className="menu-item-title">Bookmark a block id…</span>
-                </div>
-                <div
+                  <span className="menu-item-title">{t("bookmarks.menu.block")}</span>
+                </button>
+                <button
+                  type="button"
                   className="menu-item"
                   role="menuitem"
-                  tabIndex={0}
+                  style={MENU_BUTTON_STYLE}
                   onClick={() => {
                     addSearch();
                     setMenuOpen(false);
@@ -418,13 +445,14 @@ export function BookmarksView() {
                   <span className="menu-item-icon">
                     <SearchIcon size={14} />
                   </span>
-                  <span className="menu-item-title">Bookmark a search query…</span>
-                </div>
+                  <span className="menu-item-title">{t("bookmarks.menu.search")}</span>
+                </button>
                 <div className="menu-separator" />
-                <div
+                <button
+                  type="button"
                   className="menu-item"
                   role="menuitem"
-                  tabIndex={0}
+                  style={MENU_BUTTON_STYLE}
                   onClick={() => {
                     addGroup();
                     setMenuOpen(false);
@@ -433,8 +461,8 @@ export function BookmarksView() {
                   <span className="menu-item-icon">
                     <FolderPlus size={14} />
                   </span>
-                  <span className="menu-item-title">New group…</span>
-                </div>
+                  <span className="menu-item-title">{t("bookmarks.menu.newGroup")}</span>
+                </button>
               </div>
             </div>
           )}
@@ -443,40 +471,39 @@ export function BookmarksView() {
           value={activeGroup}
           onChange={(e) => setActiveGroup(e.currentTarget.value)}
           className="dropdown"
-          title="New bookmarks land in this group"
+          title={t("bookmarks.activeGroupTitle")}
           style={{ flex: "1 1 auto", minWidth: 0 }}
         >
           {allGroupNames.map((g) => (
             <option key={g} value={g}>
-              {g}
+              {displayGroupName(g)}
             </option>
           ))}
         </select>
       </div>
       {bookmarks.length === 0 && extraGroups.length === 0 ? (
-        <div className="workspace-sidedock-empty-state">No bookmarks yet.</div>
+        <div className="workspace-sidedock-empty-state">{t("bookmarks.empty")}</div>
       ) : (
         <div className="nav-files-container">
           {groupedBookmarks.map(([groupName, items]) => {
             const collapsed = collapsedGroups.has(groupName);
             return (
               <div key={groupName} className="bookmark-group" style={{ marginBottom: 4 }}>
-                <div
+                <button
+                  type="button"
                   className="tree-item-self mod-collapsible"
                   style={{
                     paddingInlineStart: 8,
                     fontWeight: "var(--font-semibold)",
                     color: "var(--text-muted)",
+                    width: "100%",
+                    border: 0,
+                    background: "transparent",
+                    font: "inherit",
+                    textAlign: "inherit",
+                    boxShadow: "none",
                   }}
                   onClick={() => toggleGroupCollapsed(groupName)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      toggleGroupCollapsed(groupName);
-                    }
-                  }}
                 >
                   <span
                     className={`collapse-icon ${collapsed ? "is-collapsed" : ""}`}
@@ -485,15 +512,12 @@ export function BookmarksView() {
                     {collapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
                   </span>
                   <span className="tree-item-inner">
-                    <span className="tree-item-inner-text">{groupName}</span>
+                    <span className="tree-item-inner-text">{displayGroupName(groupName)}</span>
                   </span>
-                  <span
-                    className="tree-item-flair-outer"
-                    style={{ marginInlineStart: "auto" }}
-                  >
+                  <span className="tree-item-flair-outer" style={{ marginInlineStart: "auto" }}>
                     <span className="tree-item-flair">{items.length}</span>
                   </span>
-                </div>
+                </button>
                 {!collapsed &&
                   items.map((b) => {
                     const Icon = ICON_FOR_KIND[b.kind];
@@ -510,6 +534,7 @@ export function BookmarksView() {
                           gap: "var(--size-4-2)",
                         }}
                         onClick={(e) => activate(b, e.metaKey || e.ctrlKey)}
+                        // biome-ignore lint/a11y/useSemanticElements: this composite row has its own nested remove button; using a button wrapper would create invalid nested interactive controls.
                         role="button"
                         tabIndex={0}
                         onKeyDown={(e) => {
@@ -527,7 +552,7 @@ export function BookmarksView() {
                         </span>
                         <button
                           type="button"
-                          aria-label="Remove bookmark"
+                          aria-label={t("bookmarks.remove")}
                           className="clickable-icon"
                           onClick={(e) => {
                             e.stopPropagation();

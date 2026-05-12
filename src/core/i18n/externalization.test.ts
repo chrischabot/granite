@@ -204,6 +204,63 @@ const TEMPLATE_PICKER_FORBIDDEN_PATTERNS = [
   /description: "to dismiss"/,
 ];
 
+const MODAL_FORBIDDEN_PATTERNS = [
+  /\|\| "Dialog"/,
+  /`Opened dialog: \$\{label\}`/,
+  /aria-label="Close"/,
+];
+
+const VAULT_PICKER_FORBIDDEN_PATTERNS = [
+  /prompt\("Name for the in-browser vault\?", "My vault"\)/,
+  /title="Manage vaults"/,
+  /Granite stores notes as plain Markdown files/,
+  />\s*Recent vaults\s*</,
+  /\? "On disk" : "In-browser"/,
+  />\s*Active\s*</,
+  />\s*Open\s*</,
+  /`Open \$\{v\.name\} in new window`/,
+  /`Remove \$\{v\.name\}`/,
+  />\s*New vault\s*</,
+  /"Pick a folder on your computer"/,
+  /"Folder picking requires a Chromium browser"/,
+  />\s*Pick a folder\.\.\.\s*</,
+  /title="Create an in-browser vault using Origin Private Filesystem"/,
+  />\s*In-browser vault\s*</,
+];
+
+const HELP_MODAL_FORBIDDEN_PATTERNS = [
+  /title: "Workspace"/,
+  /what: "Open the command palette"/,
+  /title: "Editor"/,
+  /what: "Open the wikilink autocomplete"/,
+  /title: "Tabs & windows"/,
+  /what: "Tab actions \(split, pop out, pin, …\)"/,
+  /title: "Markdown extras"/,
+  /what: "Embedded live search results"/,
+  /title: "File explorer"/,
+  /what: "Rename the selected file"/,
+  /title="Granite cheat-sheet"/,
+  /More commands live in the command palette/,
+];
+
+const BOOKMARKS_VIEW_FORBIDDEN_PATTERNS = [
+  /noticeManager\.show\("This note has no headings to bookmark\."/,
+  /"No block IDs in this note\. Use the 'Insert block id' command first\."/,
+  /`Pick a heading:\\n/,
+  /`Pick a block id:\\n/,
+  /prompt\("Search query to bookmark:", ""\)/,
+  /prompt\("New bookmark group name:", ""\)/,
+  /ariaLabel="Add bookmark…"/,
+  />\s*Bookmark current note\s*</,
+  />\s*Bookmark current heading…\s*</,
+  />\s*Bookmark a block id…\s*</,
+  />\s*Bookmark a search query…\s*</,
+  />\s*New group…\s*</,
+  /title="New bookmarks land in this group"/,
+  />\s*No bookmarks yet\.\s*</,
+  /aria-label="Remove bookmark"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -582,6 +639,64 @@ describe("UI string externalization audit", () => {
     }
     for (const requiredKey of ["templatePicker.placeholder", "templatePicker.instruction.insert"]) {
       expect(templatePickerSource).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps modal, vault picker, help, and bookmark labels routed through i18n keys", () => {
+    const modalSource = readFileSync(`${process.cwd()}/src/ui/overlay/Modal.tsx`, "utf8");
+    const vaultPickerSource = readFileSync(
+      `${process.cwd()}/src/ui/prompts/VaultPicker.tsx`,
+      "utf8",
+    );
+    const helpSource = readFileSync(`${process.cwd()}/src/ui/prompts/HelpModal.tsx`, "utf8");
+    const bookmarksSource = readFileSync(
+      `${process.cwd()}/src/ui/views/sidebar/BookmarksView.tsx`,
+      "utf8",
+    );
+    const violations = [
+      ...MODAL_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(modalSource)),
+      ...VAULT_PICKER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(vaultPickerSource)),
+      ...HELP_MODAL_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(helpSource)),
+      ...BOOKMARKS_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(bookmarksSource)),
+    ];
+
+    for (const requiredKey of ["modal.dialog", "modal.opened", "modal.close"]) {
+      expect(modalSource).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "vaultPicker.title",
+      "vaultPicker.description",
+      "vaultPicker.prompt.opfsName",
+      "vaultPicker.recent",
+      "vaultPicker.openNewWindow",
+      "vaultPicker.pickFolder",
+      "vaultPicker.opfs",
+    ]) {
+      expect(vaultPickerSource).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "help.title",
+      "help.section.workspace",
+      "help.workspace.commandPalette",
+      "help.section.markdown",
+      "help.fileExplorer.rename",
+      "help.footer",
+    ]) {
+      expect(helpSource).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "bookmarks.defaultGroup",
+      "bookmarks.add",
+      "bookmarks.notice.noHeadings",
+      "bookmarks.prompt.pickHeading",
+      "bookmarks.menu.currentNote",
+      "bookmarks.activeGroupTitle",
+      "bookmarks.empty",
+      "bookmarks.remove",
+    ]) {
+      expect(bookmarksSource).toContain(requiredKey);
     }
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);

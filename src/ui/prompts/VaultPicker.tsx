@@ -1,5 +1,6 @@
 import { ExternalLink, FolderOpen, FolderPlus, Globe, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useI18n } from "../i18n/useI18n";
 import { Modal } from "../overlay/Modal";
 import { useVault } from "../vault/VaultContext";
 
@@ -22,6 +23,7 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
   } = useVault();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const t = useI18n();
 
   const wrap = async (fn: () => Promise<void>) => {
     setBusy(true);
@@ -37,17 +39,14 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
   };
 
   const onCreateOpfs = () => {
-    const name = prompt("Name for the in-browser vault?", "My vault");
+    const name = prompt(t("vaultPicker.prompt.opfsName"), t("vaultPicker.prompt.opfsDefault"));
     if (!name) return;
     void wrap(() => openOpfs(name));
   };
 
   return (
-    <Modal open={open} onClose={onClose} title="Manage vaults" modifier="mod-narrow">
-      <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-        Granite stores notes as plain Markdown files. Choose a folder on your computer (preferred)
-        or create an in-browser vault when your browser doesn't support folder access.
-      </p>
+    <Modal open={open} onClose={onClose} title={t("vaultPicker.title")} modifier="mod-narrow">
+      <p style={{ color: "var(--text-muted)", marginTop: 0 }}>{t("vaultPicker.description")}</p>
 
       {error && (
         <div className="message mod-error" style={{ marginBottom: "var(--size-4-3)" }}>
@@ -65,7 +64,7 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
                 fontWeight: "var(--font-semibold)",
               }}
             >
-              Recent vaults
+              {t("vaultPicker.recent")}
             </h3>
             <ul style={{ listStyle: "none", padding: 0, margin: "var(--size-4-2) 0 0" }}>
               {vaults.map((v) => {
@@ -93,25 +92,27 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
                           marginLeft: "var(--size-4-2)",
                         }}
                       >
-                        {v.kind === "fsa" ? "On disk" : "In-browser"}
+                        {v.kind === "fsa" ? t("vaultPicker.kind.disk") : t("vaultPicker.kind.opfs")}
                       </span>
                     </span>
                     {isActive ? (
-                      <span style={{ color: "var(--text-success)" }}>Active</span>
+                      <span style={{ color: "var(--text-success)" }}>
+                        {t("vaultPicker.active")}
+                      </span>
                     ) : (
                       <button
                         type="button"
                         onClick={() => wrap(() => reopen(v.id))}
                         disabled={busy}
                       >
-                        Open
+                        {t("vaultPicker.open")}
                       </button>
                     )}
                     <button
                       type="button"
                       className="clickable-icon"
-                      aria-label={`Open ${v.name} in new window`}
-                      title={`Open ${v.name} in new window`}
+                      aria-label={t("vaultPicker.openNewWindow", { name: v.name })}
+                      title={t("vaultPicker.openNewWindow", { name: v.name })}
                       onClick={() => openInNewWindow(v.id)}
                       disabled={busy}
                     >
@@ -120,7 +121,7 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
                     <button
                       type="button"
                       className="clickable-icon"
-                      aria-label={`Remove ${v.name}`}
+                      aria-label={t("vaultPicker.remove", { name: v.name })}
                       onClick={() => void removeVault(v.id)}
                       disabled={busy}
                     >
@@ -141,7 +142,7 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
               fontWeight: "var(--font-semibold)",
             }}
           >
-            New vault
+            {t("vaultPicker.new")}
           </h3>
           <div style={{ display: "flex", gap: "var(--size-4-2)", marginTop: "var(--size-4-2)" }}>
             <button
@@ -151,21 +152,21 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
               disabled={!canPickFolder || busy}
               title={
                 canPickFolder
-                  ? "Pick a folder on your computer"
-                  : "Folder picking requires a Chromium browser"
+                  ? t("vaultPicker.pickFolderTitle")
+                  : t("vaultPicker.pickFolderUnavailable")
               }
             >
               <FolderPlus size={14} style={{ marginRight: "var(--size-2-2)" }} />
-              Pick a folder...
+              {t("vaultPicker.pickFolder")}
             </button>
             <button
               type="button"
               onClick={onCreateOpfs}
               disabled={!canUseOpfs || busy}
-              title="Create an in-browser vault using Origin Private Filesystem"
+              title={t("vaultPicker.opfsTitle")}
             >
               <Globe size={14} style={{ marginRight: "var(--size-2-2)" }} />
-              In-browser vault
+              {t("vaultPicker.opfs")}
             </button>
           </div>
         </div>

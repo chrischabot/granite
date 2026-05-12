@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-12 — Utility modal and bookmarks i18n ratchet
+
+- **Modal overlay** — routed the close button label, fallback dialog label, and
+  modal-open live announcement through `t()`.
+- **Vault Picker** — routed modal title/body, OPFS prompts/defaults, recent-vault
+  labels, active/open/remove actions, and new-vault buttons/tooltips through
+  `t()`.
+- **Help modal** — converted section titles, shortcut descriptions, modal title,
+  and footer copy to i18n keys while keeping shortcut chords as literal input
+  hints.
+- **Bookmarks view** — routed bookmark notices, prompts, menu labels, default
+  group display, empty state, group selector tooltip, and remove action through
+  `t()` while preserving persisted group values.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if the old modal, vault picker, help, or bookmarks literals return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Prompt surfaces i18n ratchet
 
 - **Shared prompt overlay** — routed the no-match state through `t()` so every

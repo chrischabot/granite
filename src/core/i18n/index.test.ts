@@ -63,5 +63,8 @@ describe("i18n", () => {
     expect(t("quickSwitcher.placeholder")).toBe("חיפוש או יצירת הערה...");
     expect(t("commandPalette.pin")).toBe("נעיצת פקודה");
     expect(t("templatePicker.placeholder")).toBe("בחירת תבנית…");
+    expect(t("vaultPicker.title")).toBe("ניהול כספות");
+    expect(t("help.section.workspace")).toBe("סביבת עבודה");
+    expect(t("bookmarks.defaultGroup")).toBe("סימניות");
   });
 });

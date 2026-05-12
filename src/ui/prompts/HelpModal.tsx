@@ -1,3 +1,4 @@
+import { useI18n } from "../i18n/useI18n";
 import { Modal } from "../overlay/Modal";
 
 export interface HelpModalProps {
@@ -6,67 +7,68 @@ export interface HelpModalProps {
 }
 
 interface Section {
-  title: string;
-  items: Array<{ keys: string; what: string }>;
+  titleKey: string;
+  items: Array<{ keys: string; whatKey: string }>;
 }
 
 const SECTIONS: Section[] = [
   {
-    title: "Workspace",
+    titleKey: "help.section.workspace",
     items: [
-      { keys: "⌘P / Ctrl P", what: "Open the command palette" },
-      { keys: "⌘O / Ctrl O", what: "Open the quick switcher" },
-      { keys: "⌘, / Ctrl ,", what: "Open settings" },
-      { keys: "⌘F / Ctrl F", what: "Find in the active note" },
-      { keys: "⌘S / Ctrl S", what: "Save the active note" },
+      { keys: "⌘P / Ctrl P", whatKey: "help.workspace.commandPalette" },
+      { keys: "⌘O / Ctrl O", whatKey: "help.workspace.quickSwitcher" },
+      { keys: "⌘, / Ctrl ,", whatKey: "help.workspace.settings" },
+      { keys: "⌘F / Ctrl F", whatKey: "help.workspace.find" },
+      { keys: "⌘S / Ctrl S", whatKey: "help.workspace.save" },
     ],
   },
   {
-    title: "Editor",
+    titleKey: "help.section.editor",
     items: [
-      { keys: "[[", what: "Open the wikilink autocomplete" },
-      { keys: "[[##", what: "Cross-vault heading search" },
-      { keys: "# at line start", what: "Tag autocomplete" },
-      { keys: "/ at line start", what: "Slash command palette" },
-      { keys: "Cmd / Ctrl click", what: "Open the wikilink under cursor" },
-      { keys: "Cmd / Ctrl Shift click", what: "Open the wikilink in a new tab" },
+      { keys: "[[", whatKey: "help.editor.wikilinkAutocomplete" },
+      { keys: "[[##", whatKey: "help.editor.headingSearch" },
+      { keys: "# at line start", whatKey: "help.editor.tagAutocomplete" },
+      { keys: "/ at line start", whatKey: "help.editor.slashCommands" },
+      { keys: "Cmd / Ctrl click", whatKey: "help.editor.openLink" },
+      { keys: "Cmd / Ctrl Shift click", whatKey: "help.editor.openLinkNewTab" },
     ],
   },
   {
-    title: "Tabs & windows",
+    titleKey: "help.section.tabs",
     items: [
-      { keys: "Drag a tab", what: "Reorder, or drop onto a group" },
-      { keys: "Middle-click tab", what: "Close that tab" },
-      { keys: "Right-click tab", what: "Tab actions (split, pop out, pin, …)" },
+      { keys: "Drag a tab", whatKey: "help.tabs.drag" },
+      { keys: "Middle-click tab", whatKey: "help.tabs.middleClick" },
+      { keys: "Right-click tab", whatKey: "help.tabs.rightClick" },
     ],
   },
   {
-    title: "Markdown extras",
+    titleKey: "help.section.markdown",
     items: [
-      { keys: "==text==", what: "Highlight" },
-      { keys: "[[Note#Heading]]", what: "Link to a heading" },
-      { keys: "[[Note#^block-id]]", what: "Link to a block ID" },
-      { keys: "$x^2$ / $$…$$", what: "Inline / block math (KaTeX)" },
-      { keys: "```mermaid", what: "Mermaid diagram fence" },
-      { keys: "```query", what: "Embedded live search results" },
-      { keys: "```backlinks", what: "Embedded backlinks list" },
-      { keys: "> [!info]", what: "Callout (note/tip/warning/danger/…)" },
+      { keys: "==text==", whatKey: "help.markdown.highlight" },
+      { keys: "[[Note#Heading]]", whatKey: "help.markdown.headingLink" },
+      { keys: "[[Note#^block-id]]", whatKey: "help.markdown.blockLink" },
+      { keys: "$x^2$ / $$…$$", whatKey: "help.markdown.math" },
+      { keys: "```mermaid", whatKey: "help.markdown.mermaid" },
+      { keys: "```query", whatKey: "help.markdown.query" },
+      { keys: "```backlinks", whatKey: "help.markdown.backlinks" },
+      { keys: "> [!info]", whatKey: "help.markdown.callout" },
     ],
   },
   {
-    title: "File explorer",
+    titleKey: "help.section.fileExplorer",
     items: [
-      { keys: "F2", what: "Rename the selected file" },
-      { keys: "Cmd / Ctrl Delete", what: "Delete the selected file(s)" },
-      { keys: "Click + Shift / Ctrl", what: "Range / toggle selection" },
-      { keys: "Drag file onto a folder", what: "Move (wikilinks rewrite themselves)" },
+      { keys: "F2", whatKey: "help.fileExplorer.rename" },
+      { keys: "Cmd / Ctrl Delete", whatKey: "help.fileExplorer.delete" },
+      { keys: "Click + Shift / Ctrl", whatKey: "help.fileExplorer.select" },
+      { keys: "Drag file onto a folder", whatKey: "help.fileExplorer.move" },
     ],
   },
 ];
 
 export function HelpModal({ open, onClose }: HelpModalProps) {
+  const t = useI18n();
   return (
-    <Modal open={open} onClose={onClose} title="Granite cheat-sheet" modifier="mod-narrow">
+    <Modal open={open} onClose={onClose} title={t("help.title")} modifier="mod-narrow">
       <div
         style={{
           display: "flex",
@@ -76,7 +78,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
         }}
       >
         {SECTIONS.map((section) => (
-          <section key={section.title}>
+          <section key={section.titleKey}>
             <h3
               style={{
                 fontSize: "var(--font-ui-medium)",
@@ -84,7 +86,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
                 color: "var(--text-normal)",
               }}
             >
-              {section.title}
+              {t(section.titleKey)}
             </h3>
             <div
               style={{
@@ -112,7 +114,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
                     {it.keys}
                   </kbd>
                   <span style={{ color: "var(--text-muted)", alignSelf: "center" }}>
-                    {it.what}
+                    {t(it.whatKey)}
                   </span>
                 </div>
               ))}
@@ -120,9 +122,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
           </section>
         ))}
         <div style={{ color: "var(--text-faint)", marginTop: "var(--size-4-2)" }}>
-          More commands live in the command palette (⌘P / Ctrl P). The full settings
-          modal (⌘, / Ctrl ,) exposes hotkey overrides, plugin toggles, theme picker,
-          and CSS snippet management.
+          {t("help.footer")}
         </div>
       </div>
     </Modal>

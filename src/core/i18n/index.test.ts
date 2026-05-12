@@ -77,5 +77,8 @@ describe("i18n", () => {
     expect(t("workspace.tab.close")).toBe("סגירת לשונית");
     expect(t("workspace.menu.splitRight")).toBe("פיצול ימינה");
     expect(t("workspace.announce.activeTab", { title: "Projects" })).toBe("לשונית פעילה: Projects");
+    expect(t("markdown.status.saving")).toBe("שומר…");
+    expect(t("markdown.error.read")).toBe("לא ניתן לקרוא את הקובץ הזה.");
+    expect(t("webViewer.urlPlaceholder")).toBe("הזנת כתובת URL...");
   });
 });

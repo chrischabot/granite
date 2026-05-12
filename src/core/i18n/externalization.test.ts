@@ -447,6 +447,25 @@ const WORKSPACE_LEAF_TITLE_FORBIDDEN_PATTERNS = [
   /"Untitled"/,
 ];
 
+const MARKDOWN_VIEW_FORBIDDEN_PATTERNS = [
+  /"Could not read this file\. Save is disabled to prevent overwrite\."/,
+  /"Could not save attachment"/,
+  /"Dropped file paths are not available from this host\."/,
+  /"Some dropped file paths were not available from this host\."/,
+  />\{readError \?\? "Could not read this file\."\}<\//,
+  /\? "Saving…"/,
+  /\? "Saved"/,
+  /\? "Editing…"/,
+  /\? "Save failed"/,
+];
+
+const WEB_VIEWER_FORBIDDEN_PATTERNS = [
+  /ariaLabel="Back"/,
+  /ariaLabel="Forward"/,
+  /ariaLabel="Reload"/,
+  /placeholder="Enter a URL\.\.\."/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1076,6 +1095,39 @@ describe("UI string externalization audit", () => {
       "sidebar.tab.localGraph",
     ]) {
       expect(leafTitleSource).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Markdown source view and Web Viewer labels routed through i18n keys", () => {
+    const markdownSource = readFileSync(`${process.cwd()}/src/ui/views/MarkdownView.tsx`, "utf8");
+    const webViewerSource = readFileSync(`${process.cwd()}/src/ui/views/WebViewerView.tsx`, "utf8");
+    const violations = [
+      ...MARKDOWN_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(markdownSource)),
+      ...WEB_VIEWER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(webViewerSource)),
+    ];
+
+    for (const requiredKey of [
+      "markdown.error.readSaveDisabled",
+      "markdown.error.read",
+      "markdown.error.attachment",
+      "markdown.drop.pathsUnavailable",
+      "markdown.drop.somePathsUnavailable",
+      "markdown.status.saving",
+      "markdown.status.saved",
+      "markdown.status.editing",
+      "markdown.status.saveFailed",
+    ]) {
+      expect(markdownSource).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "webViewer.back",
+      "webViewer.forward",
+      "webViewer.reload",
+      "webViewer.urlPlaceholder",
+    ]) {
+      expect(webViewerSource).toContain(requiredKey);
     }
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);

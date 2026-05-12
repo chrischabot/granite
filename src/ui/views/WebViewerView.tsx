@@ -1,12 +1,14 @@
 import { ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ClickableIcon } from "../controls/ClickableIcon";
+import { useI18n } from "../i18n/useI18n";
 
 export interface WebViewerViewProps {
   url: string;
 }
 
 export function WebViewerView({ url }: WebViewerViewProps) {
+  const t = useI18n();
   const [src, setSrc] = useState(url);
   const [bar, setBar] = useState(url);
   const [reloadKey, setReloadKey] = useState(0);
@@ -45,7 +47,7 @@ export function WebViewerView({ url }: WebViewerViewProps) {
         }}
       >
         <ClickableIcon
-          ariaLabel="Back"
+          ariaLabel={t("webViewer.back")}
           icon={<ArrowLeft />}
           onClick={() => {
             // Iframes don't expose history navigation cross-origin; tell the
@@ -58,7 +60,7 @@ export function WebViewerView({ url }: WebViewerViewProps) {
           }}
         />
         <ClickableIcon
-          ariaLabel="Forward"
+          ariaLabel={t("webViewer.forward")}
           icon={<ArrowRight />}
           onClick={() => {
             try {
@@ -69,7 +71,7 @@ export function WebViewerView({ url }: WebViewerViewProps) {
           }}
         />
         <ClickableIcon
-          ariaLabel="Reload"
+          ariaLabel={t("webViewer.reload")}
           icon={<RefreshCw />}
           onClick={() => setReloadKey((k) => k + 1)}
         />
@@ -84,7 +86,7 @@ export function WebViewerView({ url }: WebViewerViewProps) {
             }
           }}
           style={{ flex: "1 1 auto" }}
-          placeholder="Enter a URL..."
+          placeholder={t("webViewer.urlPlaceholder")}
           spellCheck={false}
           autoCorrect="off"
           autoCapitalize="off"

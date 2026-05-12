@@ -50,6 +50,7 @@ import type { LeafId } from "@core/workspace/types";
 import { vim } from "@replit/codemirror-vim";
 import { Effect } from "effect";
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "../i18n/useI18n";
 import { InlineTitle } from "./InlineTitle";
 
 export interface MarkdownViewProps {
@@ -110,6 +111,7 @@ declare global {
 }
 
 export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProps) {
+  const t = useI18n();
   const settings = useSettings();
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<EditorView | null>(null);
@@ -171,7 +173,7 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
 
       if (result.state === "error") {
         setLoadState("error");
-        setReadError("Could not read this file. Save is disabled to prevent overwrite.");
+        setReadError(t("markdown.error.readSaveDisabled"));
         return;
       }
 
@@ -315,7 +317,7 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
             selection: { anchor: sel.from + insert.length },
           });
         } catch (err) {
-          noticeManager.show(err instanceof Error ? err.message : "Could not save attachment", {
+          noticeManager.show(err instanceof Error ? err.message : t("markdown.error.attachment"), {
             kind: "error",
           });
         }
@@ -384,14 +386,14 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
             .filter((link): link is string => link !== null);
           e.preventDefault();
           if (links.length === 0) {
-            noticeManager.show("Dropped file paths are not available from this host.", {
+            noticeManager.show(t("markdown.drop.pathsUnavailable"), {
               kind: "warning",
             });
             return;
           }
           insertTextAtSelection(links.join("\n"));
           if (links.length < droppedFiles.length) {
-            noticeManager.show("Some dropped file paths were not available from this host.", {
+            noticeManager.show(t("markdown.drop.somePathsUnavailable"), {
               kind: "warning",
             });
           }
@@ -784,6 +786,7 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
     settings.spellcheck,
     settings.livePreview,
     settings.editorKeymap,
+    t,
   ]);
 
   useEffect(() => {
@@ -815,7 +818,7 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
   return (
     <div className="markdown-view-container">
       {loadState === "error" && (
-        <div className="message mod-error">{readError ?? "Could not read this file."}</div>
+        <div className="message mod-error">{readError ?? t("markdown.error.read")}</div>
       )}
       <div
         style={{
@@ -852,13 +855,13 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
       </div>
       <div className={`save-status save-status-${status}`} aria-live="polite">
         {status === "saving"
-          ? "Saving…"
+          ? t("markdown.status.saving")
           : status === "saved"
-            ? "Saved"
+            ? t("markdown.status.saved")
             : status === "dirty"
-              ? "Editing…"
+              ? t("markdown.status.editing")
               : status === "error"
-                ? "Save failed"
+                ? t("markdown.status.saveFailed")
                 : ""}
       </div>
     </div>

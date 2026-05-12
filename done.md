@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-12 — Markdown and Web Viewer i18n ratchet
+
+- **Markdown source view** — routed read-failure copy, attachment-save fallback
+  errors, dropped-file path warnings, and save-status text through `t()`.
+- **Web Viewer** — routed back/forward/reload labels and URL placeholder through
+  `t()`.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if these Markdown source or Web Viewer strings return as hard-coded
+  English UI literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n/ReadingView tests, full
+  `bun run test`, and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Workspace chrome i18n ratchet
 
 - **Titlebar and tab strip** — routed back/forward navigation labels, new-tab,

@@ -43,7 +43,7 @@
 ### §24.8 Graph — closed in Phase 11
 
 ### §24.9 Canvas
-- [ ] Marquee select / alt-duplicate / shift-axis-lock
+- [x] Marquee select / alt-duplicate / shift-axis-lock ← _shipped 2026-05-12 canvas interaction sweep_
 - [ ] Embedded canvas interaction inside host note
 - [x] Snap toggle ← _shipped 2026-05-12 canvas sweep_
 

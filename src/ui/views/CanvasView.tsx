@@ -1,4 +1,13 @@
-import { canvasKeyboardStep, snapCanvasValue } from "@core/canvas/interactions";
+import {
+  type CanvasPoint,
+  type CanvasRect,
+  canvasKeyboardStep,
+  constrainCanvasDeltaToAxis,
+  duplicateCanvasSelection,
+  normalizeCanvasRect,
+  selectCanvasNodesInRect,
+  snapCanvasValue,
+} from "@core/canvas/interactions";
 import {
   type Canvas,
   type CanvasEdge,
@@ -87,7 +96,7 @@ export function CanvasView({ path }: CanvasViewProps) {
   const [canvas, setCanvas] = useState<Canvas>(EMPTY_CANVAS);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [snapToGrid, setSnapToGrid] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -95,11 +104,9 @@ export function CanvasView({ path }: CanvasViewProps) {
   const dirtyRef = useRef(false);
   const panRef = useRef<{ x: number; y: number; viewX: number; viewY: number } | null>(null);
   const dragRef = useRef<{
-    id: string;
     startMouseX: number;
     startMouseY: number;
-    startNodeX: number;
-    startNodeY: number;
+    nodes: Array<{ id: string; x: number; y: number }>;
   } | null>(null);
   const resizeRef = useRef<{
     id: string;
@@ -110,6 +117,13 @@ export function CanvasView({ path }: CanvasViewProps) {
   } | null>(null);
   const edgeDraftRef = useRef<{ fromId: string; fromSide: EdgeSide } | null>(null);
   const [edgeDraftEnd, setEdgeDraftEnd] = useState<{ x: number; y: number } | null>(null);
+  const marqueeRef = useRef<{ start: CanvasPoint; append: boolean } | null>(null);
+  const [marqueeRect, setMarqueeRect] = useState<CanvasRect | null>(null);
+
+  const selectedIdsRef = useRef<string[]>(selectedIds);
+  useEffect(() => {
+    selectedIdsRef.current = selectedIds;
+  }, [selectedIds]);
 
   // Load on path change.
   useEffect(() => {
@@ -195,15 +209,17 @@ export function CanvasView({ path }: CanvasViewProps) {
   );
 
   const deleteSelected = useCallback(() => {
-    if (!selectedId) return;
+    const selected = selectedIdsRef.current;
+    if (selected.length === 0) return;
+    const selectedSet = new Set(selected);
     mutate({
-      nodes: canvasRef.current.nodes.filter((n) => n.id !== selectedId),
+      nodes: canvasRef.current.nodes.filter((n) => !selectedSet.has(n.id)),
       edges: canvasRef.current.edges.filter(
-        (e) => e.fromNode !== selectedId && e.toNode !== selectedId,
+        (e) => !selectedSet.has(e.fromNode) && !selectedSet.has(e.toNode),
       ),
     });
-    setSelectedId(null);
-  }, [mutate, selectedId]);
+    setSelectedIds([]);
+  }, [mutate]);
 
   const addTextNode = useCallback(() => {
     const el = containerRef.current;
@@ -223,7 +239,7 @@ export function CanvasView({ path }: CanvasViewProps) {
       text,
     };
     mutate({ ...canvasRef.current, nodes: [...canvasRef.current.nodes, node] });
-    setSelectedId(node.id);
+    setSelectedIds([node.id]);
   }, [view, mutate, snapToGrid]);
 
   const commitTextEdit = useCallback(
@@ -268,6 +284,18 @@ export function CanvasView({ path }: CanvasViewProps) {
     [mutate],
   );
 
+  const canvasPointFromMouse = useCallback(
+    (clientX: number, clientY: number): CanvasPoint | null => {
+      const rect = containerRef.current?.getBoundingClientRect();
+      if (!rect) return null;
+      return {
+        x: (clientX - rect.left - view.x) / view.scale,
+        y: (clientY - rect.top - view.y) / view.scale,
+      };
+    },
+    [view],
+  );
+
   // Document-level mouse handlers: keep edge-draft, node-drag, and pan
   // lifecycles consistent even when the mouse leaves the canvas container.
   useEffect(() => {
@@ -291,13 +319,41 @@ export function CanvasView({ path }: CanvasViewProps) {
         updateNode(resize.id, { width: nw, height: nh } as Partial<CanvasNode>);
         return;
       }
+      const marquee = marqueeRef.current;
+      if (marquee) {
+        const end = canvasPointFromMouse(ev.clientX, ev.clientY);
+        if (!end) return;
+        const rect = normalizeCanvasRect(marquee.start, end);
+        const selectedInRect = selectCanvasNodesInRect(canvasRef.current.nodes, rect);
+        setMarqueeRect(rect);
+        setSelectedIds(
+          marquee.append
+            ? Array.from(new Set([...selectedIdsRef.current, ...selectedInRect]))
+            : selectedInRect,
+        );
+        return;
+      }
       const drag = dragRef.current;
       if (drag) {
-        const dx = (ev.clientX - drag.startMouseX) / view.scale;
-        const dy = (ev.clientY - drag.startMouseY) / view.scale;
-        const nx = snapCanvasValue(drag.startNodeX + dx, snapToGrid, GRID);
-        const ny = snapCanvasValue(drag.startNodeY + dy, snapToGrid, GRID);
-        updateNode(drag.id, { x: nx, y: ny } as Partial<CanvasNode>);
+        let dx = (ev.clientX - drag.startMouseX) / view.scale;
+        let dy = (ev.clientY - drag.startMouseY) / view.scale;
+        if (ev.shiftKey) {
+          const locked = constrainCanvasDeltaToAxis(dx, dy);
+          dx = locked.x;
+          dy = locked.y;
+        }
+        mutate({
+          ...canvasRef.current,
+          nodes: canvasRef.current.nodes.map((node) => {
+            const start = drag.nodes.find((n) => n.id === node.id);
+            if (!start) return node;
+            return {
+              ...node,
+              x: snapCanvasValue(start.x + dx, snapToGrid, GRID),
+              y: snapCanvasValue(start.y + dy, snapToGrid, GRID),
+            } as CanvasNode;
+          }),
+        });
         return;
       }
       const pan = panRef.current;
@@ -314,6 +370,8 @@ export function CanvasView({ path }: CanvasViewProps) {
       panRef.current = null;
       dragRef.current = null;
       resizeRef.current = null;
+      marqueeRef.current = null;
+      setMarqueeRect(null);
     };
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
@@ -321,14 +379,22 @@ export function CanvasView({ path }: CanvasViewProps) {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
     };
-  }, [view, updateNode, finalizeEdgeDraft, snapToGrid]);
+  }, [view, updateNode, finalizeEdgeDraft, snapToGrid, canvasPointFromMouse, mutate]);
 
   const onBackgroundMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     if ((e.target as HTMLElement).closest("[data-canvas-node]")) return;
     if ((e.target as HTMLElement).closest("[data-canvas-anchor]")) return;
+    if (e.shiftKey) {
+      const start = canvasPointFromMouse(e.clientX, e.clientY);
+      if (!start) return;
+      marqueeRef.current = { start, append: e.metaKey || e.ctrlKey };
+      setMarqueeRect({ ...start, width: 0, height: 0 });
+      if (!e.metaKey && !e.ctrlKey) setSelectedIds([]);
+      return;
+    }
     panRef.current = { x: e.clientX, y: e.clientY, viewX: view.x, viewY: view.y };
-    setSelectedId(null);
+    setSelectedIds([]);
   };
 
   const onWheel = (e: React.WheelEvent) => {
@@ -340,20 +406,30 @@ export function CanvasView({ path }: CanvasViewProps) {
   const onNodeMouseDown = (e: React.MouseEvent, node: CanvasNode) => {
     if (e.button !== 0) return;
     e.stopPropagation();
-    setSelectedId(node.id);
+    const currentSelection = selectedIdsRef.current.includes(node.id)
+      ? selectedIdsRef.current
+      : [node.id];
+    let dragIds = currentSelection;
+    if (e.altKey) {
+      const duplicated = duplicateCanvasSelection(canvasRef.current, currentSelection, newCanvasId);
+      mutate(duplicated.canvas);
+      dragIds = duplicated.selectedIds;
+    }
+    setSelectedIds(dragIds);
+    const nodeStarts = canvasRef.current.nodes
+      .filter((n) => dragIds.includes(n.id))
+      .map((n) => ({ id: n.id, x: n.x, y: n.y }));
     dragRef.current = {
-      id: node.id,
       startMouseX: e.clientX,
       startMouseY: e.clientY,
-      startNodeX: node.x,
-      startNodeY: node.y,
+      nodes: nodeStarts,
     };
   };
 
   const onNodeResizeStart = (e: React.MouseEvent, node: CanvasNode) => {
     e.stopPropagation();
     e.preventDefault();
-    setSelectedId(node.id);
+    setSelectedIds([node.id]);
     resizeRef.current = {
       id: node.id,
       startMouseX: e.clientX,
@@ -364,7 +440,7 @@ export function CanvasView({ path }: CanvasViewProps) {
   };
 
   useEffect(() => {
-    if (!selectedId) return;
+    if (selectedIds.length === 0) return;
     const onKey = (ev: KeyboardEvent) => {
       const target = ev.target as HTMLElement | null;
       if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
@@ -382,13 +458,20 @@ export function CanvasView({ path }: CanvasViewProps) {
       else if (ev.key === "ArrowDown") dy = step;
       if (dx !== 0 || dy !== 0) {
         ev.preventDefault();
-        const node = canvasRef.current.nodes.find((n) => n.id === selectedId);
-        if (node) updateNode(selectedId, { x: node.x + dx, y: node.y + dy } as Partial<CanvasNode>);
+        const selectedSet = new Set(selectedIdsRef.current);
+        mutate({
+          ...canvasRef.current,
+          nodes: canvasRef.current.nodes.map((node) =>
+            selectedSet.has(node.id)
+              ? ({ ...node, x: node.x + dx, y: node.y + dy } as CanvasNode)
+              : node,
+          ),
+        });
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [selectedId, deleteSelected, updateNode, snapToGrid]);
+  }, [selectedIds.length, deleteSelected, mutate, snapToGrid]);
 
   const fitToContent = useCallback((c: Canvas) => {
     const el = containerRef.current;
@@ -465,7 +548,8 @@ export function CanvasView({ path }: CanvasViewProps) {
     });
   }, [canvas]);
 
-  const selectedNode = selectedId ? (canvas.nodes.find((n) => n.id === selectedId) ?? null) : null;
+  const selectedNode =
+    selectedIds.length === 1 ? (canvas.nodes.find((n) => n.id === selectedIds[0]) ?? null) : null;
 
   if (!path) {
     return (
@@ -534,7 +618,7 @@ export function CanvasView({ path }: CanvasViewProps) {
           file: droppedPath,
         };
         mutate({ ...canvasRef.current, nodes: [...canvasRef.current.nodes, node] });
-        setSelectedId(node.id);
+        setSelectedIds([node.id]);
       }}
     >
       {loading ? (
@@ -608,7 +692,7 @@ export function CanvasView({ path }: CanvasViewProps) {
               <CanvasNodeView
                 key={node.id}
                 node={node}
-                selected={selectedId === node.id}
+                selected={selectedIds.includes(node.id)}
                 editing={editingId === node.id}
                 onMouseDown={(e) => onNodeMouseDown(e, node)}
                 onAnchorMouseDown={(side, e) => {
@@ -641,6 +725,21 @@ export function CanvasView({ path }: CanvasViewProps) {
                 }}
               />
             ))}
+            {marqueeRect ? (
+              <div
+                style={{
+                  position: "absolute",
+                  left: marqueeRect.x,
+                  top: marqueeRect.y,
+                  width: marqueeRect.width,
+                  height: marqueeRect.height,
+                  border: "1px solid var(--interactive-accent)",
+                  background: "hsla(var(--color-accent-hsl), 0.12)",
+                  pointerEvents: "none",
+                  boxSizing: "border-box",
+                }}
+              />
+            ) : null}
           </div>
         </>
       )}
@@ -759,6 +858,18 @@ export function CanvasView({ path }: CanvasViewProps) {
               <Trash2 size={14} />
             </button>
           </>
+        )}
+        {selectedIds.length > 1 && (
+          <button
+            type="button"
+            className="clickable-icon"
+            aria-label="Delete selected"
+            onClick={deleteSelected}
+            title="Delete selected (Cmd/Ctrl+Backspace)"
+            style={{ color: "var(--text-error)" }}
+          >
+            <Trash2 size={14} />
+          </button>
         )}
         <span
           style={{

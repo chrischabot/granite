@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — Canvas marquee and duplicate interactions
+
+- **Multi-node selection** — Canvas selection now supports multiple selected
+  cards, with Shift-drag marquee selection from the background and group
+  deletion / keyboard movement for the selected set.
+- **Group drag behavior** — dragging a selected card moves the whole selected
+  set, while Shift during the drag locks movement to the dominant axis.
+- **Alt-duplicate** — Alt/Option-drag duplicates the active selection, including
+  edges whose endpoints are both in the selected set, then drags the duplicated
+  cards.
+
+### Tests
+- Extended `core/canvas/interactions.test.ts` for marquee rectangle
+  normalization, hit selection, axis locking, and duplicated node/edge ids.
+- Validation: `bun run typecheck`, scoped canvas interaction tests,
+  `bun run test` (420 tests / 40 files), and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Canvas snap toggle
 
 - **Snap-to-grid control** — Canvas now has a toolbar toggle for grid snapping

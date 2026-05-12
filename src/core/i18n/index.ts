@@ -42,6 +42,17 @@ const EN_LOCALE: LocaleMap = {
   "tags.collapse": "Collapse #{tag}",
   "tags.menu.filter": "Filter search by #{tag}",
   "tags.menu.rename": "Rename #{tag} across the vault…",
+  "outgoing.empty.noActive": "Open a note to see its outgoing links.",
+  "outgoing.empty.noLinks": "No outgoing links in this note.",
+  "outgoing.lineShort": "L{line}",
+  "backlinks.empty.noActive": "Open a note to see its backlinks.",
+  "backlinks.empty.noLinks": "No backlinks found.",
+  "backlinks.unlinked.title": "Unlinked mentions",
+  "backlinks.unlinked.scanning": "Scanning vault…",
+  "backlinks.unlinked.none": "No unlinked mentions found.",
+  "backlinks.line": "Line {line}",
+  "backlinks.lineShort": "L{line}",
+  "backlinks.matchTitle": 'Line {line} — matched "{needle}"',
 };
 
 const builtinLocales: Record<LocaleId, LocaleMap> = {
@@ -84,6 +95,17 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "tags.collapse": "כיווץ #{tag}",
     "tags.menu.filter": "סינון חיפוש לפי #{tag}",
     "tags.menu.rename": "שינוי שם #{tag} בכל הכספת…",
+    "outgoing.empty.noActive": "פתחו הערה כדי לראות את הקישורים היוצאים שלה.",
+    "outgoing.empty.noLinks": "אין קישורים יוצאים בהערה הזו.",
+    "outgoing.lineShort": "ש{line}",
+    "backlinks.empty.noActive": "פתחו הערה כדי לראות את הקישורים החוזרים שלה.",
+    "backlinks.empty.noLinks": "לא נמצאו קישורים חוזרים.",
+    "backlinks.unlinked.title": "אזכורים לא מקושרים",
+    "backlinks.unlinked.scanning": "סורק את הכספת…",
+    "backlinks.unlinked.none": "לא נמצאו אזכורים לא מקושרים.",
+    "backlinks.line": "שורה {line}",
+    "backlinks.lineShort": "ש{line}",
+    "backlinks.matchTitle": 'שורה {line} — התאמה ל-"{needle}"',
   },
 };
 

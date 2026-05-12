@@ -1,16 +1,15 @@
-import { ChevronDown, ChevronRight } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { metadataCache } from "@core/metadata/cache";
-import { useFileMetadata, useMetadataVersion } from "@core/metadata/useMetadata";
 import { stem } from "@core/fs/path";
-import {
-  findUnlinkedMentions,
-  type UnlinkedFileMatch,
-} from "@core/metadata/unlinked-mentions";
+import { metadataCache } from "@core/metadata/cache";
+import { type UnlinkedFileMatch, findUnlinkedMentions } from "@core/metadata/unlinked-mentions";
+import { useFileMetadata, useMetadataVersion } from "@core/metadata/useMetadata";
 import { workspaceStore } from "@core/workspace/store";
 import { useWorkspace } from "@core/workspace/useWorkspace";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useI18n } from "../../i18n/useI18n";
 
 export function BacklinksView() {
+  const t = useI18n();
   const { activeGroupId, groups, leaves } = useWorkspace();
   const version = useMetadataVersion();
   const [links, setLinks] = useState<Array<{ source: string; lines: number[] }>>([]);
@@ -25,6 +24,7 @@ export function BacklinksView() {
   const meta = useFileMetadata(activePath);
 
   useEffect(() => {
+    void version;
     if (!activePath) {
       setLinks([]);
       return;
@@ -34,9 +34,7 @@ export function BacklinksView() {
 
   // ---- Unlinked mentions (lazy-loaded) ----------------------------------
   const [unlinkedExpanded, setUnlinkedExpanded] = useState(false);
-  const [unlinkedMatches, setUnlinkedMatches] = useState<UnlinkedFileMatch[] | null>(
-    null,
-  );
+  const [unlinkedMatches, setUnlinkedMatches] = useState<UnlinkedFileMatch[] | null>(null);
   const [unlinkedLoading, setUnlinkedLoading] = useState(false);
   const [unlinkedError, setUnlinkedError] = useState<string | null>(null);
   const scanIdRef = useRef(0);
@@ -44,6 +42,7 @@ export function BacklinksView() {
   // Reset cached results when the active file changes; invalidate any
   // in-flight scan via the scanId ref so a late-arriving result is ignored.
   useEffect(() => {
+    void activePath;
     scanIdRef.current += 1;
     setUnlinkedMatches(null);
     setUnlinkedLoading(false);
@@ -84,13 +83,10 @@ export function BacklinksView() {
   }, [unlinkedExpanded, unlinkedMatches, unlinkedLoading, runUnlinkedScan]);
 
   if (!activePath) {
-    return (
-      <div className="workspace-sidedock-empty-state">Open a note to see its backlinks.</div>
-    );
+    return <div className="workspace-sidedock-empty-state">{t("backlinks.empty.noActive")}</div>;
   }
 
-  const totalUnlinked =
-    unlinkedMatches?.reduce((sum, m) => sum + m.matches.length, 0) ?? 0;
+  const totalUnlinked = unlinkedMatches?.reduce((sum, m) => sum + m.matches.length, 0) ?? 0;
 
   return (
     <div className="backlink-pane">
@@ -99,25 +95,18 @@ export function BacklinksView() {
           className="workspace-sidedock-empty-state"
           style={{ paddingBottom: "var(--size-4-3)" }}
         >
-          No backlinks found.
+          {t("backlinks.empty.noLinks")}
         </div>
       ) : (
         <div className="search-result-container mod-global-search">
           {links.map((l) => (
             <div key={l.source} className="search-result">
-              <div
+              <button
+                type="button"
                 className="tree-item-self is-clickable search-result-file-title"
                 onClick={(e) =>
                   workspaceStore.openFile(l.source, { newTab: e.metaKey || e.ctrlKey })
                 }
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    workspaceStore.openFile(l.source);
-                  }
-                }}
               >
                 <span className="tree-item-inner">
                   <span className="tree-item-inner-text">{stem(l.source)}</span>
@@ -125,26 +114,19 @@ export function BacklinksView() {
                 <span className="tree-item-flair-outer">
                   <span className="tree-item-flair">{l.lines.length}</span>
                 </span>
-              </div>
+              </button>
               <div className="search-result-file-matches">
-                {l.lines.map((ln, i) => (
-                  <div
-                    key={i}
+                {l.lines.map((ln) => (
+                  <button
+                    type="button"
+                    key={ln}
                     className="search-result-file-match"
                     onClick={(e) =>
                       workspaceStore.openFile(l.source, { newTab: e.metaKey || e.ctrlKey })
                     }
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        workspaceStore.openFile(l.source);
-                      }
-                    }}
                   >
-                    Line {ln + 1}
-                  </div>
+                    {t("backlinks.line", { line: ln + 1 })}
+                  </button>
                 ))}
               </div>
             </div>
@@ -184,7 +166,7 @@ export function BacklinksView() {
         >
           <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
             {unlinkedExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-            Unlinked mentions
+            {t("backlinks.unlinked.title")}
           </span>
           {unlinkedMatches !== null && (
             <span style={{ color: "var(--text-faint)", fontWeight: "var(--font-normal)" }}>
@@ -196,33 +178,26 @@ export function BacklinksView() {
           <div style={{ padding: "0 var(--size-4-3) var(--size-4-3)" }}>
             {unlinkedLoading ? (
               <div style={{ color: "var(--text-faint)", padding: "var(--size-4-2) 0" }}>
-                Scanning vault…
+                {t("backlinks.unlinked.scanning")}
               </div>
             ) : unlinkedError ? (
               <div className="message mod-error">{unlinkedError}</div>
             ) : unlinkedMatches === null ? null : unlinkedMatches.length === 0 ? (
               <div style={{ color: "var(--text-faint)", padding: "var(--size-4-2) 0" }}>
-                No unlinked mentions found.
+                {t("backlinks.unlinked.none")}
               </div>
             ) : (
               <div className="search-result-container mod-global-search">
                 {unlinkedMatches.map((m) => (
                   <div key={m.source} className="search-result">
-                    <div
+                    <button
+                      type="button"
                       className="tree-item-self is-clickable search-result-file-title"
                       onClick={(e) =>
                         workspaceStore.openFile(m.source, {
                           newTab: e.metaKey || e.ctrlKey,
                         })
                       }
-                      role="button"
-                      tabIndex={0}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          workspaceStore.openFile(m.source);
-                        }
-                      }}
                     >
                       <span className="tree-item-inner">
                         <span className="tree-item-inner-text">{stem(m.source)}</span>
@@ -230,11 +205,12 @@ export function BacklinksView() {
                       <span className="tree-item-flair-outer">
                         <span className="tree-item-flair">{m.matches.length}</span>
                       </span>
-                    </div>
+                    </button>
                     <div className="search-result-file-matches">
-                      {m.matches.map((match, i) => (
-                        <div
-                          key={i}
+                      {m.matches.map((match) => (
+                        <button
+                          type="button"
+                          key={`${match.line}:${match.needle}`}
                           className="search-result-file-match"
                           onClick={(e) => {
                             workspaceStore.openFile(m.source, {
@@ -246,20 +222,10 @@ export function BacklinksView() {
                               }),
                             );
                           }}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              workspaceStore.openFile(m.source);
-                              window.dispatchEvent(
-                                new CustomEvent("granite:goto-line", {
-                                  detail: { path: m.source, line: match.line },
-                                }),
-                              );
-                            }
-                          }}
-                          title={`Line ${match.line + 1} — matched "${match.needle}"`}
+                          title={t("backlinks.matchTitle", {
+                            line: match.line + 1,
+                            needle: match.needle,
+                          })}
                           style={{
                             display: "flex",
                             gap: "var(--size-4-2)",
@@ -273,7 +239,7 @@ export function BacklinksView() {
                               flexShrink: 0,
                             }}
                           >
-                            L{match.line + 1}
+                            {t("backlinks.lineShort", { line: match.line + 1 })}
                           </span>
                           <span
                             style={{
@@ -284,7 +250,7 @@ export function BacklinksView() {
                           >
                             {match.preview}
                           </span>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>

@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-12 — Backlinks and outgoing links i18n ratchet
+
+- **Sidebar link panes** — routed Backlinks and Outgoing Links empty states,
+  line labels, unlinked-mention labels, and match tooltips through `t()`.
+- **Hebrew coverage** — added Hebrew translations for the new Backlinks and
+  Outgoing Links keys.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` so
+  the old hard-coded Backlinks and Outgoing Links strings fail if they return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Shared error reporting channel
 
 - **Sentry-style reporter** — added a small app error reporter that normalizes

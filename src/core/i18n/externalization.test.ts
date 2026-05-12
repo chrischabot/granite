@@ -21,6 +21,23 @@ const TAGS_VIEW_FORBIDDEN_PATTERNS = [
   /aria-label=\{`\$\{isCollapsed \? "Expand" : "Collapse"\}/,
 ];
 
+const OUTGOING_LINKS_VIEW_FORBIDDEN_PATTERNS = [
+  />\s*Open a note to see its outgoing links\.\s*</,
+  />\s*No outgoing links in this note\.\s*</,
+  />\s*L\{l\.line \+ 1\}\s*</,
+];
+
+const BACKLINKS_VIEW_FORBIDDEN_PATTERNS = [
+  />\s*Open a note to see its backlinks\.\s*</,
+  />\s*No backlinks found\.\s*</,
+  />\s*Line \{ln \+ 1\}\s*</,
+  />\s*Unlinked mentions\s*</,
+  />\s*Scanning vault…\s*</,
+  />\s*No unlinked mentions found\.\s*</,
+  /title=\{`Line \$\{match\.line \+ 1\} — matched/,
+  />\s*L\{match\.line \+ 1\}\s*</,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -46,6 +63,44 @@ describe("UI string externalization audit", () => {
       "tags.expand",
       "tags.menu.filter",
       "tags.menu.rename",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps Outgoing Links view labels routed through i18n keys", () => {
+    const source = readFileSync(
+      `${process.cwd()}/src/ui/views/sidebar/OutgoingLinksView.tsx`,
+      "utf8",
+    );
+    const violations = OUTGOING_LINKS_VIEW_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+    for (const requiredKey of [
+      "outgoing.empty.noActive",
+      "outgoing.empty.noLinks",
+      "outgoing.lineShort",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps Backlinks view labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/BacklinksView.tsx`, "utf8");
+    const violations = BACKLINKS_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of [
+      "backlinks.empty.noActive",
+      "backlinks.empty.noLinks",
+      "backlinks.unlinked.title",
+      "backlinks.unlinked.scanning",
+      "backlinks.unlinked.none",
+      "backlinks.line",
+      "backlinks.lineShort",
+      "backlinks.matchTitle",
     ]) {
       expect(source).toContain(requiredKey);
     }

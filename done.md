@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — Settings modal i18n ratchet
+
+- **Settings modal** — routed modal chrome, search placeholder, sidebar group
+  labels, empty search state, Appearance, Editor, Files, Hotkeys, Plugins, Daily
+  Notes, Templates, and plugin-tab render fallback text through `t()`.
+- **Settings section filter** — built-in section navigation now carries locale
+  keys for rendered titles while preserving English search terms for matching.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if SettingsModal or built-in settings-filter English titles return as
+  rendered literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Install Plugin i18n ratchet
 
 - **Install Plugin modal** — routed manifest validation errors, fetch errors,

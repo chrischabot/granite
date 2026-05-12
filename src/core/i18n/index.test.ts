@@ -69,5 +69,9 @@ describe("i18n", () => {
     expect(t("graph.controls.title")).toBe("פקדי גרף");
     expect(t("fileRecovery.title")).toBe("שחזור קבצים");
     expect(t("installPlugin.title")).toBe("התקנת תוסף קהילתי");
+    expect(t("settings.searchPlaceholder")).toBe("חיפוש בהגדרות");
+    expect(t("settings.appearance.baseScheme")).toBe("ערכת צבע בסיסית");
+    expect(t("settings.hotkeys.pressKey")).toBe("לחצו על מקש…");
+    expect(t("settings.plugins.installFromUrl")).toBe("התקנת תוסף מכתובת URL…");
   });
 });

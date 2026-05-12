@@ -341,6 +341,69 @@ const INSTALL_PLUGIN_MODAL_FORBIDDEN_PATTERNS = [
   />\s*\{writing \? "Installing…" : "Install"\}\s*</,
 ];
 
+const SETTINGS_MODAL_FORBIDDEN_PATTERNS = [
+  /ariaLabel="Settings"/,
+  /placeholder="Search settings"/,
+  />\s*Options\s*</,
+  />\s*Plugin options\s*</,
+  />\s*No settings match your search\.\s*</,
+  />\s*Base color scheme\s*</,
+  /"Choose between light, dark, or follow the operating system\."/,
+  />\s*Adapt to system\s*</,
+  />\s*Accent color\s*</,
+  />\s*High contrast\s*</,
+  />\s*Translucent window\s*</,
+  />\s*Themes\s*</,
+  /"No themes found in \.granite\/themes\/\."/,
+  /theme\$\{themes\.length === 1 \? "" : "s"\} available/,
+  />\s*None \(default Granite theme\)\s*</,
+  />\s*CSS snippets\s*</,
+  />\s*No snippets found\.\s*</,
+  />\s*Default view mode for new tabs\s*</,
+  />\s*Editing \(source\)\s*</,
+  />\s*Reading view\s*</,
+  />\s*Show line numbers\s*</,
+  />\s*Readable line length\s*</,
+  />\s*Auto-pair brackets\s*</,
+  />\s*Spellcheck\s*</,
+  />\s*Live preview\s*</,
+  />\s*Editor key bindings\s*</,
+  />\s*Standard\s*</,
+  />\s*Files & links\s*</,
+  />\s*Default folder for new notes\s*</,
+  /placeholder="\(vault root\)"/,
+  />\s*Confirm file deletion\s*</,
+  />\s*Deleted files\s*</,
+  />\s*System trash\s*</,
+  />\s*Vault trash \(\.trash\)\s*</,
+  />\s*Permanently delete\s*</,
+  />\s*Excluded files\s*</,
+  />\s*Hotkeys\s*</,
+  />\s*Plugins\s*</,
+  />\s*Install plugin from URL…\s*</,
+  />\s*Check for updates\s*</,
+  />\s*No plugins found\.\s*</,
+  />\s*Daily notes\s*</,
+  />\s*Template folder location\s*</,
+  /placeholder="\(no folder set\)"/,
+  />\s*Time format\s*</,
+  /`Error rendering tab: \$\{err instanceof Error \? err\.message : String\(err\)\}`/,
+  />\s*Press a key…\s*</,
+  />\s*Add\s*</,
+  />\s*Remove\s*</,
+  />\s*Reset\s*</,
+];
+
+const SETTINGS_FILTER_FORBIDDEN_PATTERNS = [
+  /title: "Appearance"/,
+  /title: "Editor"/,
+  /title: "Files & links"/,
+  /title: "Hotkeys"/,
+  /title: "Plugins"/,
+  /title: "Daily notes"/,
+  /title: "Templates"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -871,6 +934,48 @@ describe("UI string externalization audit", () => {
       "installPlugin.install",
     ]) {
       expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Settings modal labels and built-in section titles routed through i18n keys", () => {
+    const modalSource = readFileSync(`${process.cwd()}/src/ui/prompts/SettingsModal.tsx`, "utf8");
+    const filterSource = readFileSync(`${process.cwd()}/src/ui/prompts/settings-filter.ts`, "utf8");
+    const violations = SETTINGS_MODAL_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(modalSource),
+    ).concat(SETTINGS_FILTER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(filterSource)));
+    for (const requiredKey of [
+      "settings.title",
+      "settings.searchPlaceholder",
+      "settings.group.options",
+      "settings.group.pluginOptions",
+      "settings.empty.noMatch",
+      "settings.appearance.baseScheme",
+      "settings.appearance.themeCount",
+      "settings.appearance.defaultTheme",
+      "settings.editor.defaultView",
+      "settings.editor.view.source",
+      "settings.files.newNoteFolder",
+      "settings.files.trash.system",
+      "settings.hotkeys.pressKey",
+      "settings.plugins.installFromUrl",
+      "settings.dailyNotes.dateFormat",
+      "settings.templates.folderLocation",
+      "settings.pluginTab.renderError",
+    ]) {
+      expect(modalSource).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "settings.appearance",
+      "settings.editor",
+      "settings.files",
+      "settings.hotkeys",
+      "settings.plugins",
+      "settings.dailyNotes",
+      "settings.templates",
+    ]) {
+      expect(filterSource).toContain(requiredKey);
     }
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);

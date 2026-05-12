@@ -27,9 +27,14 @@ import {
   subscribe as subscribeThemes,
 } from "@core/themes/loader";
 import { type ReactNode, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useI18n } from "../i18n/useI18n";
 import { Modal } from "../overlay/Modal";
 import { type ThemeMode, useTheme } from "../theme/ThemeProvider";
-import { type SettingsSectionId, getVisibleSettingsSections } from "./settings-filter";
+import {
+  type SettingsSectionId,
+  type SettingsSectionInfo,
+  getVisibleSettingsSections,
+} from "./settings-filter";
 
 export interface SettingsModalProps {
   open: boolean;
@@ -37,6 +42,7 @@ export interface SettingsModalProps {
 }
 
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
+  const t = useI18n();
   const [section, setSection] = useState<SettingsSectionId>("appearance");
   const [settingsFilter, setSettingsFilter] = useState("");
   const settings = useSettings();
@@ -106,7 +112,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
     <Modal
       open={open}
       onClose={onClose}
-      ariaLabel="Settings"
+      ariaLabel={t("settings.title")}
       modifier="mod-sidebar-layout mod-settings"
     >
       <div className="vertical-tabs-container">
@@ -114,28 +120,30 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           <div className="settings-search-container">
             <input
               type="search"
-              placeholder="Search settings"
+              placeholder={t("settings.searchPlaceholder")}
               value={settingsFilter}
               onChange={(e) => setSettingsFilter(e.currentTarget.value)}
             />
           </div>
           <div className="vertical-tab-header-group">
-            <div className="vertical-tab-header-group-title">Options</div>
+            <div className="vertical-tab-header-group-title">{t("settings.group.options")}</div>
             <div className="vertical-tab-header-group-items">
               {visibleOptionSections.map((item) => (
                 <SettingsTab key={item.id} id={item.id} current={section} onChange={setSection}>
-                  {item.title}
+                  {settingsSectionTitle(item, t)}
                 </SettingsTab>
               ))}
             </div>
           </div>
           {visiblePluginOptionSections.length > 0 && (
             <div className="vertical-tab-header-group">
-              <div className="vertical-tab-header-group-title">Plugin options</div>
+              <div className="vertical-tab-header-group-title">
+                {t("settings.group.pluginOptions")}
+              </div>
               <div className="vertical-tab-header-group-items">
                 {visiblePluginOptionSections.map((item) => (
                   <SettingsTab key={item.id} id={item.id} current={section} onChange={setSection}>
-                    {item.title}
+                    {settingsSectionTitle(item, t)}
                   </SettingsTab>
                 ))}
               </div>
@@ -145,29 +153,29 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
         <div className="vertical-tab-content-container">
           <div className="vertical-tab-content">
             {visibleSections.length === 0 && (
-              <div style={{ color: "var(--text-faint)" }}>No settings match your search.</div>
+              <div style={{ color: "var(--text-faint)" }}>{t("settings.empty.noMatch")}</div>
             )}
             {visibleSectionIds.has(section) && section === "appearance" && (
               <>
-                <h2>Appearance</h2>
+                <h2>{t("settings.appearance")}</h2>
                 <SettingItem
-                  name="Base color scheme"
-                  desc="Choose between light, dark, or follow the operating system."
+                  name={t("settings.appearance.baseScheme")}
+                  desc={t("settings.appearance.baseSchemeDesc")}
                   control={
                     <select
                       className="dropdown"
                       value={theme.mode}
                       onChange={(e) => theme.setMode(e.currentTarget.value as ThemeMode)}
                     >
-                      <option value="system">Adapt to system</option>
-                      <option value="light">Light</option>
-                      <option value="dark">Dark</option>
+                      <option value="system">{t("settings.theme.system")}</option>
+                      <option value="light">{t("settings.theme.light")}</option>
+                      <option value="dark">{t("settings.theme.dark")}</option>
                     </select>
                   }
                 />
                 <SettingItem
-                  name="Accent color"
-                  desc="Used for links, focused buttons, selection highlights."
+                  name={t("settings.appearance.accentColor")}
+                  desc={t("settings.appearance.accentColorDesc")}
                   control={
                     <input
                       type="color"
@@ -180,7 +188,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Editor font size"
+                  name={t("settings.appearance.fontSize")}
                   desc={`${settings.fontSize}px`}
                   control={
                     <input
@@ -196,8 +204,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="High contrast"
-                  desc="Stronger text/border contrast and bigger focus rings for accessibility."
+                  name={t("settings.appearance.highContrast")}
+                  desc={t("settings.appearance.highContrastDesc")}
                   control={
                     <Toggle
                       checked={theme.highContrast}
@@ -206,8 +214,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Translucent window"
-                  desc="Drop the workspace background to transparent so the host window can blur whatever sits behind it. Has no visible effect in a regular browser tab; useful as a PWA install."
+                  name={t("settings.appearance.translucent")}
+                  desc={t("settings.appearance.translucentDesc")}
                   control={
                     <Toggle
                       checked={settings.translucent}
@@ -216,17 +224,25 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
 
-                <h2 style={{ marginTop: "var(--size-4-8)" }}>Themes</h2>
+                <h2 style={{ marginTop: "var(--size-4-8)" }}>{t("settings.appearance.themes")}</h2>
                 <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-                  Drop a <code>.css</code> file in <code>.granite/themes/</code> at the vault root
-                  and select it below to apply it as the active theme.
+                  {t("settings.appearance.themesDesc.before")} <code>.css</code>{" "}
+                  {t("settings.appearance.themesDesc.middle")} <code>.granite/themes/</code>{" "}
+                  {t("settings.appearance.themesDesc.after")}
                 </p>
                 <SettingItem
-                  name="Active theme"
+                  name={t("settings.appearance.activeTheme")}
                   desc={
                     themes.length === 0
-                      ? "No themes found in .granite/themes/."
-                      : `${themes.length} theme${themes.length === 1 ? "" : "s"} available.`
+                      ? t("settings.appearance.noThemes")
+                      : t("settings.appearance.themeCount", {
+                          count: String(themes.length),
+                          themeLabel: t(
+                            themes.length === 1
+                              ? "settings.appearance.theme"
+                              : "settings.appearance.themesPlural",
+                          ),
+                        })
                   }
                   control={
                     <select
@@ -240,7 +256,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                       }}
                       disabled={themes.length === 0}
                     >
-                      <option value="">None (default Granite theme)</option>
+                      <option value="">{t("settings.appearance.defaultTheme")}</option>
                       {themes.map((t) => (
                         <option key={t.path} value={t.path}>
                           {t.name}
@@ -250,13 +266,18 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
 
-                <h2 style={{ marginTop: "var(--size-4-8)" }}>CSS snippets</h2>
+                <h2 style={{ marginTop: "var(--size-4-8)" }}>
+                  {t("settings.appearance.cssSnippets")}
+                </h2>
                 <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-                  Drop <code>.css</code> files in <code>.granite/snippets/</code> at the vault root
-                  to override styles. Toggle them on or off below — changes apply instantly.
+                  {t("settings.appearance.snippetsDesc.before")} <code>.css</code>{" "}
+                  {t("settings.appearance.snippetsDesc.middle")} <code>.granite/snippets/</code>{" "}
+                  {t("settings.appearance.snippetsDesc.after")}
                 </p>
                 {snippets.length === 0 ? (
-                  <div style={{ color: "var(--text-faint)" }}>No snippets found.</div>
+                  <div style={{ color: "var(--text-faint)" }}>
+                    {t("settings.appearance.noSnippets")}
+                  </div>
                 ) : (
                   <div
                     style={{
@@ -284,10 +305,10 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             )}
             {visibleSectionIds.has(section) && section === "editor" && (
               <>
-                <h2>Editor</h2>
+                <h2>{t("settings.editor")}</h2>
                 <SettingItem
-                  name="Default view mode for new tabs"
-                  desc="Whether opening a note shows source or reading view first."
+                  name={t("settings.editor.defaultView")}
+                  desc={t("settings.editor.defaultViewDesc")}
                   control={
                     <select
                       className="dropdown"
@@ -298,14 +319,14 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                         })
                       }
                     >
-                      <option value="source">Editing (source)</option>
-                      <option value="reading">Reading view</option>
+                      <option value="source">{t("settings.editor.view.source")}</option>
+                      <option value="reading">{t("settings.editor.view.reading")}</option>
                     </select>
                   }
                 />
                 <SettingItem
-                  name="Show line numbers"
-                  desc="Display line numbers in the editor gutter."
+                  name={t("settings.editor.lineNumbers")}
+                  desc={t("settings.editor.lineNumbersDesc")}
                   control={
                     <Toggle
                       checked={settings.showLineNumbers}
@@ -314,8 +335,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Readable line length"
-                  desc="Constrain editor body width to ~700 px so long lines wrap."
+                  name={t("settings.editor.readableLineLength")}
+                  desc={t("settings.editor.readableLineLengthDesc")}
                   control={
                     <Toggle
                       checked={settings.readableLineWidth}
@@ -324,8 +345,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Auto-pair brackets"
-                  desc="Automatically close (), [], {}, and quotes."
+                  name={t("settings.editor.autoPair")}
+                  desc={t("settings.editor.autoPairDesc")}
                   control={
                     <Toggle
                       checked={settings.autoPairBrackets}
@@ -334,8 +355,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Spellcheck"
-                  desc="Use the browser's native spellcheck inside the source editor."
+                  name={t("settings.editor.spellcheck")}
+                  desc={t("settings.editor.spellcheckDesc")}
                   control={
                     <Toggle
                       checked={settings.spellcheck}
@@ -344,8 +365,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Live preview"
-                  desc="Hide markdown formatting characters (**bold**, ==highlight==, [[wikilink]] brackets) on lines without the cursor. The cursor line always stays raw so you can edit."
+                  name={t("settings.editor.livePreview")}
+                  desc={t("settings.editor.livePreviewDesc")}
                   control={
                     <Toggle
                       checked={settings.livePreview}
@@ -354,8 +375,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Editor key bindings"
-                  desc="Choose standard browser-style editing keys or Vim normal/insert/visual mode."
+                  name={t("settings.editor.keyBindings")}
+                  desc={t("settings.editor.keyBindingsDesc")}
                   control={
                     <select
                       className="dropdown"
@@ -366,8 +387,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                         })
                       }
                     >
-                      <option value="standard">Standard</option>
-                      <option value="vim">Vim</option>
+                      <option value="standard">{t("settings.editor.keymap.standard")}</option>
+                      <option value="vim">{t("settings.editor.keymap.vim")}</option>
                     </select>
                   }
                 />
@@ -375,14 +396,14 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             )}
             {visibleSectionIds.has(section) && section === "files" && (
               <>
-                <h2>Files & links</h2>
+                <h2>{t("settings.files")}</h2>
                 <SettingItem
-                  name="Default folder for new notes"
-                  desc="Path within the vault. Empty means the vault root."
+                  name={t("settings.files.newNoteFolder")}
+                  desc={t("settings.files.newNoteFolderDesc")}
                   control={
                     <input
                       type="text"
-                      placeholder="(vault root)"
+                      placeholder={t("settings.files.vaultRootPlaceholder")}
                       value={settings.newNoteFolder}
                       onChange={(e) =>
                         settingsStore.update({ newNoteFolder: e.currentTarget.value })
@@ -391,8 +412,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Attachments folder"
-                  desc="Folder where pasted / dropped files are saved. Empty means the vault root."
+                  name={t("settings.files.attachmentsFolder")}
+                  desc={t("settings.files.attachmentsFolderDesc")}
                   control={
                     <input
                       type="text"
@@ -405,8 +426,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Confirm file deletion"
-                  desc="Ask before deleting files from the file explorer."
+                  name={t("settings.files.confirmDelete")}
+                  desc={t("settings.files.confirmDeleteDesc")}
                   control={
                     <Toggle
                       checked={settings.confirmFileDeletion}
@@ -415,8 +436,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Deleted files"
-                  desc="Choose whether deletes use the OS trash, the vault .trash folder, or permanent deletion."
+                  name={t("settings.files.deletedFiles")}
+                  desc={t("settings.files.deletedFilesDesc")}
                   control={
                     <select
                       className="dropdown"
@@ -427,15 +448,15 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                         })
                       }
                     >
-                      <option value="system">System trash</option>
-                      <option value="vault">Vault trash (.trash)</option>
-                      <option value="permanent">Permanently delete</option>
+                      <option value="system">{t("settings.files.trash.system")}</option>
+                      <option value="vault">{t("settings.files.trash.vault")}</option>
+                      <option value="permanent">{t("settings.files.trash.permanent")}</option>
                     </select>
                   }
                 />
                 <SettingItem
-                  name="Show nested tags"
-                  desc="Display slash-separated tags as a hierarchy in the Tags sidebar."
+                  name={t("settings.files.showNestedTags")}
+                  desc={t("settings.files.showNestedTagsDesc")}
                   control={
                     <Toggle
                       checked={settings.showNestedTags}
@@ -444,10 +465,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Excluded files"
-                  desc={
-                    "One pattern per line. A bare name (e.g. `archive`) matches any segment; `**` crosses directories. Comment lines start with `#`. Excluded files don't appear in the file explorer, switcher, search, or metadata cache."
-                  }
+                  name={t("settings.files.excludedFiles")}
+                  desc={t("settings.files.excludedFilesDesc")}
                   control={
                     <textarea
                       rows={5}
@@ -468,24 +487,26 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             )}
             {visibleSectionIds.has(section) && section === "hotkeys" && (
               <>
-                <h2>Hotkeys</h2>
+                <h2>{t("settings.hotkeys")}</h2>
                 <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-                  Click <em>Edit</em> on a row to capture the next keypress and save it as a user
-                  override. Press <kbd>Esc</kbd> while capturing to cancel. Use <em>Reset</em> to
-                  remove the override and restore the default.
+                  {t("settings.hotkeys.desc.beforeEdit")} <em>{t("settings.hotkeys.edit")}</em>{" "}
+                  {t("settings.hotkeys.desc.afterEdit")} <kbd>Esc</kbd>{" "}
+                  {t("settings.hotkeys.desc.afterEsc")} <em>{t("settings.hotkeys.reset")}</em>{" "}
+                  {t("settings.hotkeys.desc.afterReset")}
                 </p>
                 <HotkeyTable key={hotkeyVersion} commands={commands} />
               </>
             )}
             {visibleSectionIds.has(section) && section === "plugins" && (
               <>
-                <h2>Plugins</h2>
+                <h2>{t("settings.plugins")}</h2>
                 <p style={{ color: "var(--text-muted)", marginTop: 0 }}>
-                  Drop plugin folders in <code>.granite/plugins/</code> at the vault root. Each
-                  folder needs a <code>manifest.json</code> (with <code>name</code>,{" "}
-                  <code>version</code>) and a <code>main.js</code>. Plugins are disabled by default
-                  — flip the toggle to enable. Disabling a plugin calls its <code>onUnload</code>{" "}
-                  hook.
+                  {t("settings.plugins.desc.beforePath")} <code>.granite/plugins/</code>{" "}
+                  {t("settings.plugins.desc.afterPath")} <code>manifest.json</code>{" "}
+                  {t("settings.plugins.desc.with")} <code>name</code>, <code>version</code>
+                  {t("settings.plugins.desc.and")} <code>main.js</code>.{" "}
+                  {t("settings.plugins.desc.afterMain")} <code>onUnload</code>{" "}
+                  {t("settings.plugins.desc.afterUnload")}
                 </p>
                 <div
                   style={{
@@ -500,17 +521,17 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                     className="mod-cta"
                     onClick={() => void commandRegistry.run("plugins:install-from-url")}
                   >
-                    Install plugin from URL…
+                    {t("settings.plugins.installFromUrl")}
                   </button>
                   <button
                     type="button"
                     onClick={() => void commandRegistry.run("plugins:check-updates")}
                   >
-                    Check for updates
+                    {t("settings.plugins.checkUpdates")}
                   </button>
                 </div>
                 {plugins.length === 0 ? (
-                  <div style={{ color: "var(--text-faint)" }}>No plugins found.</div>
+                  <div style={{ color: "var(--text-faint)" }}>{t("settings.plugins.empty")}</div>
                 ) : (
                   <div
                     style={{
@@ -538,10 +559,10 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             )}
             {visibleSectionIds.has(section) && section === "daily-notes" && (
               <>
-                <h2>Daily notes</h2>
+                <h2>{t("settings.dailyNotes")}</h2>
                 <SettingItem
-                  name="Date format"
-                  desc="Moment-style tokens: YYYY YY MM DD HH mm. Slashes create subfolders."
+                  name={t("settings.dailyNotes.dateFormat")}
+                  desc={t("settings.dailyNotes.dateFormatDesc")}
                   control={
                     <input
                       type="text"
@@ -552,12 +573,12 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="New file location"
-                  desc="Folder for daily notes. Empty = vault root."
+                  name={t("settings.dailyNotes.newFileLocation")}
+                  desc={t("settings.dailyNotes.newFileLocationDesc")}
                   control={
                     <input
                       type="text"
-                      placeholder="(vault root)"
+                      placeholder={t("settings.files.vaultRootPlaceholder")}
                       value={dailyNotes.folder}
                       onChange={(e) => updateDaily({ folder: e.currentTarget.value })}
                     />
@@ -567,22 +588,22 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
             )}
             {visibleSectionIds.has(section) && section === "templates" && (
               <>
-                <h2>Templates</h2>
+                <h2>{t("settings.templates")}</h2>
                 <SettingItem
-                  name="Template folder location"
-                  desc="Folder containing your template `.md` files."
+                  name={t("settings.templates.folderLocation")}
+                  desc={t("settings.templates.folderLocationDesc")}
                   control={
                     <input
                       type="text"
-                      placeholder="(no folder set)"
+                      placeholder={t("settings.templates.noFolderPlaceholder")}
                       value={templates.templateFolder}
                       onChange={(e) => updateTemplates({ templateFolder: e.currentTarget.value })}
                     />
                   }
                 />
                 <SettingItem
-                  name="Date format"
-                  desc="Used by the {{date}} template token."
+                  name={t("settings.templates.dateFormat")}
+                  desc={t("settings.templates.dateFormatDesc")}
                   control={
                     <input
                       type="text"
@@ -593,8 +614,8 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
-                  name="Time format"
-                  desc="Used by the {{time}} template token."
+                  name={t("settings.templates.timeFormat")}
+                  desc={t("settings.templates.timeFormatDesc")}
                   control={
                     <input
                       type="text"
@@ -617,6 +638,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
 }
 
 function PluginSettingsTabHost({ spec }: { spec: SettingsTabSpec }) {
+  const t = useI18n();
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -629,7 +651,9 @@ function PluginSettingsTabHost({ spec }: { spec: SettingsTabSpec }) {
     } catch (err) {
       // eslint-disable-next-line no-console
       console.error(`[granite] settings tab "${spec.name}" render failed:`, err);
-      el.textContent = `Error rendering tab: ${err instanceof Error ? err.message : String(err)}`;
+      el.textContent = t("settings.pluginTab.renderError", {
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
     return () => {
       if (typeof cleanup === "function") {
@@ -642,7 +666,7 @@ function PluginSettingsTabHost({ spec }: { spec: SettingsTabSpec }) {
       }
       el.innerHTML = "";
     };
-  }, [spec]);
+  }, [spec, t]);
   return (
     <>
       <h2>{spec.name}</h2>
@@ -672,6 +696,7 @@ function HotkeyTable({ commands }: { commands: ReadonlyArray<Command> }) {
 }
 
 function HotkeyRow({ cmd }: { cmd: Command }) {
+  const t = useI18n();
   const [capturing, setCapturing] = useState(false);
   const overrides = getUserHotkeys(cmd.id);
   const effective = getEffectiveHotkeys(cmd.id);
@@ -718,7 +743,7 @@ function HotkeyRow({ cmd }: { cmd: Command }) {
         }}
       >
         {capturing
-          ? "Press a key…"
+          ? t("settings.hotkeys.pressKey")
           : effective.length > 0
             ? effective.map(formatHotkey).join(", ")
             : "—"}
@@ -729,7 +754,7 @@ function HotkeyRow({ cmd }: { cmd: Command }) {
         disabled={capturing}
         style={{ minWidth: 64 }}
       >
-        Add
+        {t("settings.hotkeys.add")}
       </button>
       {lastOverride && (
         <button
@@ -738,7 +763,7 @@ function HotkeyRow({ cmd }: { cmd: Command }) {
           disabled={capturing}
           style={{ minWidth: 64 }}
         >
-          Remove
+          {t("settings.hotkeys.remove")}
         </button>
       )}
       <button
@@ -747,10 +772,14 @@ function HotkeyRow({ cmd }: { cmd: Command }) {
         disabled={overrides.length === 0}
         style={{ minWidth: 64 }}
       >
-        Reset
+        {t("settings.hotkeys.reset")}
       </button>
     </div>
   );
+}
+
+function settingsSectionTitle(item: SettingsSectionInfo, t: ReturnType<typeof useI18n>): string {
+  return item.titleKey ? t(item.titleKey) : (item.title ?? item.id);
 }
 
 function SettingsTab({

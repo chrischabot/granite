@@ -80,7 +80,7 @@
 - [x] `events.on()`
 - [x] `metadataCache` read-only window
 - [x] Update check + minAppVersion handling
-- [ ] Community plugin browser (URL install exists; no registry browse yet)
+- [x] Community plugin browser ← _shipped 2026-05-12 Obsidian registry browse/install_
 
 ### §24.18 Drag & drop
 - [x] External-OS-drag handling with `Ctrl/Option` modifier ← _shipped 2026-05-12 external file drop sweep_

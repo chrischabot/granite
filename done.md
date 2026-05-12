@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-12 — Community plugin registry browser
+
+- **Official registry browse** — the install modal now loads the Obsidian
+  `community-plugins.json` registry, searches by name, id, author,
+  description, and repo, and lets users select a community plugin before the
+  existing preview/install confirmation.
+- **Obsidian release install path** — registry installs resolve the repo
+  manifest for the latest version, fetch the matching GitHub release assets
+  (`manifest.json`, `main.js`, optional `styles.css`), and persist a remote
+  `manifestUrl` so update checks have a configured source.
+- **Manual URL path preserved** — pasted `manifest.json` installs still use the
+  existing sibling-asset behavior for development or out-of-registry plugins.
+
+### Tests
+- Added `src/core/plugins/community-registry.test.ts` covering official
+  registry parsing, unsafe entry rejection, search, URL derivation, and
+  credential-free fetch behavior.
+- Validation: scoped `bunx biome check --write`, targeted plugin registry and
+  update-check tests, `bun run typecheck`, and direct network checks for
+  Advanced Tables, Git, and Calendar registry manifests plus release assets
+  pass.
+
+---
+
 ## 2026-05-12 — Vertical sidebar tab groups
 
 - **Sidebar group stack** — left and right sidebars now render one or more

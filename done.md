@@ -78,6 +78,23 @@
 
 ---
 
+## 2026-05-12 — Community theme compatibility fixture
+
+- **Obsidian theme layout support** — the theme loader now discovers
+  `.obsidian/themes/<theme-name>/theme.css` alongside Granite's
+  `.granite/themes/*.css` layout.
+- **No-rewrite application path** — applying an Obsidian-layout theme injects
+  the source CSS into the document while only persisting the active-theme choice
+  under `.granite/active-theme.json`.
+- **Theme list hygiene** — snippet CSS and unrelated CSS files are ignored by
+  the theme list.
+
+### Tests
+- Added `src/core/themes/loader.test.ts`.
+- Validation: targeted theme loader test passes.
+
+---
+
 ## 2026-05-12 — Performance budget first pass
 
 - **Quick Switcher keystroke path** — extracted reusable fuzzy indexes and

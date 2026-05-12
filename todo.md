@@ -109,7 +109,8 @@
 ### §24.23 Compatibility round-trip
 - [x] Obsidian vault round-trip core fixture ← _shipped 2026-05-12 parser/canvas/base fixture_
 - [ ] Obsidian vault browser/manual round-trip over a large real vault fixture
-- [ ] Community theme cross-render
+- [x] Community theme loader fixture ← _shipped 2026-05-12 Obsidian theme layout support_
+- [ ] Community theme browser visual cross-render
 
 ---
 

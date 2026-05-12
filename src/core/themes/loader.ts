@@ -1,11 +1,12 @@
-import { Effect } from "effect";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { extension } from "@core/fs/path";
-import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
 import type { VaultPath } from "@core/fs/types";
+import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
+import { Effect } from "effect";
 
-const THEMES_DIR = ".granite/themes";
+const GRANITE_THEMES_DIR = ".granite/themes";
+const OBSIDIAN_THEMES_DIR = ".obsidian/themes";
 const STORAGE_KEY = "granite.theme.active.v1";
 const DISK_CONFIG_NAME = "active-theme";
 
@@ -102,10 +103,11 @@ async function refreshAll(): Promise<void> {
   } catch {
     return;
   }
-  const cssFiles = files.filter((f) => f.path.startsWith(`${THEMES_DIR}/`));
+  const cssFiles = files.filter((f) => themeNameForPath(f.path) !== null);
   available.clear();
   for (const f of cssFiles) {
-    const name = f.path.slice(THEMES_DIR.length + 1).replace(/\.css$/i, "");
+    const name = themeNameForPath(f.path);
+    if (name === null) continue;
     available.set(f.path, { path: f.path, name });
   }
   // If the active theme is gone, unmount.
@@ -134,7 +136,7 @@ export function bindThemes(vaultId: string): void {
       return fs.watch((event) => {
         if (!("path" in event)) return;
         const p = event.path;
-        if (!p.startsWith(`${THEMES_DIR}/`)) return;
+        if (themeNameForPath(p) === null) return;
         if (extension(p) !== "css") return;
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => void refreshAll(), 200);
@@ -183,4 +185,19 @@ export function subscribe(listener: () => void): () => void {
   return () => {
     subscribers.delete(listener);
   };
+}
+
+function themeNameForPath(path: VaultPath): string | null {
+  if (extension(path) !== "css") return null;
+  if (path.startsWith(`${GRANITE_THEMES_DIR}/`)) {
+    const relative = path.slice(GRANITE_THEMES_DIR.length + 1);
+    if (!relative || relative.includes("/")) return null;
+    return relative.replace(/\.css$/i, "");
+  }
+  if (path.startsWith(`${OBSIDIAN_THEMES_DIR}/`) && path.endsWith("/theme.css")) {
+    const relative = path.slice(OBSIDIAN_THEMES_DIR.length + 1);
+    const parts = relative.split("/");
+    return parts.length === 2 && parts[0] ? parts[0] : null;
+  }
+  return null;
 }

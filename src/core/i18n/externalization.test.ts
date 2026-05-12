@@ -138,6 +138,41 @@ const VAULT_PROFILE_FORBIDDEN_PATTERNS = [
   /ariaLabel="Open settings"/,
 ];
 
+const FILE_EXPLORER_FORBIDDEN_PATTERNS = [
+  /prompt\("New note name:", "Untitled\.md"\)/,
+  /prompt\("New folder name:", "Untitled"\)/,
+  /"Invalid filename\."/,
+  /`A file named "\$\{fullPath\}" already exists`/,
+  /`A file named "\$\{newPath\}" already exists`/,
+  /Delete "\$\{stem\(path\)\}" using/,
+  /Delete \$\{paths\.length\} selected file/,
+  /"Moved to vault trash\."/,
+  /"Moved to system trash\."/,
+  /"Deleted\."/,
+  /Deleted with \$\{failures\} failure\(s\)\./,
+  /Moved and updated \$\{linksRewritten\}/,
+  /Imported \$\{imported\} file/,
+  /label: "Reveal contents"/,
+  /label: "Delete folder"/,
+  /label: "Open in current tab"/,
+  /label: "Open in new tab"/,
+  /label: "Rename"/,
+  /label: "Delete"/,
+  /item\("name-asc", "Name \(A → Z\)"\)/,
+  /item\("name-desc", "Name \(Z → A\)"\)/,
+  /item\("mtime-desc", "Modified \(newest first\)"\)/,
+  /item\("mtime-asc", "Modified \(oldest first\)"\)/,
+  /item\("ctime-desc", "Created \(newest first\)"\)/,
+  /item\("ctime-asc", "Created \(oldest first\)"\)/,
+  /ariaLabel="New note"/,
+  /ariaLabel="New folder"/,
+  /ariaLabel="Sort order"/,
+  />\s*No vault open\. Open a folder to begin\.\s*</,
+  />\s*Loading…\s*</,
+  />\s*Empty vault\. Create a note to start\.\s*</,
+  />\s*All files in this vault are excluded by your filters\.\s*</,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -417,6 +452,48 @@ describe("UI string externalization audit", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/shell/VaultProfile.tsx`, "utf8");
     const violations = VAULT_PROFILE_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
     for (const requiredKey of ["vaultProfile.switch", "vaultProfile.noVault", "ribbon.settings"]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps File Explorer labels routed through i18n keys", () => {
+    const source = readFileSync(
+      `${process.cwd()}/src/ui/views/file-explorer/FileExplorerView.tsx`,
+      "utf8",
+    );
+    const violations = FILE_EXPLORER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of [
+      "fileExplorer.prompt.newNote",
+      "fileExplorer.prompt.newFolder",
+      "fileExplorer.error.invalidFilename",
+      "fileExplorer.error.exists",
+      "fileExplorer.confirm.deleteOne",
+      "fileExplorer.confirm.deleteMany",
+      "fileExplorer.notice.movedVault",
+      "fileExplorer.notice.movedSystem",
+      "fileExplorer.notice.deleted",
+      "fileExplorer.notice.bulkSuccess",
+      "fileExplorer.notice.deletedWithFailures",
+      "fileExplorer.notice.movedAndUpdated",
+      "fileExplorer.notice.imported",
+      "fileExplorer.menu.revealContents",
+      "fileExplorer.menu.deleteFolder",
+      "fileExplorer.menu.openCurrent",
+      "fileExplorer.menu.openNew",
+      "fileExplorer.menu.rename",
+      "fileExplorer.menu.delete",
+      "fileExplorer.sort.nameAsc",
+      "fileExplorer.sort.createdOldest",
+      "fileExplorer.action.newNote",
+      "fileExplorer.action.newFolder",
+      "fileExplorer.action.sortOrder",
+      "fileExplorer.empty.noVault",
+      "fileExplorer.empty.loading",
+      "fileExplorer.empty.emptyVault",
+      "fileExplorer.empty.allExcluded",
+    ]) {
       expect(source).toContain(requiredKey);
     }
 

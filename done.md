@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-12 — File Explorer i18n ratchet
+
+- **File Explorer actions** — routed new-note/new-folder prompts, invalid-name
+  and duplicate-name fallback errors, delete confirmations, delete/import/move
+  notices, context-menu labels, sort-menu labels, toolbar labels, and empty
+  states through `t()`.
+- **Trash/delete labels** — replaced UI usage of core English trash labels with
+  File Explorer i18n keys for system trash, vault trash, and permanent
+  deletion.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if File Explorer's formerly hard-coded English prompts, menus, notices,
+  toolbar labels, or empty states return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n and file-explorer sort tests, full
+  `bun run test`, and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Shell ribbon and status i18n ratchet
 
 - **Ribbon actions** — routed quick switcher, command palette, graph, canvas,

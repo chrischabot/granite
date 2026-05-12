@@ -14,7 +14,7 @@ import {
   basename as pathBasename,
   stem,
 } from "@core/fs/path";
-import { deleteVaultPath, deletedFilesModeLabel } from "@core/fs/trash";
+import { type DeletedFilesMode, deleteVaultPath } from "@core/fs/trash";
 import { FsUnsupported, type VaultEntry, type VaultFile, type VaultPath } from "@core/fs/types";
 import { rewriteWikilinksOnRename } from "@core/links/rewrite";
 import { noticeManager } from "@core/notices/notice";
@@ -42,6 +42,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { useI18n } from "../../i18n/useI18n";
 import { sortNodes } from "./sort";
 
 const FILE_DND_MIME = "application/granite-vault-path";
@@ -53,6 +54,17 @@ function hasExternalFiles(dataTransfer: DataTransfer): boolean {
 function deletionErrorMessage(err: unknown): string {
   if (err instanceof FsUnsupported) return err.feature;
   return err instanceof Error ? err.message : String(err);
+}
+
+function deletedFilesModeI18nKey(mode: DeletedFilesMode): string {
+  switch (mode) {
+    case "system":
+      return "fileExplorer.trash.system";
+    case "vault":
+      return "fileExplorer.trash.vault";
+    case "permanent":
+      return "fileExplorer.trash.permanent";
+  }
 }
 
 interface TreeNode {
@@ -90,6 +102,7 @@ async function loadTree(): Promise<TreeNode[]> {
 }
 
 export function FileExplorerView() {
+  const t = useI18n();
   const { activeVault } = useVault();
   const [tree, setTree] = useState<ReadonlyArray<TreeNode>>([]);
   const [collapsed, setCollapsed] = useState<ReadonlySet<VaultPath>>(new Set());
@@ -191,7 +204,7 @@ export function FileExplorerView() {
 
   const handleNewFile = async () => {
     if (!activeVault) return;
-    const name = prompt("New note name:", "Untitled.md");
+    const name = prompt(t("fileExplorer.prompt.newNote"), t("fileExplorer.prompt.newNoteDefault"));
     if (!name) return;
     const filename = name.endsWith(".md") ? name : `${name}.md`;
     const folder = normalize(settingsStore.getState().newNoteFolder);
@@ -202,7 +215,7 @@ export function FileExplorerView() {
           const fs = yield* FileSystem;
           if (folder) yield* fs.mkdir(folder);
           const existing = yield* fs.stat(fullPath);
-          if (existing) throw new Error(`A file named "${fullPath}" already exists`);
+          if (existing) throw new Error(t("fileExplorer.error.exists", { path: fullPath }));
           yield* fs.writeText(fullPath, "");
         }),
       );
@@ -215,7 +228,10 @@ export function FileExplorerView() {
 
   const handleNewFolder = async () => {
     if (!activeVault) return;
-    const name = prompt("New folder name:", "Untitled");
+    const name = prompt(
+      t("fileExplorer.prompt.newFolder"),
+      t("fileExplorer.prompt.newFolderDefault"),
+    );
     if (!name) return;
     try {
       await run(
@@ -241,7 +257,7 @@ export function FileExplorerView() {
     setRenaming(null);
     if (!next || next === orig) return;
     if (isInvalidName(next)) {
-      noticeManager.show("Invalid filename.", { kind: "error" });
+      noticeManager.show(t("fileExplorer.error.invalidFilename"), { kind: "error" });
       return;
     }
     const dir = dirname(renaming.path);
@@ -253,7 +269,7 @@ export function FileExplorerView() {
         Effect.gen(function* () {
           const fs = yield* FileSystem;
           const existing = yield* fs.stat(newPath);
-          if (existing) throw new Error(`A file named "${newPath}" already exists`);
+          if (existing) throw new Error(t("fileExplorer.error.exists", { path: newPath }));
           yield* fs.rename(renaming.path, newPath);
         }),
       );
@@ -333,11 +349,16 @@ export function FileExplorerView() {
   }, [visibleTree]);
 
   const handleDelete = async (path: VaultPath) => {
-    const modeLabel = deletedFilesModeLabel(deletedFiles);
+    const modeLabel = t(deletedFilesModeI18nKey(deletedFiles));
     if (
       confirmFileDeletion &&
       !confirm(
-        `Delete "${stem(path)}" using ${modeLabel}?${deletedFiles === "permanent" ? " This cannot be undone." : ""}`,
+        t("fileExplorer.confirm.deleteOne", {
+          name: stem(path),
+          modeLabel,
+          permanentWarning:
+            deletedFiles === "permanent" ? t("fileExplorer.confirm.permanentWarning") : "",
+        }),
       )
     ) {
       return;
@@ -347,10 +368,10 @@ export function FileExplorerView() {
       await refresh();
       noticeManager.show(
         deletedFiles === "vault"
-          ? "Moved to vault trash."
+          ? t("fileExplorer.notice.movedVault")
           : deletedFiles === "system"
-            ? "Moved to system trash."
-            : "Deleted.",
+            ? t("fileExplorer.notice.movedSystem")
+            : t("fileExplorer.notice.deleted"),
         { kind: "success" },
       );
     } catch (err) {
@@ -361,11 +382,17 @@ export function FileExplorerView() {
   const handleDeleteMany = useCallback(
     async (paths: ReadonlyArray<VaultPath>) => {
       if (paths.length === 0) return;
-      const modeLabel = deletedFilesModeLabel(deletedFiles);
+      const modeLabel = t(deletedFilesModeI18nKey(deletedFiles));
       if (
         confirmFileDeletion &&
         !confirm(
-          `Delete ${paths.length} selected file${paths.length === 1 ? "" : "s"} using ${modeLabel}?${deletedFiles === "permanent" ? " This cannot be undone." : ""}`,
+          t("fileExplorer.confirm.deleteMany", {
+            count: paths.length,
+            fileLabel: t(paths.length === 1 ? "fileExplorer.file" : "fileExplorer.files"),
+            modeLabel,
+            permanentWarning:
+              deletedFiles === "permanent" ? t("fileExplorer.confirm.permanentWarning") : "",
+          }),
         )
       ) {
         return;
@@ -381,19 +408,34 @@ export function FileExplorerView() {
       setSelection(new Set());
       await refresh();
       if (failures === 0) {
-        const verb = deletedFiles === "vault" ? "Moved" : "Deleted";
-        const destination = deletedFiles === "vault" ? " to vault trash" : "";
+        const verb =
+          deletedFiles === "vault"
+            ? t("fileExplorer.notice.bulkMoved")
+            : t("fileExplorer.notice.bulkDeleted");
+        const destination =
+          deletedFiles === "vault" ? t("fileExplorer.notice.bulkDestinationVault") : "";
         noticeManager.show(
-          `${verb} ${paths.length} file${paths.length === 1 ? "" : "s"}${destination}.`,
+          t("fileExplorer.notice.bulkSuccess", {
+            verb,
+            count: paths.length,
+            fileLabel: t(paths.length === 1 ? "fileExplorer.file" : "fileExplorer.files"),
+            destination,
+          }),
           {
             kind: "success",
           },
         );
       } else {
-        noticeManager.show(`Deleted with ${failures} failure(s).`, { kind: "warning" });
+        noticeManager.show(
+          t("fileExplorer.notice.deletedWithFailures", {
+            count: failures,
+            failureLabel: t(failures === 1 ? "fileExplorer.failure" : "fileExplorer.failures"),
+          }),
+          { kind: "warning" },
+        );
       }
     },
-    [confirmFileDeletion, deletedFiles, refresh],
+    [confirmFileDeletion, deletedFiles, refresh, t],
   );
 
   const handleRowClick = useCallback(
@@ -451,7 +493,7 @@ export function FileExplorerView() {
         Effect.gen(function* () {
           const fs = yield* FileSystem;
           const existing = yield* fs.stat(newPath);
-          if (existing) throw new Error(`A file named "${newPath}" already exists`);
+          if (existing) throw new Error(t("fileExplorer.error.exists", { path: newPath }));
           yield* fs.rename(sourcePath, newPath);
         }),
       );
@@ -463,7 +505,12 @@ export function FileExplorerView() {
           );
           if (linksRewritten > 0) {
             noticeManager.show(
-              `Moved and updated ${linksRewritten} link${linksRewritten === 1 ? "" : "s"} in ${filesUpdated} file${filesUpdated === 1 ? "" : "s"}.`,
+              t("fileExplorer.notice.movedAndUpdated", {
+                links: linksRewritten,
+                linkLabel: t(linksRewritten === 1 ? "fileExplorer.link" : "fileExplorer.links"),
+                files: filesUpdated,
+                fileLabel: t(filesUpdated === 1 ? "fileExplorer.file" : "fileExplorer.files"),
+              }),
               { kind: "success" },
             );
           }
@@ -519,16 +566,22 @@ export function FileExplorerView() {
       await refresh();
       if (failures === 0) {
         noticeManager.show(
-          `Imported ${imported} file${imported === 1 ? "" : "s"}${targetFolder ? ` into ${targetFolder}` : ""}.`,
+          t("fileExplorer.notice.imported", {
+            count: imported,
+            fileLabel: t(imported === 1 ? "fileExplorer.file" : "fileExplorer.files"),
+            destination: targetFolder
+              ? t("fileExplorer.notice.importedDestination", { folder: targetFolder })
+              : "",
+          }),
           { kind: "success" },
         );
       } else {
-        noticeManager.show(`Imported ${imported} file(s) with ${failures} failure(s).`, {
+        noticeManager.show(t("fileExplorer.notice.importedWithFailures", { imported, failures }), {
           kind: "warning",
         });
       }
     },
-    [activeVault, refresh],
+    [activeVault, refresh, t],
   );
 
   const showContextMenu = (e: React.MouseEvent, path: VaultPath, isDir: boolean) => {
@@ -537,13 +590,13 @@ export function FileExplorerView() {
       ? [
           {
             id: "open",
-            label: "Reveal contents",
+            label: t("fileExplorer.menu.revealContents"),
             icon: <FolderOpen size={14} />,
             callback: () => toggleCollapsed(path),
           },
           {
             id: "delete",
-            label: "Delete folder",
+            label: t("fileExplorer.menu.deleteFolder"),
             icon: <Trash2 size={14} />,
             warning: true,
             callback: () => void handleDelete(path),
@@ -552,7 +605,7 @@ export function FileExplorerView() {
       : [
           {
             id: "open",
-            label: "Open in current tab",
+            label: t("fileExplorer.menu.openCurrent"),
             callback: () => {
               const ext = extension(path);
               if (ext === "canvas") workspaceStore.openCanvas({ path });
@@ -562,7 +615,7 @@ export function FileExplorerView() {
           },
           {
             id: "open-new",
-            label: "Open in new tab",
+            label: t("fileExplorer.menu.openNew"),
             callback: () => {
               const ext = extension(path);
               if (ext === "canvas") workspaceStore.openCanvas({ path, newTab: true });
@@ -572,13 +625,13 @@ export function FileExplorerView() {
           },
           {
             id: "rename",
-            label: "Rename",
+            label: t("fileExplorer.menu.rename"),
             icon: <Pencil size={14} />,
             callback: () => startRename(path),
           },
           {
             id: "delete",
-            label: "Delete",
+            label: t("fileExplorer.menu.delete"),
             icon: <Trash2 size={14} />,
             warning: true,
             callback: () => void handleDelete(path),
@@ -601,22 +654,30 @@ export function FileExplorerView() {
       x: e.clientX,
       y: e.clientY,
       items: [
-        item("name-asc", "Name (A → Z)"),
-        item("name-desc", "Name (Z → A)"),
-        item("mtime-desc", "Modified (newest first)"),
-        item("mtime-asc", "Modified (oldest first)"),
-        item("ctime-desc", "Created (newest first)"),
-        item("ctime-asc", "Created (oldest first)"),
+        item("name-asc", t("fileExplorer.sort.nameAsc")),
+        item("name-desc", t("fileExplorer.sort.nameDesc")),
+        item("mtime-desc", t("fileExplorer.sort.modifiedNewest")),
+        item("mtime-asc", t("fileExplorer.sort.modifiedOldest")),
+        item("ctime-desc", t("fileExplorer.sort.createdNewest")),
+        item("ctime-asc", t("fileExplorer.sort.createdOldest")),
       ],
     });
   };
 
   const header = (
     <div className="nav-header">
-      <ClickableIcon ariaLabel="New note" icon={<FilePlus />} onClick={handleNewFile} />
-      <ClickableIcon ariaLabel="New folder" icon={<FolderPlus />} onClick={handleNewFolder} />
       <ClickableIcon
-        ariaLabel="Sort order"
+        ariaLabel={t("fileExplorer.action.newNote")}
+        icon={<FilePlus />}
+        onClick={handleNewFile}
+      />
+      <ClickableIcon
+        ariaLabel={t("fileExplorer.action.newFolder")}
+        icon={<FolderPlus />}
+        onClick={handleNewFolder}
+      />
+      <ClickableIcon
+        ariaLabel={t("fileExplorer.action.sortOrder")}
         icon={sortOrder.startsWith("name") ? <ArrowDownAZ /> : <Clock />}
         onClick={showSortMenu}
       />
@@ -624,9 +685,7 @@ export function FileExplorerView() {
   );
 
   if (!activeVault) {
-    return (
-      <div className="workspace-sidedock-empty-state">No vault open. Open a folder to begin.</div>
-    );
+    return <div className="workspace-sidedock-empty-state">{t("fileExplorer.empty.noVault")}</div>;
   }
 
   return (
@@ -634,9 +693,9 @@ export function FileExplorerView() {
       {header}
       {error && <div className="message mod-error">{error}</div>}
       {loading && tree.length === 0 ? (
-        <div className="workspace-sidedock-empty-state">Loading…</div>
+        <div className="workspace-sidedock-empty-state">{t("fileExplorer.empty.loading")}</div>
       ) : tree.length === 0 ? (
-        <div className="workspace-sidedock-empty-state">Empty vault. Create a note to start.</div>
+        <div className="workspace-sidedock-empty-state">{t("fileExplorer.empty.emptyVault")}</div>
       ) : (
         <div
           className="nav-files-container"
@@ -676,7 +735,7 @@ export function FileExplorerView() {
         >
           {visibleTree.length === 0 ? (
             <div className="workspace-sidedock-empty-state">
-              All files in this vault are excluded by your filters.
+              {t("fileExplorer.empty.allExcluded")}
             </div>
           ) : (
             visibleTree.map((node) => (

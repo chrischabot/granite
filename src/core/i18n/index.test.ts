@@ -59,5 +59,6 @@ describe("i18n", () => {
     expect(t("sidebar.tab.localGraph")).toBe("גרף מקומי");
     expect(t("properties.addAction")).toBe("הוספת מאפיין");
     expect(t("status.localOnly")).toBe("מקומי בלבד");
+    expect(t("fileExplorer.action.newNote")).toBe("הערה חדשה");
   });
 });

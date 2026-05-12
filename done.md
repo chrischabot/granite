@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-12 — Interactive canvas embeds
+
+- **Reading-mode canvas embeds** — `![[file.canvas]]` now mounts the real
+  `CanvasView` inside Reading mode instead of replacing the embed with a
+  click-only summary card.
+- **Embed chrome** — embedded canvases keep a compact header with title,
+  node/edge summary, and an explicit Open button for moving the canvas into a
+  normal tab.
+- **Unmount cleanup** — embedded Canvas React roots are cleaned up when the
+  rendered markdown changes or the host note unmounts.
+
+### Tests
+- Added `ui/views/ReadingView.test.tsx` to prove a markdown note with a canvas
+  embed mounts `.canvas-view` inside `.canvas-embed.is-interactive`.
+- Validation: `bun run typecheck`, targeted ReadingView embed test,
+  `bun run test` (421 tests / 41 files), and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Canvas marquee and duplicate interactions
 
 - **Multi-node selection** — Canvas selection now supports multiple selected

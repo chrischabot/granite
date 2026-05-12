@@ -449,6 +449,23 @@
   margin-top: var(--size-2-2);
 }
 
+.markdown-rendered .canvas-embed.is-interactive {
+  padding: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-inline-start: 4px solid var(--interactive-accent);
+  cursor: default;
+  user-select: auto;
+}
+
+.markdown-rendered .canvas-embed.is-interactive .embed-kind {
+  min-height: 32px;
+  padding: var(--size-2-2) var(--size-4-3);
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--background-modifier-border);
+  background: var(--background-secondary);
+  box-sizing: border-box;
+}
+
 /* Query results blocks (` ```query ` fences) */
 .markdown-rendered .query-results-block {
   margin: var(--p-spacing) 0;

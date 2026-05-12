@@ -18,6 +18,8 @@ import { workspaceStore } from "@core/workspace/store";
 import { useWorkspace } from "@core/workspace/useWorkspace";
 import { Effect } from "effect";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type Root, createRoot } from "react-dom/client";
+import { CanvasView } from "./CanvasView";
 
 export interface ReadingViewProps {
   path: VaultPath;
@@ -317,6 +319,7 @@ export function ReadingView({ path }: ReadingViewProps) {
     const root = containerRef.current;
     if (!root) return;
     let cancelled = false;
+    const mountedRoots: Root[] = [];
 
     const resolve = async (el: HTMLElement) => {
       const href = el.getAttribute("data-href") ?? "";
@@ -353,21 +356,65 @@ export function ReadingView({ path }: ReadingViewProps) {
       }
       if (cancelled) return;
 
+      if (isCanvas) {
+        const card = document.createElement("div");
+        card.className = "canvas-embed is-interactive";
+        card.setAttribute("data-href", cleanPath);
+        card.style.height = "460px";
+        card.style.overflow = "hidden";
+
+        const header = document.createElement("div");
+        header.className = "embed-kind";
+        header.style.display = "flex";
+        header.style.alignItems = "center";
+        header.style.justifyContent = "space-between";
+        header.style.gap = "var(--size-4-2)";
+
+        const label = document.createElement("span");
+        label.textContent = `${stem(cleanPath)} · ${summary}`;
+        header.appendChild(label);
+
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "clickable-icon";
+        openButton.textContent = "Open";
+        openButton.setAttribute("aria-label", `Open ${stem(cleanPath)} canvas`);
+        openButton.addEventListener("click", (clickEvt) => {
+          clickEvt.preventDefault();
+          clickEvt.stopPropagation();
+          workspaceStore.openCanvas({
+            path: cleanPath,
+            newTab: clickEvt.metaKey || clickEvt.ctrlKey,
+          });
+        });
+        header.appendChild(openButton);
+
+        const mount = document.createElement("div");
+        mount.style.height = "calc(100% - 32px)";
+        mount.style.minHeight = "0";
+        card.append(header, mount);
+        el.replaceWith(card);
+
+        const embeddedRoot = createRoot(mount);
+        mountedRoots.push(embeddedRoot);
+        embeddedRoot.render(<CanvasView path={cleanPath} />);
+        return;
+      }
+
       const card = document.createElement("div");
-      card.className = isCanvas ? "canvas-embed" : "base-embed";
+      card.className = "base-embed";
       card.setAttribute("role", "button");
       card.tabIndex = 0;
       card.setAttribute("data-href", cleanPath);
       const fileName = stem(cleanPath);
-      const kindLabel = isCanvas ? "Canvas" : "Base";
+      const kindLabel = "Base";
       card.innerHTML = `
         <div class="embed-kind">${escapeAttr(kindLabel)}</div>
         <div class="embed-title">${escapeAttr(fileName)}</div>
         <div class="embed-summary">${escapeAttr(summary)}</div>
       `;
       const open = (newTab: boolean) => {
-        if (isCanvas) workspaceStore.openCanvas({ path: cleanPath, newTab });
-        else workspaceStore.openBase({ path: cleanPath, newTab });
+        workspaceStore.openBase({ path: cleanPath, newTab });
       };
       card.addEventListener("click", (clickEvt) => {
         clickEvt.preventDefault();
@@ -387,6 +434,9 @@ export function ReadingView({ path }: ReadingViewProps) {
 
     return () => {
       cancelled = true;
+      for (const embeddedRoot of mountedRoots) {
+        queueMicrotask(() => embeddedRoot.unmount());
+      }
     };
   }, [html]);
 

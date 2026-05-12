@@ -44,7 +44,7 @@
 
 ### §24.9 Canvas
 - [x] Marquee select / alt-duplicate / shift-axis-lock ← _shipped 2026-05-12 canvas interaction sweep_
-- [ ] Embedded canvas interaction inside host note
+- [x] Embedded canvas interaction inside host note ← _shipped 2026-05-12 reading embed sweep_
 - [x] Snap toggle ← _shipped 2026-05-12 canvas sweep_
 
 ### §24.10 Bases — closed in Phase 10 sweep

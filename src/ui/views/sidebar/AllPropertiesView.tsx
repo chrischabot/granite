@@ -1,14 +1,15 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
 import { metadataCache } from "@core/metadata/cache";
-import { useMetadataVersion } from "@core/metadata/useMetadata";
 import {
+  PROPERTY_TYPES,
+  type PropertyType,
   getRegistryVersion,
   getTypeOverride,
-  PROPERTY_TYPES,
   setTypeOverride,
   subscribeTypeRegistry,
-  type PropertyType,
 } from "@core/metadata/type-registry";
+import { useMetadataVersion } from "@core/metadata/useMetadata";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { useI18n } from "../../i18n/useI18n";
 import { setSearchQuery } from "./SearchView";
 
 interface PropertyAggregate {
@@ -36,12 +37,18 @@ function inferType(samples: ReadonlyArray<unknown>): PropertyType {
   return "text";
 }
 
+function propertyTypeLabel(t: ReturnType<typeof useI18n>, type: PropertyType): string {
+  return t(`propertyType.${type}`);
+}
+
 export function AllPropertiesView() {
+  const t = useI18n();
   const version = useMetadataVersion();
   useSyncExternalStore(subscribeTypeRegistry, getRegistryVersion, getRegistryVersion);
   const [aggregate, setAggregate] = useState<PropertyAggregate[]>([]);
 
   useEffect(() => {
+    void version;
     const props = metadataCache.getAllProperties();
     setAggregate(
       props.map((p) => ({
@@ -53,11 +60,7 @@ export function AllPropertiesView() {
   }, [version]);
 
   if (aggregate.length === 0) {
-    return (
-      <div className="workspace-sidedock-empty-state">
-        No properties found across vault.
-      </div>
-    );
+    return <div className="workspace-sidedock-empty-state">{t("allProperties.empty")}</div>;
   }
 
   return (
@@ -66,6 +69,9 @@ export function AllPropertiesView() {
         {aggregate.map((p) => {
           const override = getTypeOverride(p.name);
           const effective = override ?? p.inferredType;
+          const effectiveLabel = propertyTypeLabel(t, effective);
+          const inferredLabel = propertyTypeLabel(t, p.inferredType);
+          const noteLabel = t(p.count === 1 ? "properties.note" : "properties.notes");
           return (
             <div
               key={p.name}
@@ -78,30 +84,28 @@ export function AllPropertiesView() {
                 cursor: "var(--cursor)",
               }}
             >
-              <div
+              <button
+                type="button"
                 className="metadata-property-key"
                 style={{
+                  background: "transparent",
+                  border: 0,
                   flex: 1,
                   minWidth: 0,
+                  padding: 0,
                   fontWeight: "var(--font-medium)",
                   color: "var(--text-normal)",
+                  font: "inherit",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                   cursor: "var(--cursor-link)",
+                  textAlign: "start",
                 }}
                 onClick={() => setSearchQuery(p.name)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    setSearchQuery(p.name);
-                  }
-                }}
               >
                 {p.name}
-              </div>
+              </button>
               <select
                 className="dropdown"
                 value={override ?? ""}
@@ -109,21 +113,22 @@ export function AllPropertiesView() {
                   const v = e.currentTarget.value;
                   void setTypeOverride(p.name, v ? (v as PropertyType) : null);
                 }}
-                onClick={(e) => e.stopPropagation()}
                 style={{
                   minWidth: 110,
                   fontSize: "var(--font-ui-smaller)",
                 }}
                 title={
                   override
-                    ? `Override set to "${override}". Reset to clear.`
-                    : `Inferred type: ${effective}`
+                    ? t("allProperties.overrideTitle", { type: effectiveLabel })
+                    : t("allProperties.inferredTitle", { type: effectiveLabel })
                 }
               >
-                <option value="">{`(inferred: ${p.inferredType})`}</option>
-                {PROPERTY_TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                <option value="">
+                  {t("allProperties.inferredOption", { type: inferredLabel })}
+                </option>
+                {PROPERTY_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {propertyTypeLabel(t, type)}
                   </option>
                 ))}
               </select>
@@ -134,7 +139,10 @@ export function AllPropertiesView() {
                   minWidth: 60,
                   textAlign: "end",
                 }}
-                title={`${p.count} note${p.count === 1 ? "" : "s"} use this property`}
+                title={t("allProperties.usageTitle", {
+                  count: p.count,
+                  noteLabel,
+                })}
               >
                 {p.count}
               </span>

@@ -57,5 +57,6 @@ describe("i18n", () => {
     expect(t("backlinks.unlinked.title")).toBe("אזכורים לא מקושרים");
     expect(t("outline.filterPlaceholder")).toBe("סינון כותרות…");
     expect(t("sidebar.tab.localGraph")).toBe("גרף מקומי");
+    expect(t("properties.addAction")).toBe("הוספת מאפיין");
   });
 });

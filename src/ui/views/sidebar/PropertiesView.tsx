@@ -1,20 +1,18 @@
-import { Plus, Trash2 } from "lucide-react";
-import { Effect } from "effect";
-import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
-import {
-  removeFrontmatterValue,
-  updateFrontmatterValue,
-} from "@core/metadata/frontmatter";
+import { removeFrontmatterValue, updateFrontmatterValue } from "@core/metadata/frontmatter";
 import {
   getRegistryVersion,
   getTypeOverride,
   subscribeTypeRegistry,
 } from "@core/metadata/type-registry";
 import { useFileMetadata } from "@core/metadata/useMetadata";
-import { useWorkspace } from "@core/workspace/useWorkspace";
 import { noticeManager } from "@core/notices/notice";
+import { useWorkspace } from "@core/workspace/useWorkspace";
+import { Effect } from "effect";
+import { Plus, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useI18n } from "../../i18n/useI18n";
 
 type ValueType = "text" | "number" | "checkbox" | "list" | "json" | "date" | "datetime";
 
@@ -42,13 +40,10 @@ function effectiveType(key: string, value: unknown): ValueType {
 
 function toDatetimeLocal(value: string): string {
   const m = value.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
-  return m ? m[1]! : "";
+  return m?.[1] ?? "";
 }
 
-async function persist(
-  path: string,
-  mutate: (text: string) => string,
-): Promise<void> {
+async function persist(path: string, mutate: (text: string) => string): Promise<void> {
   await run(
     Effect.gen(function* () {
       const fs = yield* FileSystem;
@@ -60,6 +55,7 @@ async function persist(
 }
 
 export function PropertiesView() {
+  const t = useI18n();
   const { activeGroupId, groups, leaves } = useWorkspace();
   // Subscribe to type-registry changes so override edits cause a re-render.
   useSyncExternalStore(subscribeTypeRegistry, getRegistryVersion, getRegistryVersion);
@@ -77,13 +73,12 @@ export function PropertiesView() {
       try {
         await persist(activePath, (t) => updateFrontmatterValue(t, key, value));
       } catch (err) {
-        noticeManager.show(
-          err instanceof Error ? err.message : "Could not update property",
-          { kind: "error" },
-        );
+        noticeManager.show(err instanceof Error ? err.message : t("properties.error.update"), {
+          kind: "error",
+        });
       }
     },
-    [activePath],
+    [activePath, t],
   );
 
   const handleRemove = useCallback(
@@ -92,28 +87,25 @@ export function PropertiesView() {
       try {
         await persist(activePath, (t) => removeFrontmatterValue(t, key));
       } catch (err) {
-        noticeManager.show(
-          err instanceof Error ? err.message : "Could not remove property",
-          { kind: "error" },
-        );
+        noticeManager.show(err instanceof Error ? err.message : t("properties.error.remove"), {
+          kind: "error",
+        });
       }
     },
-    [activePath],
+    [activePath, t],
   );
 
   const handleAdd = useCallback(async () => {
     if (!activePath) return;
-    const key = prompt("New property name:");
+    const key = prompt(t("properties.addPrompt"));
     if (!key) return;
     const trimmed = key.trim();
     if (!trimmed) return;
     await handleSetValue(trimmed, "");
-  }, [activePath, handleSetValue]);
+  }, [activePath, handleSetValue, t]);
 
   if (!activePath) {
-    return (
-      <div className="workspace-sidedock-empty-state">Open a note to see its properties.</div>
-    );
+    return <div className="workspace-sidedock-empty-state">{t("properties.empty.noActive")}</div>;
   }
 
   const entries = Object.entries(meta?.frontmatter ?? {});
@@ -129,7 +121,7 @@ export function PropertiesView() {
               padding: "var(--size-4-3) 0",
             }}
           >
-            No properties on this note. Click <strong>+ Add</strong> to create one.
+            {t("properties.empty.noProperties", { addLabel: t("properties.addLabel") })}
           </div>
         ) : (
           entries.map(([key, value]) => (
@@ -139,6 +131,7 @@ export function PropertiesView() {
               value={value}
               onChange={(v) => void handleSetValue(key, v)}
               onRemove={() => void handleRemove(key)}
+              t={t}
             />
           ))
         )}
@@ -149,7 +142,7 @@ export function PropertiesView() {
         style={{ marginTop: "var(--size-4-3)" }}
       >
         <Plus size={14} style={{ marginRight: "var(--size-2-2)" }} />
-        Add property
+        {t("properties.addAction")}
       </button>
     </div>
   );
@@ -160,11 +153,13 @@ function PropertyRow({
   value,
   onChange,
   onRemove,
+  t,
 }: {
   propKey: string;
   value: unknown;
   onChange: (v: unknown) => void;
   onRemove: () => void;
+  t: ReturnType<typeof useI18n>;
 }) {
   const type = effectiveType(propKey, value);
   const [draft, setDraft] = useState<string>(() => stringify(value));
@@ -240,7 +235,7 @@ function PropertyRow({
           <input
             type="text"
             value={draft}
-            placeholder="comma, separated, values"
+            placeholder={t("properties.listPlaceholder")}
             onChange={(e) => setDraft(e.currentTarget.value)}
             onBlur={(e) => commit(e.currentTarget.value)}
             onKeyDown={(e) => {
@@ -254,7 +249,11 @@ function PropertyRow({
             onChange={(e) => setDraft(e.currentTarget.value)}
             onBlur={(e) => commit(e.currentTarget.value)}
             rows={2}
-            style={{ width: "100%", fontFamily: "var(--font-monospace)", fontSize: "var(--font-ui-smaller)" }}
+            style={{
+              width: "100%",
+              fontFamily: "var(--font-monospace)",
+              fontSize: "var(--font-ui-smaller)",
+            }}
           />
         ) : type === "date" ? (
           <input
@@ -285,7 +284,7 @@ function PropertyRow({
       </div>
       <button
         type="button"
-        aria-label={`Remove property ${propKey}`}
+        aria-label={t("properties.remove", { name: propKey })}
         className="clickable-icon"
         onClick={onRemove}
         style={{ padding: 2 }}

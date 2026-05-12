@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-12 — Property sidebar i18n ratchet
+
+- **File properties pane** — routed property add/remove prompts, empty states,
+  list placeholders, fallback error text, and remove action labels through
+  `t()`.
+- **All properties pane** — routed the vault-wide empty state, inferred/override
+  titles, inferred option label, usage tooltip, note-count labels, and property
+  type labels through `t()`.
+- **Keyboard semantics cleanup** — replaced the clickable property-name `div`
+  with a semantic button and removed a stale select click handler while touching
+  the pane.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if the old Properties or All Properties hard-coded English literals
+  return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`, and
+  `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Sidebar chrome and local graph i18n ratchet
 
 - **Sidebar tab chrome** — replaced hard-coded sidebar tab labels with

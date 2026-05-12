@@ -88,6 +88,25 @@ const LOCAL_GRAPH_VIEW_FORBIDDEN_PATTERNS = [
 
 const SIDEBAR_LEAF_VIEW_FORBIDDEN_PATTERNS = [/>\s*Sidebar view is no longer available\.\s*</];
 
+const PROPERTIES_VIEW_FORBIDDEN_PATTERNS = [
+  /"Could not update property"/,
+  /"Could not remove property"/,
+  /prompt\("New property name:"\)/,
+  />\s*Open a note to see its properties\.\s*</,
+  />\s*No properties on this note\. Click\s*</,
+  />\s*Add property\s*</,
+  /placeholder="comma, separated, values"/,
+  /aria-label=\{`Remove property \$\{propKey\}`\}/,
+];
+
+const ALL_PROPERTIES_VIEW_FORBIDDEN_PATTERNS = [
+  />\s*No properties found across vault\.\s*</,
+  /`Override set to "\$\{override\}"\. Reset to clear\.`/,
+  /`Inferred type: \$\{effective\}`/,
+  /`\(inferred: \$\{p\.inferredType\}\)`/,
+  /`\$\{p\.count\} note\$\{p\.count === 1 \? "" : "s"\} use this property`/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -272,6 +291,50 @@ describe("UI string externalization audit", () => {
       pattern.test(source),
     );
     expect(source).toContain("sidebar.unavailable");
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps Properties view labels routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/PropertiesView.tsx`, "utf8");
+    const violations = PROPERTIES_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+    for (const requiredKey of [
+      "properties.error.update",
+      "properties.error.remove",
+      "properties.addPrompt",
+      "properties.empty.noActive",
+      "properties.empty.noProperties",
+      "properties.addLabel",
+      "properties.addAction",
+      "properties.listPlaceholder",
+      "properties.remove",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps All Properties view labels routed through i18n keys", () => {
+    const source = readFileSync(
+      `${process.cwd()}/src/ui/views/sidebar/AllPropertiesView.tsx`,
+      "utf8",
+    );
+    const violations = ALL_PROPERTIES_VIEW_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+    for (const requiredKey of [
+      "allProperties.empty",
+      "allProperties.overrideTitle",
+      "allProperties.inferredTitle",
+      "allProperties.inferredOption",
+      "allProperties.usageTitle",
+      "properties.note",
+      "properties.notes",
+      "propertyType.",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
 
     expect(violations, violations.join("\n")).toEqual([]);
   });

@@ -15,6 +15,7 @@
     "verify:save-roundtrip-browser": "node scripts/verify-save-roundtrip-browser.mjs",
     "verify:startup-browser": "node scripts/verify-startup-browser.mjs",
     "verify:keyboard-browser": "node scripts/verify-keyboard-browser.mjs",
+    "verify:obsidian-vault-browser": "node scripts/verify-obsidian-vault-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

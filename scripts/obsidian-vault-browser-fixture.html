@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Obsidian Vault Browser Fixture</title>
+  </head>
+  <body>
+    <main id="render-root" aria-label="Rendered compatibility notes"></main>
+    <script type="module">
+      import { parseBaseConfig, serializeBaseConfig } from "../src/core/bases/schema.ts";
+      import { parseCanvas, serializeCanvas } from "../src/core/canvas/schema.ts";
+      import { disposeRuntime, setAppLayer } from "../src/core/effect/runtime.ts";
+      import { FileSystem } from "../src/core/fs/FileSystem.ts";
+      import { extension } from "../src/core/fs/path.ts";
+      import { metadataCache } from "../src/core/metadata/cache.ts";
+      import { renderNoteMarkdown } from "../src/core/markdown/renderer.ts";
+      import { Effect, Layer } from "effect";
+
+      const NOTE_COUNT = 200;
+      const root = document.querySelector("#render-root");
+      const originalFiles = new Map();
+      const files = new Map();
+      const writes = [];
+
+      function assert(condition, message, detail = {}) {
+        if (!condition) throw new Error(`${message}: ${JSON.stringify(detail)}`);
+      }
+
+      function addFile(path, text) {
+        files.set(path, text);
+        originalFiles.set(path, text);
+      }
+
+      function makeVault() {
+        addFile(".obsidian/app.json", JSON.stringify({ legacyEditor: false, livePreview: true }, null, 2));
+        addFile(
+          ".obsidian/workspace.json",
+          JSON.stringify(
+            {
+              main: { type: "split", children: [] },
+              left: { type: "split", children: [] },
+              right: { type: "split", children: [] },
+            },
+            null,
+            2,
+          ),
+        );
+        addFile(".obsidian/themes/Minimal/theme.css", "body { --background-primary: #ffffff; }\n");
+        addFile(".obsidian/snippets/readable.css", ".markdown-preview-view { line-height: 1.6; }\n");
+        addFile("Assets/diagram.png", "not-a-real-png; metadata index must ignore asset bytes");
+        addFile(
+          "Maps/Overview.canvas",
+          JSON.stringify(
+            {
+              nodes: [
+                {
+                  id: "note-000",
+                  type: "file",
+                  file: "Notes/Note 000.md",
+                  x: 0,
+                  y: 0,
+                  width: 260,
+                  height: 160,
+                  color: "1",
+                },
+                {
+                  id: "note-001",
+                  type: "file",
+                  file: "Notes/Note 001.md",
+                  x: 320,
+                  y: 0,
+                  width: 260,
+                  height: 160,
+                },
+                {
+                  id: "group",
+                  type: "group",
+                  label: "Compatibility",
+                  x: -40,
+                  y: -60,
+                  width: 660,
+                  height: 260,
+                  backgroundStyle: "cover",
+                },
+              ],
+              edges: [
+                {
+                  id: "edge",
+                  fromNode: "note-000",
+                  toNode: "note-001",
+                  fromSide: "right",
+                  toSide: "left",
+                  toEnd: "arrow",
+                  label: "next",
+                },
+              ],
+            },
+            null,
+            2,
+          ),
+        );
+        addFile(
+          "Views/Projects.base",
+          [
+            "name: Projects",
+            "filter: tag:project/large",
+            "columns:",
+            "  - file.name",
+            "  - status",
+            "  - tags",
+            "sort: file.name",
+            "sortOrder: asc",
+            "view: cards",
+            "groupBy: status",
+            "summaries:",
+            "  - column: file.name",
+            "    op: count",
+            "    label: Total",
+            "formulas:",
+            "  lower_name: lower(file.name)",
+            "",
+          ].join("\n"),
+        );
+
+        for (let i = 0; i < NOTE_COUNT; i += 1) {
+          const current = i.toString().padStart(3, "0");
+          const next = ((i + 1) % NOTE_COUNT).toString().padStart(3, "0");
+          const previous = ((i + NOTE_COUNT - 1) % NOTE_COUNT).toString().padStart(3, "0");
+          const status = i % 3 === 0 ? "active" : i % 3 === 1 ? "waiting" : "done";
+          const folder = `area/${i % 10}`;
+          addFile(
+            `Notes/Note ${current}.md`,
+            [
+              "---",
+              "aliases:",
+              `  - Note ${current} Alias`,
+              "tags:",
+              "  - project/large",
+              `  - ${folder}`,
+              `status: ${status}`,
+              "---",
+              `# Note ${current}`,
+              "",
+              `Previous: [[Notes/Note ${previous}]]`,
+              `Next: [[Notes/Note ${next}|next note]]`,
+              "Embed: ![[Assets/diagram.png]]",
+              "",
+              "> [!note]+ Compatibility callout",
+              `> Nested content with ==highlight==, $x^2$, and #inline/${i % 5}.`,
+              "",
+              `- Stable block ^note-${current}`,
+              "",
+            ].join("\n"),
+          );
+        }
+      }
+
+      function makeFixtureFs() {
+        return {
+          rootName: "browser-obsidian-compat-vault",
+          list: () => Effect.succeed([]),
+          listAll: (opts) =>
+            Effect.succeed(
+              [...files.entries()]
+                .filter(([path]) => {
+                  const extensions = new Set(opts?.extensions ?? []);
+                  return extensions.size === 0 || extensions.has(extension(path));
+                })
+                .map(([path, text]) => ({
+                  type: "file",
+                  path,
+                  name: path.split("/").pop() ?? path,
+                  size: text.length,
+                  mtimeMs: 0,
+                  ctimeMs: 0,
+                  extension: extension(path),
+                })),
+            ),
+          readText: (path) => {
+            const text = files.get(path);
+            if (text === undefined) return Effect.fail({ _tag: "FsNotFound", path });
+            return Effect.succeed(text);
+          },
+          readBytes: (path) => {
+            const text = files.get(path);
+            if (text === undefined) return Effect.fail({ _tag: "FsNotFound", path });
+            return Effect.succeed(new TextEncoder().encode(text));
+          },
+          writeText: (path, content) =>
+            Effect.sync(() => {
+              writes.push(path);
+              files.set(path, content);
+            }),
+          writeBytes: (path, bytes) =>
+            Effect.sync(() => {
+              writes.push(path);
+              files.set(path, new TextDecoder().decode(bytes));
+            }),
+          mkdir: () => Effect.void,
+          rename: (from, to) =>
+            Effect.sync(() => {
+              const text = files.get(from);
+              if (text === undefined) throw new Error(`Missing source for rename: ${from}`);
+              writes.push(from, to);
+              files.delete(from);
+              files.set(to, text);
+            }),
+          remove: (path) =>
+            Effect.sync(() => {
+              writes.push(path);
+              files.delete(path);
+            }),
+          stat: (path) => {
+            const text = files.get(path);
+            if (text === undefined) return Effect.succeed(null);
+            return Effect.succeed({
+              type: "file",
+              path,
+              name: path.split("/").pop() ?? path,
+              size: text.length,
+              mtimeMs: 0,
+              ctimeMs: 0,
+              extension: extension(path),
+            });
+          },
+          watch: () => () => {},
+        };
+      }
+
+      async function run() {
+        makeVault();
+        metadataCache.reset();
+        await disposeRuntime();
+        setAppLayer(() => Layer.succeed(FileSystem, makeFixtureFs()));
+
+        const start = performance.now();
+        await metadataCache.indexVault();
+        const indexElapsedMs = performance.now() - start;
+
+        const allNotes = [...files.keys()].filter((path) => path.endsWith(".md"));
+        assert(allNotes.length === NOTE_COUNT, "fixture note count changed", { allNotes: allNotes.length });
+        assert(writes.length === 0, "indexing wrote to the vault", { writes });
+        assert(metadataCache.getAllSwitcherEntries().length === NOTE_COUNT * 2, "switcher alias index mismatch", {
+          entries: metadataCache.getAllSwitcherEntries().length,
+        });
+        assert(metadataCache.getAllHeadings().length === NOTE_COUNT, "heading index mismatch", {
+          headings: metadataCache.getAllHeadings().length,
+        });
+        assert(metadataCache.getAllBlocks().length === NOTE_COUNT, "block index mismatch", {
+          blocks: metadataCache.getAllBlocks().length,
+        });
+        assert(
+          metadataCache.getAllTags().some((tag) => tag.name === "project/large" && tag.count === NOTE_COUNT),
+          "vault tag summary missing",
+          { tags: metadataCache.getAllTags() },
+        );
+        assert(
+          metadataCache
+            .getBacklinks("Notes/Note 000.md")
+            .some((backlink) => backlink.source === "Notes/Note 199.md" && backlink.lines.includes(11)),
+          "ring backlink missing",
+          { backlinks: metadataCache.getBacklinks("Notes/Note 000.md") },
+        );
+
+        const renderStart = performance.now();
+        for (const path of allNotes) {
+          const host = document.createElement("article");
+          host.className = "markdown-preview-view";
+          host.dataset.path = path;
+          host.innerHTML = renderNoteMarkdown(files.get(path));
+          root.append(host);
+        }
+        const renderElapsedMs = performance.now() - renderStart;
+
+        assert(root.querySelectorAll("article.markdown-preview-view").length === NOTE_COUNT, "rendered note count mismatch");
+        assert(root.querySelectorAll(".callout").length === NOTE_COUNT, "callout render count mismatch", {
+          callouts: root.querySelectorAll(".callout").length,
+        });
+        assert(root.querySelectorAll(".internal-link").length >= NOTE_COUNT * 2, "wikilink render count mismatch", {
+          links: root.querySelectorAll(".internal-link").length,
+        });
+        assert(!root.textContent.includes("aliases:"), "frontmatter leaked into reading render");
+
+        const canvas = parseCanvas(files.get("Maps/Overview.canvas"));
+        assert(parseCanvas(serializeCanvas(canvas)).nodes.length === 3, "canvas semantic round-trip failed", {
+          canvas,
+        });
+        const base = parseBaseConfig(files.get("Views/Projects.base"));
+        assert(parseBaseConfig(serializeBaseConfig(base)).view === "cards", "base semantic round-trip failed", {
+          base,
+        });
+
+        for (const path of allNotes) {
+          await Effect.runPromise(makeFixtureFs().writeText(path, files.get(path)));
+        }
+
+        const changed = [...files.entries()]
+          .filter(([path, text]) => originalFiles.get(path) !== text)
+          .map(([path]) => path);
+        const obsidianWrites = writes.filter((path) => path.startsWith(".obsidian/"));
+        assert(changed.length === 0, "byte-for-byte note save changed fixture content", { changed });
+        assert(obsidianWrites.length === 0, ".obsidian files were written", { obsidianWrites });
+        assert(writes.length === NOTE_COUNT, "save pass did not touch exactly the note set", {
+          writes: writes.length,
+        });
+
+        metadataCache.reset();
+        await disposeRuntime();
+
+        return {
+          ok: true,
+          noteCount: NOTE_COUNT,
+          renderedNotes: root.querySelectorAll("article.markdown-preview-view").length,
+          callouts: root.querySelectorAll(".callout").length,
+          wikilinks: root.querySelectorAll(".internal-link").length,
+          writes: writes.length,
+          indexElapsedMs,
+          renderElapsedMs,
+        };
+      }
+
+      window.__graniteObsidianVaultResult = run().catch((error) => ({
+        ok: false,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }));
+    </script>
+  </body>
+</html>

@@ -110,7 +110,7 @@
 
 ### §24.23 Compatibility round-trip
 - [x] Obsidian vault round-trip core fixture ← _shipped 2026-05-12 parser/canvas/base fixture_
-- [ ] Obsidian vault browser/manual round-trip over a large real vault fixture (generated 200-note core index/no-write ratchet shipped; real browser/manual fixture remains)
+- [x] Obsidian vault browser/manual round-trip over a large real vault fixture ← _shipped 2026-05-13 Chromium 200-note render/save/no-.obsidian-write verifier_
 - [x] Community theme loader fixture ← _shipped 2026-05-12 Obsidian theme layout support_
 - [ ] Community theme browser visual cross-render (DOM/CSSOM active-theme live-reload ratchet shipped; real browser visual cross-render remains)
 

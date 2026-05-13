@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-05-13 — Obsidian vault browser round-trip verifier
+
+- **Root cause** — the large compatibility ratchet proved metadata indexing in
+  Vitest, but the remaining acceptance item required browser evidence that the
+  same Obsidian-style vault can render and save without mutating `.obsidian/`
+  config or drifting source Markdown.
+- **Browser path** — added a Vite-served Chromium fixture that builds a
+  200-note Obsidian-style vault with `.obsidian/` config, theme/snippet files,
+  aliases, YAML/body tags, wikilinks, embeds, callouts, block IDs, a canvas,
+  a base, and an asset. The fixture binds Granite's real Effect `FileSystem`,
+  indexes the vault, renders every note with the reading renderer, parses and
+  serializes the canvas/base semantically, then saves every note back
+  byte-for-byte.
+- **No-write guarantee** — the verifier fails if indexing writes anything, if
+  any `.obsidian/` file is written during the save pass, or if the generated
+  vault content changes outside the intentional byte-for-byte note writes.
+- **Tracker closure** — closed the §24.23 Obsidian browser/manual round-trip
+  item after the browser verifier rendered 200 notes, 200 callouts, and 400
+  wikilinks, then saved 200 notes without content drift or `.obsidian` writes.
+
+### Tests
+- `bun run verify:obsidian-vault-browser`
+
+---
+
 ## 2026-05-13 — Keyboard-only browser audit verifier
 
 - **Root cause** — the accessibility work had source and unit ratchets for

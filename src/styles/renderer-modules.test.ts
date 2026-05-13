@@ -60,6 +60,17 @@ const MODULES = [
     spec: "specs/renderer/flair-and-pill.md",
     selectors: [".flair.mod-pop", ".suggestion-flair", ".tree-item-flair", ".multi-select-pill"],
   },
+  {
+    file: "notice.css",
+    spec: "specs/renderer/notice.md",
+    selectors: [
+      ".notice-container",
+      ".notice progress",
+      ".notice-button-container",
+      ".notice-cta",
+      ".notice-error",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {
@@ -88,5 +99,6 @@ describe("renderer CSS module coverage", () => {
     expect(shell).not.toContain("square SVG-only button");
     expect(overlays).not.toContain("Inputs — base shared rule");
     expect(overlays).not.toContain("Buttons (default, mod-cta");
+    expect(overlays).not.toContain("Notice container (toasts)");
   });
 });

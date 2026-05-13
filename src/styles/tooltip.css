@@ -21,28 +21,13 @@
 }
 
 @keyframes pop-in {
-  0% { opacity: 0; }
-  40% { opacity: 1; }
-  100% { opacity: 1; }
-}
-
-/* Notice override: success / warning / error tinting */
-.notice {
-  /* base styles already in overlays.css */
-  cursor: var(--cursor);
-}
-
-.notice-success {
-  background-color: var(--background-modifier-success);
-  color: var(--text-on-accent);
-}
-
-.notice-warning {
-  background-color: var(--background-modifier-error);
-  color: var(--text-on-accent);
-}
-
-.notice-error {
-  background-color: var(--background-modifier-error);
-  color: var(--text-on-accent);
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
 }

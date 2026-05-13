@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-05-13 — Renderer notice CSS module
+
+- **Dedicated module** — extracted toast container/base/action/progress/kind
+  styles into spec-linked `src/styles/notice.css`.
+- **Regression audit** — extended the renderer module test so notice styles stay
+  imported, spec-linked, and out of the shared overlay stylesheet.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer animation CSS module
 
 - **Dedicated module** — moved shared keyframes out of `base.css` into

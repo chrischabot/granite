@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Public docs browser reachability verifier
+
+- **Root cause** — the public-docs severe tests still required manually opening
+  `docs/index.html` and manually checking linked Markdown pages, even though
+  the docs are static and can be verified in Chromium.
+- **Browser path** — added `docs:verify-browser`, which serves the repo, opens
+  the docs index, proves the stylesheet applies, follows the vault-format,
+  plugin-API, and contributor-guide links, and verifies each linked Markdown
+  page loads with required readable text.
+- **Drift guard** — extended `public-docs.test.ts` to prove both docs scripts
+  stay wired, and updated the contributor guide to require `bun run docs:check`
+  before and after public `PluginApi` changes.
+
+### Tests
+- `bun run docs:verify-browser`
+- `bun run docs:check`
+
+---
+
 ## 2026-05-13 — Broadened runtime i18n browser verification
 
 - **Root cause** — the i18n severe-test tracker still listed many Hebrew

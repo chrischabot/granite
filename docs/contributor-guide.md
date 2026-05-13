@@ -6,9 +6,14 @@ Run the strongest relevant checks before committing:
 
 ```sh
 bun run test
+bun run docs:check
 bun run build
 git diff --check
 ```
+
+When changing `src/core/plugins/types.ts`, run `bun run docs:check` before and
+after updating the docs. The check should fail before `docs/plugin-api.md` is
+updated and pass after every public `PluginApi` member is documented.
 
 For accessibility work, also run:
 

@@ -24,6 +24,14 @@ describe("public docs site", () => {
     expect(html).toContain("contributor-guide.md");
   });
 
+  it("wires docs drift and browser reachability checks into package scripts", () => {
+    const pkg = JSON.parse(read("package.json")) as {
+      scripts?: Record<string, string>;
+    };
+    expect(pkg.scripts?.["docs:check"]).toBe("vitest run src/core/docs/public-docs.test.ts");
+    expect(pkg.scripts?.["docs:verify-browser"]).toBe("node scripts/verify-docs-browser.mjs");
+  });
+
   it("documents the vault storage formats and compatibility folders", () => {
     const doc = read("docs/vault-format.md");
     for (const required of [

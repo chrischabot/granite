@@ -730,19 +730,3 @@ body {
   --touch-size-l: 52px;
   --touch-size-xl: 60px;
 }
-
-/* -------------------------------------------------------------------------- *
- * 11.  macOS overrides — slider thumb width, toggle dimensions
- * -------------------------------------------------------------------------- */
-.mod-macos {
-  --slider-thumb-width: 30px;
-  --toggle-width: 44px;
-  --toggle-radius: 24px;
-  --toggle-thumb-radius: 24px;
-  --toggle-thumb-height: 16px;
-  --toggle-thumb-width: 26px;
-  --toggle-thumb-opacity-active: 0.6;
-  --toggle-s-width: 36px;
-  --toggle-s-thumb-height: 12px;
-  --toggle-s-thumb-width: 20px;
-}

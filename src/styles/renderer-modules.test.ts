@@ -24,6 +24,20 @@ const MODULES = [
     ],
   },
   {
+    file: "os-modifiers.css",
+    spec: "specs/renderer/os-modifiers.md",
+    selectors: [
+      ".mod-macos",
+      ".mod-macos .titlebar-button-container.mod-left",
+      ".mod-macos.is-hidden-frameless:not(.is-popout-window)",
+      ".is-ios .lucide-more-vertical",
+      ".mod-linux .titlebar-button.mod-close:hover",
+      ".is-hidden-frameless.mod-windows .titlebar",
+      ".workspace-tabs.mod-top-left-space",
+      ".workspace-tabs.mod-top-right-space",
+    ],
+  },
+  {
     file: "buttons.css",
     spec: "specs/renderer/buttons.md",
     selectors: [".clickable-icon.is-active", ".text-icon-button"],
@@ -244,6 +258,9 @@ describe("renderer CSS module coverage", () => {
     expect(base).not.toContain("body.is-grabbing");
     expect(base).not.toContain(".is-loading {");
     expect(base).not.toContain(".is-flashing {");
+
+    const tokens = readFileSync(`${STYLE_DIR}/tokens.css`, "utf8");
+    expect(tokens).not.toContain(".mod-macos {");
 
     const buttons = readFileSync(`${STYLE_DIR}/buttons.css`, "utf8");
     expect(buttons).not.toContain("button.mod-loading");

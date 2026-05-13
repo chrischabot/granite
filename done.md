@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Renderer OS modifier CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/os-modifiers.css` for
+  macOS control-token overrides, Apple more-menu icon rotation, OS titlebar
+  variants, and frameless window spacers.
+- **Regression audit** — extended the renderer module test so OS modifier styles
+  stay imported, spec-linked, and out of the token module.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer loading and progress CSS modules
 
 - **Dedicated modules** — added spec-linked `src/styles/loading.css` for thin

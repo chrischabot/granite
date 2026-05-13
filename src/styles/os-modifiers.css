@@ -1,0 +1,125 @@
+/* SPEC: specs/renderer/os-modifiers.md */
+
+.mod-macos {
+  --slider-thumb-width: 30px;
+  --toggle-width: 44px;
+  --toggle-radius: 24px;
+  --toggle-thumb-radius: 24px;
+  --toggle-thumb-height: 16px;
+  --toggle-thumb-width: 26px;
+  --toggle-thumb-opacity-active: 0.6;
+  --toggle-s-width: 36px;
+  --toggle-s-thumb-height: 12px;
+  --toggle-s-thumb-width: 20px;
+}
+
+.mod-macos .titlebar-button-container {
+  top: 8px;
+}
+
+.mod-macos .titlebar-button-container.mod-left {
+  left: calc(80px / var(--zoom-factor, 1));
+}
+
+.mod-macos .titlebar-button {
+  border-radius: var(--radius-s);
+}
+
+.is-hidden-frameless.mod-macos .titlebar {
+  display: none;
+}
+
+.mod-macos.is-hidden-frameless:not(.is-popout-window) .sidebar-toggle-button.mod-right {
+  background-color: var(--tab-container-background);
+  position: fixed;
+  top: 0;
+  right: 0;
+  padding-right: var(--size-4-2);
+  z-index: var(--layer-cover);
+}
+
+.mod-macos.is-hidden-frameless:not(.is-popout-window)
+  .workspace
+  .workspace-tabs.mod-top-right-space
+  .workspace-tab-header-container {
+  padding-right: 38px;
+}
+
+.is-ios .lucide-more-vertical,
+.mod-macos .lucide-more-vertical {
+  transform: rotate(90deg);
+}
+
+.mod-linux .titlebar-button-container,
+.mod-windows .titlebar-button-container {
+  height: 100%;
+}
+
+.mod-linux .titlebar-button,
+.mod-windows .titlebar-button {
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+}
+
+.mod-linux .titlebar-button.mod-logo,
+.mod-windows .titlebar-button.mod-logo {
+  padding: 4px 8px;
+}
+
+@media (hover: hover) {
+  .mod-linux .titlebar-button.mod-close:hover,
+  .mod-windows .titlebar-button.mod-close:hover {
+    background-color: var(--background-modifier-error);
+  }
+
+  .mod-linux .titlebar-button.mod-close:hover .svg-icon,
+  .mod-windows .titlebar-button.mod-close:hover .svg-icon {
+    fill: white;
+    stroke: white;
+  }
+}
+
+.is-hidden-frameless.mod-windows .titlebar,
+.is-hidden-frameless.mod-linux .titlebar {
+  background: transparent;
+  border: none;
+  z-index: var(--layer-popover);
+  pointer-events: none;
+}
+
+.is-hidden-frameless.mod-windows .titlebar-button.mod-back,
+.is-hidden-frameless.mod-windows .titlebar-button.mod-forward,
+.is-hidden-frameless.mod-linux .titlebar-button.mod-back,
+.is-hidden-frameless.mod-linux .titlebar-button.mod-forward {
+  display: none;
+}
+
+.is-hidden-frameless.mod-windows .titlebar-button-container,
+.is-hidden-frameless.mod-linux .titlebar-button-container {
+  pointer-events: auto;
+}
+
+.is-hidden-frameless:not(.is-fullscreen):not(.mod-macos)
+  .workspace-tabs.mod-top-left-space
+  .workspace-tab-header-container::before {
+  -webkit-app-region: no-drag;
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: var(--frame-left-space, 0px);
+  left: 0;
+  top: 0;
+}
+
+.is-hidden-frameless:not(.is-fullscreen):not(.mod-macos)
+  .workspace-tabs.mod-top-right-space
+  .workspace-tab-header-container::after {
+  -webkit-app-region: no-drag;
+  content: "";
+  position: absolute;
+  height: 100%;
+  width: var(--frame-right-space, 0px);
+  right: 0;
+  top: 0;
+}

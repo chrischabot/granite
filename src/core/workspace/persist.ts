@@ -164,23 +164,22 @@ export function restoreFor(vaultId: string): boolean {
 }
 
 /**
- * Disk-first restore: try `.granite/workspace.json` first, fall back to the
- * legacy localStorage key, then write the disk file if it was missing.
+ * Restore from the synchronous localStorage snapshot first, then mirror it to
+ * disk. The local copy is the most reliable source immediately after
+ * `beforeunload`, where the disk write is necessarily best-effort and may lag.
+ * If there is no local snapshot, fall back to `.granite/workspace.json`.
  * Returns true if a snapshot was applied.
  */
 export async function restoreForAsync(vaultId: string): Promise<boolean> {
-  const onDisk = await readConfigJson<SerializedSnapshot>(DISK_CONFIG_NAME);
-  if (onDisk) {
-    const ok = applySnapshot(onDisk);
-    if (ok) return true;
-  }
   const legacy = readLocalStorage(vaultId);
-  if (!legacy) return false;
-  const ok = applySnapshot(legacy);
-  if (!ok) return false;
-  // Mirror legacy → disk so future opens prefer the disk copy.
-  await writeConfigJson(DISK_CONFIG_NAME, legacy).catch(() => {});
-  return true;
+  if (legacy) {
+    const ok = applySnapshot(legacy);
+    if (!ok) return false;
+    await writeConfigJson(DISK_CONFIG_NAME, legacy).catch(() => {});
+    return true;
+  }
+  const onDisk = await readConfigJson<SerializedSnapshot>(DISK_CONFIG_NAME);
+  return onDisk ? applySnapshot(onDisk) : false;
 }
 
 function applySnapshot(snap: SerializedSnapshot): boolean {

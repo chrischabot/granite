@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-05-13 — Workspace restart browser verifier
+
+- **Root cause** — browser restart behavior had unit coverage for
+  `beforeunload` flushing, but the runtime restore path preferred
+  `.granite/workspace.json` over the synchronous localStorage snapshot. During
+  an actual fast unload, the disk write is best-effort and can lag behind the
+  latest local snapshot, restoring stale layout.
+- **Product fix** — changed async workspace restore to apply the local snapshot
+  first and mirror it back to disk, with disk remaining the fallback when no
+  local snapshot exists.
+- **Browser path** — added `verify:workspace-restart-browser`, which opens a
+  real OPFS vault, opens a note and immediately reloads before the 500 ms
+  debounce can fire, then verifies the note restores. It then creates split
+  panes and a stacked tab group, immediately reloads again, and verifies the
+  restored workspace keeps the note set, column/group shape, and stacked group.
+
+### Tests
+- `bun run verify:workspace-restart-browser`
+- `node --check scripts/verify-workspace-restart-browser.mjs`
+- `bun run test -- src/core/workspace/persist.test.ts src/core/fs/orphan-temp.test.ts`
+- `bunx biome check src/core/workspace/persist.ts src/ui/vault/VaultContext.tsx package.json scripts/workspace-restart-browser-fixture.html scripts/verify-workspace-restart-browser.mjs`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Multi-cursor browser verifier
 
 - **Root cause** — the Phase 12 severe tests still relied on a manual browser

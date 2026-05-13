@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Workspace Restart Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { workspaceStore } from "@core/workspace/store";
+      import { Workspace } from "@/ui/shell/Workspace";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "workspace-restart-browser";
+
+      async function writeNotes() {
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            yield* fs.writeText("Restart A.md", "# Restart A\n\nalpha");
+            yield* fs.writeText("Restart B.md", "# Restart B\n\nbeta");
+            yield* fs.writeText("Restart C.md", "# Restart C\n\ngamma");
+          }),
+        );
+      }
+
+      function snapshot() {
+        const state = workspaceStore.getState();
+        return {
+          columns: state.columns,
+          activeGroupId: state.activeGroupId,
+          groups: [...state.groups.values()].map((group) => ({
+            id: group.id,
+            leafIds: group.leafIds,
+            activeLeafId: group.activeLeafId,
+            stacked: group.stacked === true,
+          })),
+          leaves: [...state.leaves.values()].map((leaf) => ({ id: leaf.id, state: leaf.state })),
+          titles: [...document.querySelectorAll(".workspace-tab-header-inner-title")].map(
+            (el) => el.textContent?.trim() ?? "",
+          ),
+        };
+      }
+
+      function activeLeafId() {
+        const state = workspaceStore.getState();
+        const group = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
+        if (!group?.activeLeafId) throw new Error("Missing active leaf");
+        return group.activeLeafId;
+      }
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const openingRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || openingRef.current) return;
+          openingRef.current = true;
+          void (async () => {
+            try {
+              if (activeVault?.entry.name !== vaultName) await openOpfs(vaultName);
+              await writeNotes();
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        window.__graniteWorkspaceRestartReady = ready;
+        window.__graniteWorkspaceRestartError = error;
+        window.__graniteWorkspaceRestartSnapshot = snapshot;
+        window.__graniteWorkspaceRestartOpenSingle = () => {
+          workspaceStore.openFile("Restart A.md", { mode: "source" });
+          return snapshot();
+        };
+        window.__graniteWorkspaceRestartSetupLayout = () => {
+          workspaceStore.openFile("Restart A.md", { mode: "source" });
+          const first = activeLeafId();
+          const rightGroupId = workspaceStore.splitLeaf(first, "right");
+          workspaceStore.openFile("Restart B.md", { mode: "source" });
+          workspaceStore.focusTab(first);
+          const downGroupId = workspaceStore.splitLeaf(first, "down");
+          workspaceStore.openFile("Restart C.md", { mode: "source" });
+          workspaceStore.toggleStacked(downGroupId);
+          return { rightGroupId, downGroupId, snapshot: snapshot() };
+        };
+
+        if (error) {
+          window.__graniteWorkspaceRestartError = error;
+          return React.createElement("pre", { role: "alert" }, error);
+        }
+        if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
+
+        return React.createElement(
+          "div",
+          { className: "app-container" },
+          React.createElement(Workspace),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

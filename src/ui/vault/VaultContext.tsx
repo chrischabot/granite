@@ -226,9 +226,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         });
       }
       workspaceStore.reset();
-      // Disk-first restore; falls back to localStorage and migrates on hit.
-      const restoredFromDisk = await restoreForAsync(entry.id).catch(() => false);
-      if (!restoredFromDisk) restoreFor(entry.id);
+      // Local snapshot first because beforeunload can flush it synchronously;
+      // disk remains the fallback for migrated or cross-browser restores.
+      const restoredFromSnapshot = await restoreForAsync(entry.id).catch(() => false);
+      if (!restoredFromSnapshot) restoreFor(entry.id);
       persistUnbindRef.current = bindPersistence(entry.id);
       bindSnippets(entry.id);
       bindThemes(entry.id);

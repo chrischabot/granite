@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Live Preview browser verification
+
+- **Root cause** — the Live Preview TODO had strong pure-function and
+  CodeMirror DOM ratchets, but still lacked a real browser check proving
+  Chromium renders replacement decorations the same way users see them.
+- **Browser path** — added a Vite-served browser fixture that mounts real
+  CodeMirror editors in Live Preview and Source modes. The verifier launches
+  Chromium, checks inactive Live Preview hides bold, wikilink, Markdown-link,
+  and table separator source markers, then moves the cursor onto the line and
+  proves the raw source markers reappear.
+- **Tracker closure** — closed the §24.2 Live Preview decoration item because
+  the marker coverage, per-leaf mode routing, DOM integration, and browser
+  rendering gates now all have repeatable tests.
+
+### Tests
+- `bun run verify:live-preview-browser`
+
+---
+
 ## 2026-05-13 — Broad UI string externalization ratchet
 
 - **Root cause** — the i18n work had many targeted guardrails, but the final

@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-13 — Canvas embed browser verifier
+
+- **Root cause** — embedded canvases had an integration test for initial mount,
+  but browser coverage was still manual, and the new verifier exposed that
+  unrelated workspace updates could re-render `ReadingView` and wipe resolved
+  canvas embeds before their Open button could be used.
+- **Embed stability fix** — `ReadingView` now subscribes only to the active
+  fragment string for its own path instead of the entire workspace state, so
+  unrelated workspace changes no longer reset post-processed live embeds.
+- **Browser path** — added `verify:canvas-embed-browser`, which renders a host
+  note containing `![[board.canvas]]`, verifies the embedded node and canvas
+  controls, pans/zooms/drags inside the embedded canvas, waits for saved JSON
+  geometry, checks Open button current-tab and modified-click new-tab routing,
+  and verifies removing the embed cleans up the canvas toolbar without page
+  errors.
+
+### Tests
+- `bun run verify:canvas-embed-browser`
+- `node --check scripts/verify-canvas-embed-browser.mjs`
+- `bun run test -- src/ui/views/ReadingView.test.tsx src/core/canvas/interactions.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Canvas marquee browser verifier
 
 - **Root cause** — marquee, multi-select, axis-lock, and Alt/Option duplicate

@@ -28,6 +28,7 @@
     "verify:format-converter-browser": "node scripts/verify-format-converter-browser.mjs",
     "verify:canvas-snap-browser": "node scripts/verify-canvas-snap-browser.mjs",
     "verify:canvas-marquee-browser": "node scripts/verify-canvas-marquee-browser.mjs",
+    "verify:canvas-embed-browser": "node scripts/verify-canvas-embed-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

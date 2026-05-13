@@ -2,6 +2,7 @@ import { type AppServices, disposeRuntime, setAppLayer } from "@core/effect/runt
 import { FileSystem, type FileSystemImpl } from "@core/fs/FileSystem";
 import { extension } from "@core/fs/path";
 import type { FsError, VaultEntry, VaultFile, VaultPath } from "@core/fs/types";
+import { workspaceStore } from "@core/workspace/store";
 import { Effect, Layer } from "effect";
 import { act } from "react";
 import { type Root, createRoot } from "react-dom/client";
@@ -131,6 +132,19 @@ describe("ReadingView canvas embeds", () => {
     expect(embed?.querySelector(".canvas-view")).toBeTruthy();
     expect(embed?.textContent).toContain("board · 1 node · 0 edges");
     expect(host.querySelector(".base-embed")).toBeNull();
+  });
+
+  it("keeps resolved canvas embeds mounted across unrelated workspace updates", async () => {
+    await act(async () => root.render(<ReadingView path="Host.md" />));
+    await settle();
+    await settle();
+
+    expect(host.querySelector(".canvas-embed.is-interactive .canvas-view")).toBeTruthy();
+
+    await act(async () => workspaceStore.reset());
+    await settle();
+
+    expect(host.querySelector(".canvas-embed.is-interactive .canvas-view")).toBeTruthy();
   });
 
   it("applies per-note RTL direction from frontmatter", async () => {

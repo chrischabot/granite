@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Canvas Embed Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { serializeCanvas } from "@core/canvas/schema";
+      import { workspaceStore } from "@core/workspace/store";
+      import { ReadingView } from "@/ui/views/ReadingView";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "canvas-embed-browser";
+      const hostPath = "Host.md";
+      const canvasPath = "board.canvas";
+      const seedHost = "# Host\n\nBefore embed.\n\n![[board.canvas]]\n\nAfter embed.\n";
+      const hostWithoutEmbed = "# Host\n\nBefore embed.\n\nEmbed removed.\n\nAfter embed.\n";
+      const seedCanvas = {
+        nodes: [
+          { id: "embed-a", type: "text", x: 100, y: 100, width: 120, height: 80, text: "A" },
+          { id: "embed-b", type: "text", x: 280, y: 100, width: 120, height: 80, text: "B" },
+        ],
+        edges: [{ id: "embed-ab", fromNode: "embed-a", toNode: "embed-b", toEnd: "arrow" }],
+      };
+
+      async function writeFixtureFiles() {
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            yield* fs.writeText(hostPath, seedHost);
+            yield* fs.writeText(canvasPath, serializeCanvas(seedCanvas));
+          }),
+        );
+      }
+
+      window.__graniteCanvasEmbedReadCanvas = async () =>
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            return JSON.parse(yield* fs.readText(canvasPath));
+          }),
+        );
+      window.__graniteCanvasEmbedRemoveHostEmbed = async () =>
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            yield* fs.writeText(hostPath, hostWithoutEmbed);
+          }),
+        );
+      window.__graniteCanvasEmbedResetWorkspace = () => workspaceStore.reset();
+      window.__graniteCanvasEmbedWorkspace = () => {
+        const state = workspaceStore.getState();
+        return {
+          activeGroupId: state.activeGroupId,
+          groups: [...state.groups.values()].map((group) => ({
+            id: group.id,
+            leafIds: group.leafIds,
+            activeLeafId: group.activeLeafId,
+          })),
+          leaves: [...state.leaves.values()].map((leaf) => ({ id: leaf.id, state: leaf.state })),
+        };
+      };
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const bootingRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || bootingRef.current) return;
+          bootingRef.current = true;
+          void (async () => {
+            try {
+              if (activeVault?.entry.name !== vaultName) await openOpfs(vaultName);
+              await writeFixtureFiles();
+              workspaceStore.reset();
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        window.__graniteCanvasEmbedReady = ready;
+
+        if (error) {
+          window.__graniteCanvasEmbedError = error;
+          return React.createElement("pre", { role: "alert" }, error);
+        }
+        if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
+
+        return React.createElement(
+          "main",
+          { style: { height: "100vh", width: "100vw", overflow: "hidden", padding: 16 } },
+          React.createElement(ReadingView, { path: hostPath }),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

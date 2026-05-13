@@ -17,15 +17,33 @@ import { useFileMetadata, useMetadataVersion } from "@core/metadata/useMetadata"
 import { fileMatchesQuery, parseQuery } from "@core/search/query";
 import { settingsStore } from "@core/settings/store";
 import { workspaceStore } from "@core/workspace/store";
-import { useWorkspace } from "@core/workspace/useWorkspace";
 import { Effect } from "effect";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { type Root, createRoot } from "react-dom/client";
 import { useI18n } from "../i18n/useI18n";
 import { CanvasView } from "./CanvasView";
 
 export interface ReadingViewProps {
   path: VaultPath;
+}
+
+function activeFragmentForPath(path: VaultPath): string | null {
+  const state = workspaceStore.getState();
+  const group = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
+  if (!group?.activeLeafId) return null;
+  const leaf = state.leaves.get(group.activeLeafId);
+  if (leaf?.state.type === "markdown" && leaf.state.path === path) {
+    return leaf.state.fragment ?? null;
+  }
+  return null;
+}
+
+function useActiveFragmentForPath(path: VaultPath): string | null {
+  return useSyncExternalStore(
+    workspaceStore.subscribe,
+    () => activeFragmentForPath(path),
+    () => activeFragmentForPath(path),
+  );
 }
 
 export function ReadingView({ path }: ReadingViewProps) {
@@ -36,17 +54,7 @@ export function ReadingView({ path }: ReadingViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const blobUrlsRef = useRef<string[]>([]);
   const metadataVersion = useMetadataVersion();
-
-  const { activeGroupId, groups, leaves } = useWorkspace();
-  const fragment = (() => {
-    const group = activeGroupId ? groups.get(activeGroupId) : null;
-    if (!group?.activeLeafId) return null;
-    const leaf = leaves.get(group.activeLeafId);
-    if (leaf?.state.type === "markdown" && leaf.state.path === path) {
-      return leaf.state.fragment ?? null;
-    }
-    return null;
-  })();
+  const fragment = useActiveFragmentForPath(path);
 
   const reload = useCallback(async () => {
     setLoading(true);

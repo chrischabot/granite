@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-13 — Sidebar group browser verifier
+
+- **Root cause** — sidebar group splitting had model tests, but the severe-test
+  list still relied on manual browser checks for the real left/right sidebar
+  controls and icon-only accessible names.
+- **Browser path** — added `verify:sidebar-groups-browser`, which splits the
+  left sidebar twice, sets the three groups to Search, Bookmarks, and Tags,
+  and verifies each group stays visible with its own active tab.
+- **Right-sidebar close path** — the same verifier splits the right sidebar,
+  changes the second group to Recent files, closes the original Outline group,
+  and verifies the remaining group preserves Recent files.
+- **Regression guarantee** — the verifier fails if split/close controls lose
+  their accessible names or if changing one sidebar group mutates another.
+
+### Tests
+- `bun run verify:sidebar-groups-browser`
+- `bun run test -- src/ui/shell/sidebar-groups.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Sidebar central browser verifier and persistence fix
 
 - **Root cause** — workspace persistence skipped any single-group snapshot whose

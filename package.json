@@ -22,6 +22,7 @@
     "verify:native-formats-browser": "node scripts/verify-native-formats-browser.mjs",
     "verify:trash-settings-browser": "node scripts/verify-trash-settings-browser.mjs",
     "verify:sidebar-central-browser": "node scripts/verify-sidebar-central-browser.mjs",
+    "verify:sidebar-groups-browser": "node scripts/verify-sidebar-groups-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

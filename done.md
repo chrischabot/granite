@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-13 — Renderer modal CSS module
+
+- **Dedicated module** — extracted base modal styles into spec-linked
+  `src/styles/modal.css` and filled in scrollable variants, sidebar layout,
+  confirmation state, mobile nav actions, message boxes, lightbox,
+  file-browser, and rename textarea rules from the renderer spec.
+- **Regression audit** — extended the renderer module test so modal styles stay
+  imported, spec-linked, and out of the shared overlay/view stylesheets.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style/modal tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer scrollbar CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/scrollbars.css` for

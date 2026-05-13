@@ -107,6 +107,22 @@ const MODULES = [
       "@media print",
     ],
   },
+  {
+    file: "modal.css",
+    spec: "specs/renderer/modal.md",
+    selectors: [
+      ".modal-container.is-being-dragged .modal-bg",
+      ".modal.mod-scrollable-content .modal-button-container",
+      ".modal.mod-scrollable .modal-content",
+      ".modal-sidebar",
+      "body.styled-scrollbars .modal-close-button",
+      ".modal-confirmation-state",
+      ".modal-setting-nav-bar",
+      ".modal.mod-image-lightbox .modal-content",
+      ".modal.mod-file-browser .modal-content",
+      ".mod-file-rename .rename-textarea",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {
@@ -136,6 +152,8 @@ describe("renderer CSS module coverage", () => {
     expect(overlays).not.toContain("Inputs — base shared rule");
     expect(overlays).not.toContain("Buttons (default, mod-cta");
     expect(overlays).not.toContain("Notice container (toasts)");
+    expect(overlays).not.toContain(" * Modal");
+    expect(overlays).not.toContain(".modal-container {");
 
     const views = readFileSync(`${STYLE_DIR}/views.css`, "utf8");
     expect(views).not.toContain("Tree item rows");
@@ -143,5 +161,7 @@ describe("renderer CSS module coverage", () => {
 
     const flair = readFileSync(`${STYLE_DIR}/flair-and-pill.css`, "utf8");
     expect(flair).not.toContain(".multi-select-pill {");
+
+    expect(views).not.toContain("Generic message (used by error chrome)");
   });
 });

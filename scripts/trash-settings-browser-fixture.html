@@ -20,8 +20,34 @@
       import { useVault, VaultProvider } from "../src/ui/vault/VaultContext.tsx";
       import { FileExplorerView } from "../src/ui/views/file-explorer/FileExplorerView.tsx";
 
-      const vaultName = `trash-settings-browser-${crypto.randomUUID()}`;
+      const nativeTrashEnabled = new URLSearchParams(window.location.search).get("nativeTrash") === "1";
+      const vaultName = nativeTrashEnabled
+        ? `trash-settings-native-browser-${crypto.randomUUID()}`
+        : `trash-settings-browser-${crypto.randomUUID()}`;
       const casePaths = ["Delete-vault.md", "Delete-permanent.md", "Delete-system.md"];
+
+      async function removeFromOpfsVault(rootName, path) {
+        const root = await navigator.storage.getDirectory();
+        const vault = await root.getDirectoryHandle(rootName);
+        const parts = path.split("/").filter(Boolean);
+        const fileName = parts.pop();
+        if (!fileName) throw new Error(`Invalid system-trash path: ${path}`);
+        let parent = vault;
+        for (const part of parts) parent = await parent.getDirectoryHandle(part);
+        await parent.removeEntry(fileName, { recursive: true });
+      }
+
+      if (nativeTrashEnabled) {
+        window.__graniteNativeTrashCalls = [];
+        window.graniteHost = {
+          fs: {
+            moveToSystemTrash: async (request) => {
+              window.__graniteNativeTrashCalls.push(request);
+              await removeFromOpfsVault(request.rootName, request.path);
+            },
+          },
+        };
+      }
 
       function Harness() {
         const { activeVault, openOpfs } = useVault();

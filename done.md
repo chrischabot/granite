@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-13 — Native trash browser host-contract verifier
+
+- **Root cause** — trash coverage proved the low-level system-trash bridge in
+  unit tests and proved browser unsupported mode in Chromium, but the severe
+  tracker still had no browser evidence that the File Explorer delete flow
+  uses a host-provided bridge and avoids the vault `.trash/` path.
+- **Browser path** — extended `verify:trash-settings-browser` with a
+  host-backed fixture mode that installs
+  `window.graniteHost.fs.moveToSystemTrash()`, deletes through File Explorer,
+  and records the bridge request.
+- **Coverage** — the verifier now proves the UI shows the system-trash success
+  notice, the bridge receives the vault root name plus relative path, the host
+  removes the vault copy, and no `.trash/` directory is created. The OS recycle
+  bin/trash placement remains native-host evidence because a browser mock
+  cannot honestly prove operating-system behavior.
+
+### Tests
+- `bun run verify:trash-settings-browser`
+
+---
+
 ## 2026-05-13 — FSA vault-window permission handshake
 
 - **Root cause** — the multi-window severe tests still carried a manual FSA

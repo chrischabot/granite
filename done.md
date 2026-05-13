@@ -4,6 +4,43 @@
 
 ---
 
+## 2026-05-13 — Graph pan allocation trim
+
+- **Root cause** — the 10k graph pan budget test exposed that the hot
+  viewport update path was cloning the whole viewport object with spread on
+  every drag calculation, even though only `x` and `y` change.
+- **Pan path** — updated `viewportForPanDrag()` to construct the next viewport
+  directly and preserve `scale` explicitly, reducing avoidable work in the
+  transform loop.
+- **Tracker honesty** — kept the browser FPS verification item open; this
+  fixes the automated budget failure but does not replace browser profiling.
+
+### Tests
+- `bun run test -- src/core/graph/pan.test.ts src/core/compat/obsidian-roundtrip.test.ts`
+
+---
+
+## 2026-05-13 — Large Obsidian compatibility index ratchet
+
+- **Root cause** — the compatibility tracker calls for a large Obsidian vault
+  round-trip, but the automated fixture only covered a small hand-authored
+  vault.
+- **Generated fixture** — extended `src/core/compat/obsidian-roundtrip.test.ts`
+  with a 200-note Obsidian-style vault containing `.obsidian/` config,
+  aliases, YAML tags, inline tags, wikilinks, embeds, callouts, block IDs,
+  canvas, base, and asset files.
+- **No-write guarantee** — the ratchet indexes the generated vault and proves
+  Granite does not write to source files or `.obsidian/app.json`, while still
+  producing switcher entries, headings, blocks, backlinks, tags, and property
+  summaries.
+- **Tracker honesty** — kept the real browser/manual large-vault round-trip
+  item open because this is core indexing coverage, not a rendered vault audit.
+
+### Tests
+- `bun run test -- src/core/compat/obsidian-roundtrip.test.ts`
+
+---
+
 ## 2026-05-13 — Native asset string externalization ratchet
 
 - **Root cause** — the new native asset leaf added localized strings, but the

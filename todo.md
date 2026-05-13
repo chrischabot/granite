@@ -91,7 +91,7 @@
 - [ ] 10 k-note cold start < 3 s (10k Node metadata budget ratchet, no-restat guard, startup timing report, and slow-startup diagnostic notice shipped; browser/profile verification remains)
 - [x] Quick-switcher keystroke update < 16 ms ← _shipped 2026-05-12 reusable fuzzy index_
 - [x] 10 k search regex < 500 ms ← _shipped 2026-05-12 in-memory regex budget test + larger scan chunks_
-- [ ] 10 k graph pan ≥ 30 fps (imperative transform + 10k transform budget ratchet shipped; browser FPS verification remains)
+- [ ] 10 k graph pan ≥ 30 fps (imperative transform + 10k transform budget ratchet and allocation trim shipped; browser FPS verification remains)
 - [ ] Save round-trip < 50 ms (adapter budget test shipped; browser/host verification remains)
 
 ### §24.20 Accessibility — Phase 16
@@ -110,7 +110,7 @@
 
 ### §24.23 Compatibility round-trip
 - [x] Obsidian vault round-trip core fixture ← _shipped 2026-05-12 parser/canvas/base fixture_
-- [ ] Obsidian vault browser/manual round-trip over a large real vault fixture
+- [ ] Obsidian vault browser/manual round-trip over a large real vault fixture (generated 200-note core index/no-write ratchet shipped; real browser/manual fixture remains)
 - [x] Community theme loader fixture ← _shipped 2026-05-12 Obsidian theme layout support_
 - [ ] Community theme browser visual cross-render (DOM/CSSOM active-theme live-reload ratchet shipped; real browser visual cross-render remains)
 

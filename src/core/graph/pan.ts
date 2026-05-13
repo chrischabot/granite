@@ -23,9 +23,9 @@ export function viewportForPanDrag(
   clientY: number,
 ): GraphViewport {
   return {
-    ...current,
     x: drag.viewX + (clientX - drag.startX),
     y: drag.viewY + (clientY - drag.startY),
+    scale: current.scale,
   };
 }
 

@@ -121,6 +121,59 @@ function fixtureFile(path: VaultPath): string {
   return text;
 }
 
+function makeLargeObsidianFixture(noteCount = 200): Map<VaultPath, string> {
+  const out = new Map<VaultPath, string>(
+    Object.entries({
+      ".obsidian/app.json": JSON.stringify({ legacyEditor: false, livePreview: true }, null, 2),
+      ".obsidian/workspace.json": JSON.stringify(
+        {
+          main: { type: "split", children: [] },
+          left: { type: "split", children: [] },
+          right: { type: "split", children: [] },
+        },
+        null,
+        2,
+      ),
+      ".obsidian/themes/Minimal/theme.css": "body { --background-primary: #ffffff; }\n",
+      "Assets/diagram.png": "not-a-real-png; metadata index must ignore asset bytes",
+      "Maps/Overview.canvas": JSON.stringify({ nodes: [], edges: [] }, null, 2),
+      "Views/Projects.base": "name: Projects\nfilter: tag:project/large\nview: table\n",
+    }),
+  );
+
+  for (let i = 0; i < noteCount; i += 1) {
+    const current = i.toString().padStart(3, "0");
+    const next = ((i + 1) % noteCount).toString().padStart(3, "0");
+    const previous = ((i + noteCount - 1) % noteCount).toString().padStart(3, "0");
+    const status = i % 3 === 0 ? "active" : i % 3 === 1 ? "waiting" : "done";
+    const folder = `area/${i % 10}`;
+    out.set(
+      `Notes/Note ${current}.md`,
+      `---
+aliases:
+  - Note ${current} Alias
+tags:
+  - project/large
+  - ${folder}
+status: ${status}
+---
+# Note ${current}
+
+Previous: [[Notes/Note ${previous}]]
+Next: [[Notes/Note ${next}|next note]]
+Embed: ![[Assets/diagram.png]]
+
+> [!note]+ Compatibility callout
+> Nested content with ==highlight==, $x^2$, and #inline/${i % 5}.
+
+- Stable block ^note-${current}
+`,
+    );
+  }
+
+  return out;
+}
+
 function makeFixtureFs(files: Map<VaultPath, string>, writes: VaultPath[]): FileSystemImpl {
   return {
     rootName: "obsidian-fixture",
@@ -282,5 +335,47 @@ describe("Obsidian compatibility fixture", () => {
     // biome-ignore lint/complexity/useLiteralKeys: frontmatter is an index-signature map under noPropertyAccessFromIndexSignature.
     expect(metadata.frontmatter["status"]).toBe("active");
     expect(metadata.isEmpty).toBe(false);
+  });
+
+  it("indexes a generated 200-note Obsidian vault fixture without modifying source files", async () => {
+    files = makeLargeObsidianFixture();
+    const obsidianConfigBefore = files.get(".obsidian/app.json");
+    setAppLayer(
+      () => Layer.succeed(FileSystem, makeFixtureFs(files, writes)) as Layer.Layer<AppServices>,
+    );
+
+    await metadataCache.indexVault();
+
+    expect(writes).toEqual([]);
+    expect(files.get(".obsidian/app.json")).toBe(obsidianConfigBefore);
+
+    const first = metadataCache.getMetadata("Notes/Note 000.md");
+    expect(first?.aliases).toEqual(["Note 000 Alias"]);
+    expect(first?.tags.map((tag) => tag.name).sort()).toEqual([
+      "area/0",
+      "inline/0",
+      "project/large",
+    ]);
+    expect(first?.links.map((link) => link.target)).toEqual([
+      "Notes/Note 199",
+      "Notes/Note 001",
+      "Assets/diagram.png",
+    ]);
+    expect(first?.blocks).toEqual([{ id: "note-000", line: 17 }]);
+
+    expect(metadataCache.getAllSwitcherEntries()).toHaveLength(400);
+    expect(metadataCache.getAllHeadings()).toHaveLength(200);
+    expect(metadataCache.getAllBlocks()).toHaveLength(200);
+    expect(metadataCache.getAllProperties()).toEqual(
+      expect.arrayContaining([
+        { name: "status", count: 200, samples: ["active", "waiting", "done"] },
+      ]),
+    );
+    expect(metadataCache.getAllTags()).toEqual(
+      expect.arrayContaining([{ name: "project/large", count: 200 }]),
+    );
+    expect(metadataCache.getBacklinks("Notes/Note 000.md")).toEqual(
+      expect.arrayContaining([{ source: "Notes/Note 199.md", lines: [11] }]),
+    );
   });
 });

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { transformForGraphViewport, viewportForPanDrag } from "./pan";
 
@@ -34,5 +35,15 @@ describe("graph pan helpers", () => {
 
     expect(transform).toBe("translate(10599,-9599) scale(1)");
     expect(elapsed).toBeLessThan(16);
+  });
+
+  it("keeps GraphView routed through the shared pan helpers", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/GraphView.tsx`, "utf8");
+
+    expect(source).toContain(
+      'import { transformForGraphViewport, viewportForPanDrag } from "@core/graph/pan";',
+    );
+    expect(source.match(/transformForGraphViewport/g)).toHaveLength(3);
+    expect(source.match(/viewportForPanDrag/g)).toHaveLength(2);
   });
 });

@@ -11,8 +11,8 @@
       .fixture-grid {
         height: 100vh;
         display: grid;
-        grid-template-columns: 56px 260px 1fr 420px;
-        grid-template-rows: 36px 1fr;
+        grid-template-columns: 56px 240px 1fr 360px;
+        grid-template-rows: 36px minmax(0, 1fr) minmax(0, 1fr);
         overflow: hidden;
       }
 
@@ -49,6 +49,15 @@
         min-height: 0;
         border-left: 1px solid var(--background-modifier-border);
       }
+
+      .fixture-graph {
+        grid-column: 4;
+        grid-row: 3;
+        min-width: 0;
+        min-height: 0;
+        border-left: 1px solid var(--background-modifier-border);
+        border-top: 1px solid var(--background-modifier-border);
+      }
     </style>
   </head>
   <body class="theme-light mod-macos show-view-header show-ribbon">
@@ -61,9 +70,12 @@
       import { serializeCanvas } from "@core/canvas/schema";
       import { run } from "@core/effect/runtime";
       import { FileSystem } from "@core/fs/FileSystem";
+      import { metadataCache } from "@core/metadata/cache";
       import { workspaceStore } from "@core/workspace/store";
+      import { noticeManager } from "@core/notices/notice";
       import { CommandsBootstrap } from "@/ui/commands/CommandsBootstrap";
       import { MenuHost } from "@/ui/overlay/Menu";
+      import { NoticeContainer } from "@/ui/overlay/NoticeContainer";
       import { TooltipHost } from "@/ui/overlay/Tooltip";
       import { VaultPicker } from "@/ui/prompts/VaultPicker";
       import { Ribbon } from "@/ui/shell/Ribbon";
@@ -73,6 +85,7 @@
       import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
       import { CanvasView } from "@/ui/views/CanvasView";
       import { FileExplorerView } from "@/ui/views/file-explorer/FileExplorerView";
+      import { GraphView } from "@/ui/views/GraphView";
 
       const params = new URLSearchParams(window.location.search);
       const vaultName = params.get("vault") || `icon-a11y-${Date.now()}`;
@@ -97,7 +110,8 @@
                 Effect.gen(function* () {
                   const fs = yield* FileSystem;
                   yield* fs.writeText("A.md", "# A\n");
-                  yield* fs.writeText("B.md", "# B\n");
+                  yield* fs.writeText("B.md", "# B\n\nLink to [[A]].\n");
+                  yield* fs.writeText("C.md", "# C\n");
                   yield* fs.writeText(
                     canvasPath,
                     serializeCanvas({
@@ -117,7 +131,11 @@
                   );
                 }),
               );
+              metadataCache.reset();
+              await metadataCache.indexVault();
               workspaceStore.openFile("A.md", { mode: "source" });
+              workspaceStore.newTab();
+              workspaceStore.openFile("C.md", { mode: "source" });
               workspaceStore.openFile("B.md", { mode: "source" });
               setReady(true);
             } catch (err) {
@@ -158,6 +176,7 @@
             React.createElement("section", { className: "fixture-file-explorer", "aria-label": "File explorer" }, React.createElement(FileExplorerView)),
             React.createElement("section", { className: "fixture-workspace", "aria-label": "Workspace" }, React.createElement(Workspace)),
             React.createElement("section", { className: "fixture-canvas", "aria-label": "Canvas" }, React.createElement(CanvasView, { path: canvasPath })),
+            React.createElement("section", { className: "fixture-graph", "aria-label": "Graph" }, React.createElement(GraphView)),
           ),
           React.createElement(VaultPicker, {
             open: pickerOpen,
@@ -169,8 +188,15 @@
             onClick: () => setPickerOpen(true),
             style: { position: "fixed", right: 8, bottom: 8, zIndex: 20 },
           }),
+          React.createElement("button", {
+            type: "button",
+            "aria-label": "Show fixture notice",
+            onClick: () => noticeManager.show("Keyboard fixture notice", { kind: "info", timeoutMs: 0 }),
+            style: { position: "fixed", right: 8, bottom: 44, zIndex: 20 },
+          }),
           React.createElement(MenuHost),
           React.createElement(TooltipHost),
+          React.createElement(NoticeContainer),
         );
       }
 

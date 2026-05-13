@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-13 — Populated keyboard browser verifier
+
+- **Root cause** — keyboard-only accessibility coverage still had a manual
+  populated-vault pass. The existing icon fixture also wrote multiple files
+  without indexing metadata for graph views, and its first two-note setup was
+  easy to accidentally collapse into one tab because `openFile` replaces the
+  active unpinned tab unless `newTab` or a history setup is explicit.
+- **Browser path** — added `verify:keyboard-populated-browser`, which opens a
+  real OPFS fixture vault in Chromium and operates workspace tabs, File
+  Explorer file rows, CodeMirror editing, shared menus, graph controls, canvas
+  controls, and notice dismissal with keyboard input.
+- **Fixture fix** — expanded the shared icon-a11y fixture to seed indexed
+  metadata, a real graph, a persistent notice trigger, and a two-tab workspace
+  whose active tab still has back history so the existing titlebar icon audit
+  remains meaningful.
+
+### Tests
+- `bun run verify:keyboard-populated-browser`
+- `bun run verify:icon-a11y-browser`
+- `node --check scripts/verify-keyboard-populated-browser.mjs`
+- `bunx biome check package.json scripts/icon-a11y-browser-fixture.html scripts/verify-icon-a11y-browser.mjs scripts/verify-keyboard-populated-browser.mjs`
+
+---
+
 ## 2026-05-13 — External drag-and-drop browser verifier
 
 - **Root cause** — external drag/drop helpers had unit coverage, but the severe

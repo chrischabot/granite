@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Bases column-label cleanup
+
+- **Removed stale helper** — deleted the unused core Bases `columnLabel` helper
+  that returned hard-coded English labels outside the UI i18n path.
+- **Regression audit** — extended the Bases externalization audit to read the
+  core schema and fail if the stale non-localized helper is reintroduced.
+
+### Tests
+- Updated `src/core/bases/schema.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted Bases/i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Tour note i18n ratchet
 
 - **Generated tour note** — routed the built-in Tour plugin's generated note

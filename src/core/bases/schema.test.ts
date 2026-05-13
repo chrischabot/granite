@@ -1,11 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  type BaseConfig,
-  DEFAULT_BASE,
-  columnLabel,
-  parseBaseConfig,
-  serializeBaseConfig,
-} from "./schema";
+import { type BaseConfig, DEFAULT_BASE, parseBaseConfig, serializeBaseConfig } from "./schema";
 
 describe("parseBaseConfig", () => {
   it("returns defaults on empty input", () => {
@@ -150,20 +144,5 @@ describe("serializeBaseConfig", () => {
     expect(text).not.toContain("groupBy");
     expect(text).not.toContain("summaries");
     expect(text).not.toContain("formulas");
-  });
-});
-
-describe("columnLabel", () => {
-  it("translates built-in keys", () => {
-    expect(columnLabel("file.name")).toBe("Name");
-    expect(columnLabel("file.modified")).toBe("Modified");
-    expect(columnLabel("tags")).toBe("Tags");
-  });
-  it("returns the raw key for unknown keys", () => {
-    expect(columnLabel("custom-property")).toBe("custom-property");
-  });
-
-  it("returns an empty string for an empty key", () => {
-    expect(columnLabel("")).toBe("");
   });
 });

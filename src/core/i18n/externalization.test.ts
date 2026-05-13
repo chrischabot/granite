@@ -549,6 +549,8 @@ const BASES_VIEW_FORBIDDEN_PATTERNS = [
   />Loading…</,
   /class="bases-fence-empty">No matching files\./,
   /schemaColumnLabel/,
+  /columnLabel as builtInColumnLabel/,
+  /export function columnLabel\(key: ColumnKey\)/,
   /filter: <code>/,
   /"no filter"/,
   /match\{filtered\.length === 1 \? "" : "es"\}/,
@@ -1546,6 +1548,7 @@ describe("UI string externalization audit", () => {
       readFileSync(`${process.cwd()}/src/ui/views/bases/BasesMapView.tsx`, "utf8"),
       readFileSync(`${process.cwd()}/src/ui/views/bases/embed.ts`, "utf8"),
       readFileSync(`${process.cwd()}/src/ui/views/bases/shared.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/bases/schema.ts`, "utf8"),
     ];
     const source = sources.join("\n");
     const violations = BASES_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));

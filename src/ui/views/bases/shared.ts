@@ -1,10 +1,5 @@
 import { type FormulaValue, tryEvaluateFormula } from "@core/bases/formula";
-import {
-  type BaseConfig,
-  type ColumnKey,
-  type SortOrder,
-  columnLabel as builtInColumnLabel,
-} from "@core/bases/schema";
+import type { BaseConfig, ColumnKey, SortOrder } from "@core/bases/schema";
 import { stem } from "@core/fs/path";
 import type { VaultFile, VaultPath } from "@core/fs/types";
 import type { t as translate } from "@core/i18n";
@@ -142,12 +137,6 @@ export function sortRows(rows: ReadonlyArray<Row>, column: ColumnKey, order: Sor
     return 0;
   });
   return copy;
-}
-
-export function columnLabel(key: ColumnKey, formulas: Readonly<Record<string, string>>): string {
-  // Formula columns inherit the key as their label.
-  if (key in formulas) return key;
-  return builtInColumnLabel(key);
 }
 
 export function localizedColumnLabel(

@@ -159,23 +159,3 @@ export function serializeBaseConfig(config: BaseConfig): string {
   }
   return yaml.dump(out);
 }
-
-/** Friendly column label for the header row. */
-export function columnLabel(key: ColumnKey): string {
-  switch (key) {
-    case "file.name":
-      return "Name";
-    case "file.path":
-      return "Path";
-    case "file.modified":
-      return "Modified";
-    case "file.created":
-      return "Created";
-    case "file.size":
-      return "Size";
-    case "tags":
-      return "Tags";
-    default:
-      return key;
-  }
-}

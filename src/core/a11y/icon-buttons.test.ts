@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const uiRoot = join(root, "src/ui");
+const buttonsCss = readFileSync(join(root, "src/styles/buttons.css"), "utf8");
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
@@ -77,6 +78,13 @@ describe("icon-only accessibility audit", () => {
     }
 
     expect(violations, violations.join("\n")).toEqual([]);
+  });
+
+  it("keeps clickable icon controls visibly keyboard-focusable", () => {
+    expect(buttonsCss).toMatch(/\.clickable-icon:focus-visible\s*\{/);
+    expect(buttonsCss).toMatch(
+      /\.clickable-icon:focus-visible\s*\{[^}]*--background-modifier-border-focus/s,
+    );
   });
 });
 

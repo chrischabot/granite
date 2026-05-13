@@ -133,6 +133,11 @@ button.mod-destructive {
   }
 }
 
+.clickable-icon:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
 .clickable-icon[aria-disabled="true"] {
   background-color: unset;
   color: var(--text-muted);

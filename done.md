@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Clickable icon focus-ring ratchet
+
+- **Root cause** — icon-only controls had accessible names, but the shared
+  `.clickable-icon` styling did not provide its own `:focus-visible` ring, and
+  hover styles explicitly cleared `box-shadow`.
+- **Focus path** — added a shared keyboard focus ring using
+  `--background-modifier-border-focus` so icon-only controls can be visibly
+  focused without relying on browser defaults.
+- **Regression ratchet** — extended `src/core/a11y/icon-buttons.test.ts` to
+  read `src/styles/buttons.css` and fail if the clickable-icon focus selector
+  or focus-ring token disappears.
+- **Tracker honesty** — left the full keyboard-only audit open because this is
+  source-level evidence for a shared control class, not a browser traversal of
+  every core flow.
+
+### Tests
+- `bun run test -- src/core/a11y/icon-buttons.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview escaped marker and code-span ratchet
 
 - **Root cause** — the Live Preview decoration helper skipped single-backtick

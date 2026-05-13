@@ -3106,6 +3106,22 @@
 
 ---
 
+## 2026-05-13 — Obsidian compatibility save-cycle verifier
+
+- **Intentional edit semantics** — extended `verify:obsidian-vault-browser` so
+  the 200-note fixture applies one intentional body edit, re-indexes through
+  Granite's Obsidian-compatible metadata parser, and verifies frontmatter,
+  aliases, tags, and wikilink/backlink semantics remain intact.
+- **Canvas/Base save cycles** — the verifier now writes serialized `.canvas`
+  and `.base` content back through the fixture filesystem and reparses both,
+  proving canvas nodes/edges/labels/arrows and base view/group/summaries/formula
+  semantics survive the save cycle without touching `.obsidian/`.
+
+### Tests
+- Validation: `bun run verify:obsidian-vault-browser` passes.
+
+---
+
 ## 2026-05-12 — Native host system-trash bridge
 
 - **Native trash bridge** — `handleAdapter()` now wires System trash mode to a

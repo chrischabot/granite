@@ -31,6 +31,12 @@
         originalFiles.set(path, text);
       }
 
+      function frontmatterBlock(text) {
+        if (!text.startsWith("---\n")) return "";
+        const end = text.indexOf("\n---", 4);
+        return end === -1 ? "" : text.slice(0, end + 4);
+      }
+
       function makeVault() {
         addFile(".obsidian/app.json", JSON.stringify({ legacyEditor: false, livePreview: true }, null, 2));
         addFile(
@@ -304,6 +310,76 @@
           writes: writes.length,
         });
 
+        const canvasBefore = parseCanvas(files.get("Maps/Overview.canvas"));
+        await Effect.runPromise(makeFixtureFs().writeText("Maps/Overview.canvas", serializeCanvas(canvasBefore)));
+        const canvasAfter = parseCanvas(files.get("Maps/Overview.canvas"));
+        assert(canvasAfter.nodes.length === canvasBefore.nodes.length, "canvas save changed node count", {
+          before: canvasBefore,
+          after: canvasAfter,
+        });
+        assert(canvasAfter.edges.length === canvasBefore.edges.length, "canvas save changed edge count", {
+          before: canvasBefore,
+          after: canvasAfter,
+        });
+        assert(
+          canvasAfter.edges.some((edge) => edge.label === "next" && edge.toEnd === "arrow"),
+          "canvas save lost edge label or arrow",
+          { after: canvasAfter },
+        );
+
+        const baseBefore = parseBaseConfig(files.get("Views/Projects.base"));
+        await Effect.runPromise(makeFixtureFs().writeText("Views/Projects.base", serializeBaseConfig(baseBefore)));
+        const baseAfter = parseBaseConfig(files.get("Views/Projects.base"));
+        assert(baseAfter.view === baseBefore.view, "base save changed view type", {
+          before: baseBefore,
+          after: baseAfter,
+        });
+        assert(baseAfter.groupBy === baseBefore.groupBy, "base save changed grouping", {
+          before: baseBefore,
+          after: baseAfter,
+        });
+        assert(baseAfter.summaries.length === baseBefore.summaries.length, "base save changed summaries", {
+          before: baseBefore,
+          after: baseAfter,
+        });
+        assert(Object.keys(baseAfter.formulas).includes("lower_name"), "base save lost formula", {
+          after: baseAfter,
+        });
+
+        const editPath = "Notes/Note 000.md";
+        const beforeEdit = files.get(editPath);
+        const edited = `${beforeEdit}\nIntentional Granite edit.\n`;
+        await Effect.runPromise(makeFixtureFs().writeText(editPath, edited));
+        assert(frontmatterBlock(edited) === frontmatterBlock(beforeEdit), "intentional edit changed frontmatter", {
+          before: frontmatterBlock(beforeEdit),
+          after: frontmatterBlock(edited),
+        });
+
+        metadataCache.reset();
+        await metadataCache.indexVault();
+        assert(
+          metadataCache.getAllSwitcherEntries().some((entry) => entry.path === editPath && entry.alias === "Note 000 Alias"),
+          "intentional edit lost alias semantics",
+          { entries: metadataCache.getAllSwitcherEntries().filter((entry) => entry.path === editPath) },
+        );
+        assert(
+          metadataCache.getAllTags().some((tag) => tag.name === "project/large" && tag.count === NOTE_COUNT),
+          "intentional edit changed tag semantics",
+          { tags: metadataCache.getAllTags() },
+        );
+        assert(
+          metadataCache
+            .getBacklinks("Notes/Note 001.md")
+            .some((backlink) => backlink.source === editPath && backlink.lines.includes(11)),
+          "intentional edit changed wikilink/backlink semantics",
+          { backlinks: metadataCache.getBacklinks("Notes/Note 001.md") },
+        );
+
+        const obsidianWritesAfterSaveCycles = writes.filter((path) => path.startsWith(".obsidian/"));
+        assert(obsidianWritesAfterSaveCycles.length === 0, ".obsidian files were written after save cycles", {
+          obsidianWritesAfterSaveCycles,
+        });
+
         metadataCache.reset();
         await disposeRuntime();
 
@@ -314,6 +390,8 @@
           callouts: root.querySelectorAll(".callout").length,
           wikilinks: root.querySelectorAll(".internal-link").length,
           writes: writes.length,
+          canvasNodes: canvasAfter.nodes.length,
+          baseView: baseAfter.view,
           indexElapsedMs,
           renderElapsedMs,
         };

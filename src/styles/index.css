@@ -7,6 +7,7 @@
 @import "./base.css";
 @import "./buttons.css";
 @import "./inputs.css";
+@import "./suggestion-and-prompt.css";
 @import "./multi-select.css";
 @import "./checkbox.css";
 @import "./slider.css";

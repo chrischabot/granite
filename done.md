@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Renderer suggestion and prompt CSS module
+
+- **Dedicated module** — added spec-linked
+  `src/styles/suggestion-and-prompt.css` for prompt chrome, flat prompt inputs,
+  instruction strips, anchored suggestion containers, CodeMirror autocomplete
+  chrome, suggestion item states, complex suggestion rows, and secret-key
+  suggestions.
+- **Regression audit** — extended the renderer module test so prompt/suggestion
+  styles stay imported, spec-linked, and out of the broad overlay module.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer RTL CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/rtl.css` for RTL chrome

@@ -97,6 +97,24 @@ const MODULES = [
     ],
   },
   {
+    file: "suggestion-and-prompt.css",
+    spec: "specs/renderer/suggestion-and-prompt.md",
+    selectors: [
+      ".prompt-input-container .search-input-clear-button",
+      "input.prompt-input:focus-visible",
+      ".prompt-instruction-command",
+      ".suggestion-container",
+      ".cm-tooltip.cm-tooltip-autocomplete",
+      ".is-mobile .suggestion-container",
+      ".suggestion-bg",
+      ".suggestion-empty-suggestion",
+      ".suggestion-item.is-being-dragged",
+      ".suggestion-item.mod-toggle .mod-checked",
+      ".suggestion-item.mod-complex .suggestion-prefix::after",
+      ".suggestion-item.mod-complex.suggestion-secret-key",
+    ],
+  },
+  {
     file: "multi-select.css",
     spec: "specs/renderer/multi-select.md",
     selectors: [
@@ -262,6 +280,9 @@ describe("renderer CSS module coverage", () => {
     expect(overlays).not.toContain("Notice container (toasts)");
     expect(overlays).not.toContain(" * Modal");
     expect(overlays).not.toContain(".modal-container {");
+    expect(overlays).not.toContain(".prompt {");
+    expect(overlays).not.toContain(".suggestion-item {");
+    expect(overlays).not.toContain(".suggestion-container {");
 
     const views = readFileSync(`${STYLE_DIR}/views.css`, "utf8");
     expect(views).not.toContain("Tree item rows");

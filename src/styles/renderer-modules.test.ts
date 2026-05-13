@@ -282,6 +282,24 @@ const MODULES = [
       ".changelog-item.mod-highlighted::before",
     ],
   },
+  {
+    file: "view-history-sync.css",
+    spec: "specs/renderer/view-history-sync.md",
+    selectors: [
+      ".file-recovery-modal",
+      ".file-recovery-list-container",
+      ".file-recovery-list-item-header.is-active",
+      '.file-recovery-text[data-ext="md"]',
+      ".sync-history-list-container",
+      ".sync-history-list-item-header.is-active .u-muted",
+      ".sync-history-list-item-header .sync-history-list-item-avatar",
+      ".sync-history-list-item-header .mod-avatar-color-8",
+      ".sync-history-list-item .version-group-container .connecting-line",
+      ".sync-history-content-container",
+      ".sync-status-icon.mod-spin svg",
+      ".sync-exclude-folder-remove",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {

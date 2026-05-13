@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Renderer history and sync CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/view-history-sync.css`
+  for file-recovery modal layout, snapshot rows, markdown-aware recovery text,
+  sync-history sidebar rows, avatars, version groups, content panes, sync
+  status spin, and sync settings rows.
+- **Implementation cleanup** — moved File Recovery modal layout and list styles
+  out of inline JSX and into the renderer CSS module.
+- **Regression audit** — extended the renderer module test so history/sync
+  styles stay imported and spec-linked.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style/file-recovery tests, full
+  `bun run test`, `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer release-notes CSS module
 
 - **Dedicated module** — added spec-linked

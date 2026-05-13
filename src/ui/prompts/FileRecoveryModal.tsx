@@ -129,15 +129,7 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
       title={t("fileRecovery.title")}
       modifier="mod-sidebar-layout"
     >
-      <div
-        className="file-recovery-modal"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "260px minmax(0, 1fr)",
-          gap: "var(--size-4-4)",
-          minHeight: 420,
-        }}
-      >
+      <div className="file-recovery-modal">
         <section className="file-recovery-list" aria-label={t("fileRecovery.snapshots")}>
           <label className="setting-item-name" htmlFor="file-recovery-filter">
             {t("fileRecovery.filename")}
@@ -149,24 +141,11 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
             placeholder={path ?? t("fileRecovery.filterPlaceholder")}
             onChange={(e) => setFilter(e.currentTarget.value)}
           />
-          <div
-            className="file-recovery-list-container"
-            style={{
-              marginTop: "var(--size-4-3)",
-              border: "1px solid var(--background-modifier-border)",
-              borderRadius: "var(--radius-s)",
-              overflow: "auto",
-              maxHeight: 340,
-            }}
-          >
+          <div className="file-recovery-list-container">
             {loading ? (
-              <div style={{ padding: "var(--size-4-3)", color: "var(--text-faint)" }}>
-                {t("fileRecovery.loading")}
-              </div>
+              <div className="file-recovery-list-empty">{t("fileRecovery.loading")}</div>
             ) : filteredSnapshots.length === 0 ? (
-              <div style={{ padding: "var(--size-4-3)", color: "var(--text-faint)" }}>
-                {t("fileRecovery.empty")}
-              </div>
+              <div className="file-recovery-list-empty">{t("fileRecovery.empty")}</div>
             ) : (
               filteredSnapshots.map((snapshot) => (
                 <button
@@ -174,19 +153,6 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
                   type="button"
                   className={`file-recovery-list-item-header${snapshot.id === selected?.id ? " is-active" : ""}`}
                   onClick={() => setSelectedId(snapshot.id)}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "var(--size-4-2)",
-                    border: 0,
-                    borderBottom: "1px solid var(--background-modifier-border)",
-                    background:
-                      snapshot.id === selected?.id
-                        ? "var(--background-modifier-hover)"
-                        : "transparent",
-                    color: "var(--text-normal)",
-                  }}
                 >
                   <span className="file-recovery-list-item-details">
                     {formatSnapshotTime(snapshot.mtimeMs)}
@@ -203,8 +169,8 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
             {t("fileRecovery.clear")}
           </button>
         </section>
-        <section style={{ display: "flex", minWidth: 0, flexDirection: "column" }}>
-          <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <section className="file-recovery-content">
+          <label className="file-recovery-toggle">
             <input
               type="checkbox"
               checked={showChanges}
@@ -217,12 +183,8 @@ export function FileRecoveryModal({ path, onClose }: FileRecoveryModalProps) {
             data-ext={path?.split(".").pop() ?? ""}
             readOnly
             value={preview}
-            style={{ marginTop: "var(--size-4-2)", minHeight: 340, resize: "none" }}
           />
-          <div
-            className="modal-button-container"
-            style={{ justifyContent: "flex-end", paddingInlineEnd: 0 }}
-          >
+          <div className="modal-button-container file-recovery-actions">
             <button type="button" onClick={copy} disabled={!selected}>
               {t("fileRecovery.copy")}
             </button>

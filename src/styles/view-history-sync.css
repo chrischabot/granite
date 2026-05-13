@@ -1,0 +1,351 @@
+/* SPEC: specs/renderer/view-history-sync.md */
+
+.file-recovery-modal {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: var(--size-4-4);
+  min-height: 420px;
+}
+
+.file-recovery-list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.file-recovery-list .search-input-container,
+.file-recovery-list .prompt-input {
+  width: 100%;
+}
+
+.file-recovery-list-container {
+  margin-top: var(--size-4-3);
+  border: var(--border-width) solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  overflow: auto;
+  max-height: 340px;
+  display: flex;
+  flex-direction: column;
+}
+
+.file-recovery-list-empty {
+  padding: var(--size-4-3);
+  color: var(--text-faint);
+}
+
+.file-recovery-list-item-header {
+  display: block;
+  width: 100%;
+  text-align: start;
+  padding: var(--size-4-2);
+  border: 0;
+  border-bottom: var(--border-width) solid var(--background-modifier-border);
+  background: transparent;
+  color: var(--text-normal);
+  border-radius: 0;
+  box-shadow: none;
+  height: auto;
+  white-space: normal;
+}
+
+.file-recovery-list-item-header:not(:last-child) {
+  border-bottom: var(--border-width) solid var(--background-modifier-border);
+}
+
+.file-recovery-list-item-header.is-active,
+.file-recovery-list-item-header.is-active:hover {
+  background-color: var(--background-modifier-hover);
+}
+
+.file-recovery-list-item-header.is-active .u-muted,
+.file-recovery-list-item-header.is-active:hover .u-muted {
+  color: var(--text-muted);
+}
+
+.file-recovery-list-item-header .file-recovery-list-item-details {
+  font-size: var(--font-ui-small);
+}
+
+.file-recovery-list-item-header .collapse-indicator {
+  color: var(--nav-collapse-icon-color);
+}
+
+.file-recovery-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.file-recovery-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+}
+
+.file-recovery-text {
+  font-family: var(--font-monospace);
+  tab-size: 4;
+  resize: none;
+  flex: 1 0 0;
+  padding: var(--size-4-6);
+  font-size: var(--font-ui-medium);
+  background-color: var(--background-primary);
+  margin-top: var(--size-4-2);
+  min-height: 340px;
+}
+
+.file-recovery-text[data-ext="md"] {
+  font-family: var(--font-text);
+  font-size: var(--font-text-size);
+}
+
+.file-recovery-actions {
+  justify-content: flex-end;
+  padding-inline-end: 0;
+}
+
+.sync-history-list-container {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 250px;
+  flex-shrink: 0;
+  border-inline-end: var(--border-width) solid var(--background-modifier-border);
+  background-color: var(--background-secondary);
+}
+
+.sync-history-list {
+  overflow: auto;
+  padding: var(--size-4-2) var(--size-4-2) 0;
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+}
+
+.sync-history-list .search-input-container {
+  width: 100%;
+}
+
+.sync-history-list-item-container {
+  overflow: auto;
+  flex: 1 1 0;
+}
+
+.sync-history-list-item-header {
+  display: flex;
+  align-items: center;
+  padding: var(--size-4-2);
+  margin-bottom: var(--size-4-1);
+  border-radius: var(--radius-s);
+}
+
+.sync-history-list-item-header:last-child {
+  margin-bottom: 0;
+}
+
+.sync-history-list-item-header.is-active,
+.sync-history-list-item-header.is-active:hover {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.sync-history-list-item-header.is-active .u-muted,
+.sync-history-list-item-header.is-active:hover .u-muted {
+  color: var(--text-on-accent);
+  opacity: 0.8;
+}
+
+.sync-history-list-item-header.is-active {
+  --nav-collapse-icon-color: var(--text-on-accent);
+}
+
+@media (hover: hover) {
+  .sync-history-list-item-header:hover {
+    background-color: var(--background-modifier-hover);
+  }
+}
+
+.sync-history-list-item-header .mod-avatar-current-user {
+  background-color: var(--sync-avatar-color-current-user, transparent);
+}
+
+.sync-history-list-item-header .mod-avatar-color-1 {
+  background-color: var(--sync-avatar-color-1, var(--color-red));
+}
+
+.sync-history-list-item-header .mod-avatar-color-2 {
+  background-color: var(--sync-avatar-color-2, var(--color-orange));
+}
+
+.sync-history-list-item-header .mod-avatar-color-3 {
+  background-color: var(--sync-avatar-color-3, var(--color-yellow));
+}
+
+.sync-history-list-item-header .mod-avatar-color-4 {
+  background-color: var(--sync-avatar-color-4, var(--color-green));
+}
+
+.sync-history-list-item-header .mod-avatar-color-5 {
+  background-color: var(--sync-avatar-color-5, var(--color-cyan));
+}
+
+.sync-history-list-item-header .mod-avatar-color-6 {
+  background-color: var(--sync-avatar-color-6, var(--color-blue));
+}
+
+.sync-history-list-item-header .mod-avatar-color-7 {
+  background-color: var(--sync-avatar-color-7, var(--color-purple));
+}
+
+.sync-history-list-item-header .mod-avatar-color-8 {
+  background-color: var(--sync-avatar-color-8, var(--color-pink));
+}
+
+.sync-history-list-item-header .sync-history-list-item-avatar {
+  border-radius: 50%;
+  height: var(--size-4-8);
+  width: var(--size-4-8);
+  min-width: var(--size-4-8);
+  margin-inline-end: var(--size-4-2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-transform: uppercase;
+  color: var(--text-on-accent);
+  border: var(--border-width) solid rgba(var(--mono-rgb-100), 0.2);
+}
+
+.sync-history-list-item-header.is-active .sync-history-list-item-avatar {
+  border: var(--border-width) solid rgba(255, 255, 255, 0.25);
+}
+
+.sync-history-list-item-header:not(.is-active)
+  .sync-history-list-item-avatar.mod-avatar-current-user {
+  color: var(--text-normal);
+}
+
+.sync-history-list-item-header .sync-history-list-item-details {
+  flex-grow: 1;
+  cursor: var(--cursor);
+  font-size: var(--font-ui-small);
+}
+
+.sync-history-list-item-header .tree-item-flair {
+  padding: var(--size-4-1);
+}
+
+@media (hover: hover) {
+  .sync-history-list-item-header .tree-item-flair:hover {
+    opacity: 1;
+    background-color: var(--background-modifier-hover);
+    --nav-collapse-icon-color: var(--text-normal);
+  }
+}
+
+.sync-history-list-item .version-group-container {
+  position: relative;
+  margin-bottom: var(--size-4-2);
+}
+
+.sync-history-list-item .version-group-container .connecting-line {
+  position: absolute;
+  top: 0;
+  inset-inline-start: var(--size-4-6);
+  height: 100%;
+  width: var(--nav-indentation-guide-width);
+  background-color: var(--nav-indentation-guide-color);
+}
+
+.sync-history-list-item .version-group-container .version-group-item {
+  padding: var(--size-4-1) var(--size-2-2) var(--size-4-1) var(--size-4-12);
+  margin-bottom: var(--size-2-1);
+  border-radius: var(--radius-s);
+  font-size: var(--nav-item-size);
+  line-height: var(--line-height-tight);
+  color: var(--nav-item-color);
+  font-variant: tabular-nums;
+}
+
+.sync-history-list-item .version-group-container .version-group-item:hover {
+  background-color: var(--nav-item-background-hover);
+  color: var(--nav-item-color-hover);
+}
+
+.sync-history-list-item .version-group-container .version-group-item.is-active,
+.sync-history-list-item .version-group-container .version-group-item.is-active:hover {
+  background-color: var(--nav-item-background-active);
+  color: var(--nav-item-color-active);
+}
+
+.sync-history-content-container {
+  background-color: var(--background-primary);
+  padding: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.sync-history-content-buttons,
+.sync-modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--size-4-2);
+}
+
+.sync-history-content-empty {
+  color: var(--text-muted);
+  padding: var(--size-4-6);
+}
+
+.sync-history-desc {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.sync-history-diff,
+.sync-history-preview {
+  flex: 1 1 auto;
+  overflow: auto;
+}
+
+.sync-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--size-4-2);
+}
+
+.sync-status-icon.mod-spin svg {
+  animation: rotation 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sync-status-icon.mod-spin svg {
+    animation: none;
+  }
+}
+
+.sync-vault-share-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.sync-vault-shares-list-item-container {
+  overflow: auto;
+}
+
+.sync-exclude-folder {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+}
+
+.sync-exclude-folder-name {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync-exclude-folder-remove {
+  flex: 0 0 auto;
+}

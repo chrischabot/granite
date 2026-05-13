@@ -22,6 +22,7 @@
 @import "./empty-state.css";
 @import "./card.css";
 @import "./view-release-notes.css";
+@import "./view-history-sync.css";
 @import "./shell.css";
 @import "./tabs.css";
 @import "./overlays.css";

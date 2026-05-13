@@ -411,7 +411,8 @@ body:not(.show-ribbon) .side-dock-ribbon {
   position: var(--status-bar-position);
   width: auto;
   bottom: 0;
-  right: 0;
+  right: auto;
+  inset-inline-end: 0;
   border-radius: var(--status-bar-radius);
   border-style: solid;
   border-width: var(--status-bar-border-width);
@@ -430,7 +431,7 @@ body:not(.show-ribbon) .side-dock-ribbon {
 }
 
 body:not(.is-fullscreen) .status-bar {
-  padding-right: var(--size-4-2);
+  padding-inline-end: var(--size-4-2);
 }
 
 .is-screenshotting .status-bar {

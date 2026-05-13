@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-05-13 — Runtime i18n browser verifier and RTL status-bar fix
+
+- **Root cause** — source-level i18n audits proved broad string routing, but
+  they did not prove that the live app rerenders when the locale changes or
+  that RTL layout remains operable. The first browser pass exposed a real RTL
+  layout bug: the status bar stayed physically pinned to the right while the
+  ribbon moved to the right under `dir="rtl"`, causing the status bar to
+  intercept the bottom ribbon settings button.
+- **Layout fix** — changed the status bar to use logical inline-end
+  positioning and padding so it stays at the visual trailing edge in LTR and
+  moves away from the RTL ribbon.
+- **Browser path** — added a Chromium verifier that opens the real app,
+  switches the runtime locale to Hebrew through the real i18n module, waits for
+  `document.dir="rtl"` and RTL body classes, then verifies localized visible
+  and accessible labels across the welcome screen, ribbon, Settings modal, and
+  Command Palette.
+- **Regression guarantee** — the verifier fails if the locale does not persist,
+  RTL classes are missing, the localized settings button cannot be clicked, or
+  key shell/settings/prompt labels do not rerender to Hebrew.
+
+### Tests
+- `bun run verify:i18n-browser`
+
+---
+
 ## 2026-05-13 — Community theme browser visual verifier
 
 - **Root cause** — the theme loader tests proved discovery, injection,

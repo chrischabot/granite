@@ -3073,6 +3073,21 @@
 
 ---
 
+## 2026-05-13 — Lighthouse accessibility audit script
+
+- **Repeatable Lighthouse gate** — added `bun run audit:lighthouse-a11y`, which
+  starts a local Vite server on a free port, runs Lighthouse's accessibility
+  category in headless Chromium, parses the JSON report, and fails unless the
+  score is exactly `1` with zero failed accessibility audits.
+- **Severe-test alignment** — replaced the raw manual Lighthouse command in
+  the severe checklist with the repo script so the page-level accessibility
+  audit is reproducible in the same style as the browser verifiers.
+
+### Tests
+- Validation: `bun run audit:a11y` and `bun run audit:lighthouse-a11y` pass.
+
+---
+
 ## 2026-05-12 — Native host system-trash bridge
 
 - **Native trash bridge** — `handleAdapter()` now wires System trash mode to a

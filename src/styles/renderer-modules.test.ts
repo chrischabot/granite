@@ -342,6 +342,26 @@ const MODULES = [
       ".graph-view-stats",
     ],
   },
+  {
+    file: "view-pdf.css",
+    spec: ["specs/renderer/view-pdf.md", "specs/renderer/design-tokens.md"],
+    selectors: [
+      ".pdf-container",
+      ".pdf-embed.pdf-container",
+      ".theme-dark .pdf-container.mod-themed .annotationLayer .textWidgetAnnotation input",
+      ".pdf-viewer-container",
+      ".findbarOpen .pdf-viewer-container",
+      ".pdfViewer .page",
+      ".pdf-toolbar-divider",
+      ".pdf-content-container.sidebarOpen .pdf-sidebar-container",
+      '.pdf-sidebar-container[data-view="1"] .thumbnail',
+      ".is-mobile .pdf-sidebar-resizer",
+      ".pdf-find-results-count.mod-loading",
+      ".is-phone .pdf-findbar .pdf-search-wrapper",
+      ".pdf-password-dialog",
+      ".pdfPresentationMode .pdf-toolbar",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {

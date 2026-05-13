@@ -1,0 +1,244 @@
+/* SPEC: specs/renderer/view-pdf.md */
+/* SPEC: specs/renderer/design-tokens.md */
+
+.pdf-container {
+  background-color: var(--pdf-background);
+  flex-grow: 1;
+  min-width: 350px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pdf-embed.pdf-container {
+  width: 100%;
+  height: 600px;
+  min-width: 0;
+  border: var(--border-width) solid var(--background-modifier-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--pdf-shadow);
+}
+
+.pdf-embed-frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  background-color: var(--pdf-page-background);
+}
+
+.theme-dark .pdf-container.mod-themed .annotationLayer .textWidgetAnnotation input,
+.theme-dark .pdf-container.mod-themed .annotationLayer .textWidgetAnnotation textarea {
+  filter: invert(100%) hue-rotate(180deg);
+}
+
+.theme-dark .pdf-container.mod-themed .popupWrapper > div {
+  background-color: var(--background-secondary-alt);
+  filter: drop-shadow(0 0 1px var(--color-base-60)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.4))
+    drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+}
+
+.theme-dark .pdf-container.mod-themed .popupWrapper > div::after,
+.theme-dark .pdf-container.mod-themed .popupContent:empty + .popupMeta {
+  background-color: var(--background-secondary-alt);
+}
+
+.pdf-viewer-container {
+  outline: none;
+  overflow: auto;
+  position: absolute;
+  top: 0;
+  inset-inline-end: 0;
+  bottom: 0;
+  inset-inline-start: 0;
+  scroll-padding: var(--size-4-3);
+  z-index: 0;
+}
+
+.findbarOpen .pdf-viewer-container {
+  margin-top: var(--findbar-height);
+}
+
+.pdfViewer .page {
+  background-clip: content-box;
+  background-color: var(--pdf-page-background);
+  box-shadow: var(--pdf-shadow);
+}
+
+.pdfViewer .spread .page,
+.pdfViewer .page.spread {
+  box-shadow: var(--pdf-spread-shadow);
+}
+
+.pdf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  height: var(--header-height);
+  padding: 0 var(--size-4-2);
+  background-color: var(--background-primary);
+  border-bottom: var(--border-width) solid var(--background-modifier-border);
+}
+
+.pdf-toolbar-left,
+.pdf-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+}
+
+.pdf-toolbar-center {
+  display: flex;
+  align-items: center;
+}
+
+.pdf-toolbar-spacer {
+  flex-grow: 1;
+}
+
+.pdf-toolbar-divider {
+  width: var(--border-width);
+  height: 16px;
+  background-color: var(--background-modifier-border);
+  margin: 0 var(--size-4-1);
+}
+
+.pdf-page-numbers {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdf-page-input {
+  width: 4em;
+  text-align: end;
+}
+
+.pdf-content-container {
+  --sidebar-width: 140px;
+
+  position: absolute;
+  inset: var(--header-height) 0 0;
+  overflow: hidden;
+}
+
+.pdf-content-container.sidebarMoving .pdf-sidebar-container,
+.pdf-content-container.sidebarOpen .pdf-sidebar-container {
+  visibility: visible;
+}
+
+.pdf-sidebar-container {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: 0;
+  width: 0;
+  visibility: hidden;
+  overflow: hidden;
+  background-color: var(--pdf-sidebar-background);
+  transition: width 200ms ease-in-out;
+  z-index: 1;
+}
+
+.pdf-content-container.sidebarOpen .pdf-sidebar-container,
+.pdf-content-container.sidebarMoving .pdf-sidebar-container {
+  width: var(--sidebar-width);
+}
+
+.pdf-sidebar-content-wrapper,
+.pdf-sidebar-content {
+  height: 100%;
+  overflow: auto;
+}
+
+.pdf-sidebar-resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  inset-inline-start: var(--sidebar-width);
+  width: 4px;
+  cursor: col-resize;
+  z-index: 2;
+}
+
+.is-mobile .pdf-sidebar-resizer {
+  display: none;
+}
+
+.pdf-sidebar-container[data-view="1"] .pdf-sidebar-content {
+  padding: var(--size-4-2);
+}
+
+.pdf-sidebar-container[data-view="1"] .thumbnail {
+  box-shadow: var(--pdf-thumbnail-shadow);
+}
+
+.pdf-sidebar-container[data-view="2"] .pdf-sidebar-content {
+  padding: var(--size-4-1);
+}
+
+.pdf-outline-view .tree-item-self {
+  font-size: var(--font-ui-small);
+}
+
+.pdf-findbar {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  position: absolute;
+  inset-inline: 0;
+  top: var(--header-height);
+  height: var(--findbar-height);
+  padding: 0 var(--size-4-2);
+  background-color: var(--background-primary);
+  border-bottom: var(--border-width) solid var(--background-modifier-border);
+  z-index: 3;
+}
+
+.pdf-findbar-settings {
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+}
+
+.pdf-find-results-count {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pdf-find-results-count.mod-loading {
+  animation: rotation 1s linear infinite;
+}
+
+.is-phone .pdf-findbar .pdf-search-wrapper {
+  gap: var(--size-4-2);
+}
+
+.pdf-password-dialog {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--size-4-3);
+  padding: var(--size-4-6);
+  background-color: var(--background-primary);
+  color: var(--text-muted);
+  z-index: 4;
+}
+
+.pdf-lock-icon {
+  color: var(--text-faint);
+  --icon-size: var(--icon-xl);
+}
+
+.pdfPresentationMode .pdf-toolbar,
+.pdfPresentationMode .pdf-sidebar-container,
+.pdfPresentationMode .pdf-sidebar-resizer,
+.pdfPresentationMode .pdf-findbar {
+  display: none;
+}

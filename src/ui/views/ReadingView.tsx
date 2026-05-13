@@ -292,18 +292,11 @@ export function ReadingView({ path }: ReadingViewProps) {
           replacement = video;
         } else {
           const wrap = document.createElement("div");
-          wrap.className = "pdf-embed";
-          wrap.style.width = "100%";
-          wrap.style.height = "600px";
-          wrap.style.border = "1px solid var(--background-modifier-border)";
-          wrap.style.borderRadius = "var(--radius-m)";
-          wrap.style.overflow = "hidden";
+          wrap.className = "pdf-embed pdf-container mod-themed";
           const iframe = document.createElement("iframe");
           iframe.src = url;
           iframe.title = display;
-          iframe.style.width = "100%";
-          iframe.style.height = "100%";
-          iframe.style.border = "0";
+          iframe.className = "pdf-embed-frame";
           wrap.appendChild(iframe);
           replacement = wrap;
         }

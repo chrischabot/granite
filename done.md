@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Renderer PDF CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/view-pdf.css` for the
+  pdf.js wrapper chrome, themed container, toolbar, sidebar, find bar,
+  password dialog, presentation-mode hiding, and markdown PDF embed frame.
+- **Token coverage** — added the missing `--pdf-*` token family and dark-theme
+  PDF shadow overrides from `specs/renderer/design-tokens.md`.
+- **Implementation cleanup** — moved Reading View PDF embed box/frame styles
+  out of inline DOM mutation code and into the PDF module.
+- **Regression audit** — extended the renderer module test so PDF selectors
+  and PDF design-token links remain wired.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted PDF/style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer graph CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/view-graph.css` for

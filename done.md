@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Debug-info support command
+
+- **Root cause** — PLAN Phase 14 called for a `granite:show-debug-info`
+  support dump, but no command or collector existed.
+- **Support dump** — added a built-in debug-info core plugin that collects
+  app version, platform, user agent, vault file counts/size, workspace shape,
+  command count, plugin state, and metadata tag/property counts.
+- **User path** — registered `granite:show-debug-info` in the command palette,
+  writes the dump to the clipboard when available, and shows it as a sticky
+  notice.
+- **Regression ratchet** — added `src/core/plugins-core/debug-info.test.ts`
+  for collection, formatting, command registration, clipboard write, and
+  notice output.
+
+### Tests
+- `bun run test -- src/core/plugins-core/debug-info.test.ts`
+
+---
+
 ## 2026-05-13 — 10k metadata cold-start ratchet
 
 - **Root cause** — the metadata cold-start test guarded the no-restat

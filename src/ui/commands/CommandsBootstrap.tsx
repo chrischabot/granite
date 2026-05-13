@@ -5,6 +5,7 @@ import { registerAudioRecorderPlugin } from "@core/plugins-core/audio-recorder";
 import { registerBasesScaffoldPlugin } from "@core/plugins-core/bases-scaffold";
 import { registerCopyLinkPlugin } from "@core/plugins-core/copy-link";
 import { registerDailyNotesPlugin } from "@core/plugins-core/daily-notes";
+import { registerDebugInfoPlugin } from "@core/plugins-core/debug-info";
 import { registerFileRecoveryPlugin } from "@core/plugins-core/file-recovery";
 import { registerFormatConverterPlugin } from "@core/plugins-core/format-converter";
 import { registerNoteComposerPlugin } from "@core/plugins-core/note-composer";
@@ -333,6 +334,7 @@ export function CommandsBootstrap({
     // Core plugins
     const disposeBasesScaffold = registerBasesScaffoldPlugin();
     const disposeDaily = registerDailyNotesPlugin();
+    const disposeDebugInfo = registerDebugInfoPlugin();
     const disposeTemplates = registerTemplatesPlugin();
     const disposeRandom = registerRandomNotePlugin();
     const disposeRandomWalk = registerRandomWalkPlugin();
@@ -354,6 +356,7 @@ export function CommandsBootstrap({
       dispose();
       disposeBasesScaffold();
       disposeDaily();
+      disposeDebugInfo();
       disposeTemplates();
       disposeRandom();
       disposeRandomWalk();

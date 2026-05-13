@@ -80,25 +80,51 @@ async function assertFocusInside(page, selector, label) {
   if (!inside) throw new Error(`Focus escaped ${label}; active=${await activeSummary(page)}`);
 }
 
+async function openDialogWithKeyboard(page, controlLabel, dialogName, label, tabCount = 8) {
+  const control = page.locator(`[aria-label="${controlLabel}"]`).first();
+  const count = await control.count();
+  if (count === 0) throw new Error(`Missing keyboard-reachable control: ${controlLabel}`);
+  await control.focus();
+  await page.keyboard.press("Enter");
+  const dialog = page.getByRole("dialog", { name: dialogName });
+  await dialog.waitFor({ state: "visible" });
+  await assertFocusInside(page, "dialog[open]", `${label} on open`);
+  for (let i = 0; i < tabCount; i++) {
+    await page.keyboard.press("Tab");
+    await assertFocusInside(page, "dialog[open]", `${label} tab trap`);
+  }
+  await page.keyboard.press("Escape");
+  await dialog.waitFor({ state: "hidden" });
+}
+
 async function main() {
   const port = await getOpenPort();
   const baseUrl = `http://127.0.0.1:${port}`;
   const { child, output } = startVite(port);
   let browser;
+  const consoleMessages = [];
 
   try {
     await waitForServer(baseUrl, output);
     browser = await chromium.launch({ headless: true });
     const context = await browser.newContext({ viewport: { width: 1280, height: 820 } });
     const page = await context.newPage();
-    const consoleMessages = [];
     page.on("console", (message) => consoleMessages.push(`${message.type()}: ${message.text()}`));
     page.on("pageerror", (error) => consoleMessages.push(`pageerror: ${error.message}`));
 
     await page.goto(baseUrl, { waitUntil: "networkidle" });
     await page.waitForSelector(".app-container");
 
-    for (const label of ["Open quick switcher", "Open command palette", "Open settings"]) {
+    for (const label of [
+      "Navigate back",
+      "Navigate forward",
+      "New tab",
+      "Open quick switcher",
+      "Open command palette",
+      "Manage vaults",
+      "Open help",
+      "Open settings",
+    ]) {
       const count = await page.locator(`[aria-label="${label}"]`).count();
       if (count === 0) throw new Error(`Missing keyboard-reachable control: ${label}`);
     }
@@ -113,18 +139,27 @@ async function main() {
       throw new Error(`Tab traversal reached too few targets:\n${tabTrace.join("\n")}`);
     }
 
-    const settingsButton = page.locator('[aria-label="Open settings"]').first();
-    await settingsButton.focus();
-    await page.keyboard.press("Enter");
-    const settingsDialog = page.locator('dialog[aria-label="Settings"]');
-    await settingsDialog.waitFor({ state: "visible" });
-    await assertFocusInside(page, 'dialog[aria-label="Settings"]', "Settings dialog on open");
-    for (let i = 0; i < 12; i++) {
-      await page.keyboard.press("Tab");
-      await assertFocusInside(page, 'dialog[aria-label="Settings"]', "Settings dialog tab trap");
-    }
-    await page.keyboard.press("Escape");
-    await settingsDialog.waitFor({ state: "hidden" });
+    await openDialogWithKeyboard(
+      page,
+      "Manage vaults",
+      "Manage vaults",
+      "Vault picker dialog",
+      10,
+    );
+    await openDialogWithKeyboard(
+      page,
+      "Open help",
+      "Granite cheat-sheet",
+      "Help dialog",
+      10,
+    );
+    await openDialogWithKeyboard(
+      page,
+      "Open settings",
+      "Settings",
+      "Settings dialog",
+      12,
+    );
 
     const paletteButton = page.locator('[aria-label="Open command palette"]').first();
     await paletteButton.focus();

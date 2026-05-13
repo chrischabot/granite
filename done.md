@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-05-13 — Broader keyboard browser audit
+
+- **Root cause** — the initial keyboard browser verifier covered shell tab
+  order plus Settings and Command Palette, but the severe-test list still had a
+  broader keyboard-only gap for additional no-vault shell dialogs.
+- **Browser path** — expanded `verify:keyboard-browser` to require titlebar and
+  ribbon controls by accessible name, then open Vault Picker, Help, Settings,
+  and Command Palette using keyboard focus and Enter only.
+- **Dialog-name fix in the verifier** — switched the browser assertion to
+  Playwright's role/name lookup so dialogs named by `aria-labelledby`, such as
+  Vault Picker, are validated through the accessibility tree instead of only
+  checking `aria-label`.
+- **Regression guarantee** — the verifier now fails if those dialogs do not
+  open from keyboard focus, if focus escapes while tabbing inside them, if
+  Command Palette ArrowDown does not move the active descendant, or if Escape
+  does not close the surface.
+
+### Tests
+- `bun run verify:keyboard-browser`
+
+---
+
 ## 2026-05-13 — Browser search performance verifier
 
 - **Root cause** — the search and quick-switcher performance gates had unit

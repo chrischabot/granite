@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Multi-cursor browser verifier
+
+- **Root cause** — the Phase 12 severe tests still relied on a manual browser
+  pass for multi-cursor editing, and the editor used CodeMirror's default
+  Cmd/Ctrl-click multi-selection policy instead of the specified Alt-click
+  cursor-add gesture.
+- **Product fix** — added a `MarkdownView` click-selection policy so Alt-click
+  adds cursors while Shift-Alt rectangular drags remain rectangular selections
+  instead of appending the prior cursor.
+- **Browser path** — added `verify:multi-cursor-browser`, which opens a real
+  `MarkdownView`, Alt-clicks a second cursor, types once and verifies both
+  cursor positions write to disk, then performs a Shift-Alt rectangular drag,
+  types once, and verifies every selected line range is replaced.
+
+### Tests
+- `bun run verify:multi-cursor-browser`
+- `node --check scripts/verify-multi-cursor-browser.mjs`
+- `bun run test -- src/ui/views/MarkdownView.test.tsx`
+- `bunx biome check src/ui/views/MarkdownView.tsx package.json scripts/multi-cursor-browser-fixture.html scripts/verify-multi-cursor-browser.mjs`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Vim mode browser verifier
 
 - **Root cause** — Vim mode had a manual severe-test entry but no runtime

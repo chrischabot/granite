@@ -68,6 +68,13 @@ const SAVE_DEBOUNCE_MS = 500;
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 type LoadState = "loading" | "loaded" | "missing" | "error";
 
+function editorClickAddsSelectionRange(event: MouseEvent): boolean {
+  if (event.altKey && !event.shiftKey) return true;
+  const platform = globalThis.navigator?.platform ?? "";
+  const isMac = /Mac|iPhone|iPad|iPod/.test(platform);
+  return isMac ? event.metaKey : event.ctrlKey;
+}
+
 interface ReadResult {
   content: string;
   state: LoadState;
@@ -194,6 +201,7 @@ export function MarkdownView({
       const extensions = [
         history(),
         EditorState.allowMultipleSelections.of(true),
+        EditorView.clickAddsSelectionRange.of(editorClickAddsSelectionRange),
         drawSelection({ drawRangeCursor: true }),
         rectangularSelection(),
         crosshairCursor(),

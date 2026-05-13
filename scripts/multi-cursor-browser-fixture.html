@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Multi-Cursor Browser Fixture</title>
+    <style>
+      body {
+        margin: 0;
+      }
+
+      #root {
+        height: 100vh;
+      }
+
+      .fixture-shell {
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .fixture-status {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--background-modifier-border);
+        background: var(--background-secondary);
+        color: var(--text-muted);
+        font: 12px var(--font-interface);
+      }
+    </style>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { workspaceStore } from "@core/workspace/store";
+      import { MarkdownView } from "@/ui/views/MarkdownView";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "multi-cursor-browser";
+      const notePath = "Multi.md";
+      const initialText = "one\ntwo\nthree\n";
+
+      async function writeNote(text) {
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            yield* fs.writeText(notePath, text);
+          }),
+        );
+      }
+
+      async function readNote() {
+        return await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            return yield* fs.readText(notePath);
+          }),
+        );
+      }
+
+      function activeMarkdownLeaf(state) {
+        const group = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
+        const leaf = group?.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
+        return leaf?.state?.type === "markdown" ? leaf : null;
+      }
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const workspace = useSyncExternalStore(
+          workspaceStore.subscribe,
+          workspaceStore.getState,
+          workspaceStore.getServerSnapshot,
+        );
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const [editorEpoch, setEditorEpoch] = useState(0);
+        const openingRef = useRef(false);
+        const seededRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || openingRef.current) return;
+          openingRef.current = true;
+          void (async () => {
+            try {
+              if (activeVault?.entry.name !== vaultName) await openOpfs(vaultName);
+              if (!seededRef.current) {
+                seededRef.current = true;
+                await writeNote(initialText);
+              }
+              workspaceStore.openFile(notePath, { mode: "source" });
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        const leaf = activeMarkdownLeaf(workspace);
+
+        window.__graniteMultiCursorReady = ready && leaf !== null;
+        window.__graniteMultiCursorError = error;
+        window.__graniteMultiCursorState = async () => ({
+          activeVaultName: activeVault?.entry.name ?? null,
+          ready,
+          error,
+          leafId: leaf?.id ?? null,
+          editorText: document.querySelector(".cm-editor")?.textContent ?? "",
+          diskText: await readNote().catch((err) => `READ_ERROR:${err instanceof Error ? err.message : String(err)}`),
+        });
+        window.__graniteMultiCursorReset = async (text) => {
+          await writeNote(text);
+          setEditorEpoch((value) => value + 1);
+        };
+
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        return React.createElement(
+          "div",
+          { className: "fixture-shell" },
+          React.createElement("div", { className: "fixture-status" }, ready ? "Multi-cursor fixture ready" : "Loading"),
+          leaf?.state.type === "markdown"
+            ? React.createElement(MarkdownView, {
+                key: `${leaf.id}:${editorEpoch}`,
+                leafId: leaf.id,
+                path: leaf.state.path,
+                livePreview: leaf.state.mode === "live-preview",
+                fragment: leaf.state.fragment,
+                folds: leaf.state.folds,
+              })
+            : null,
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

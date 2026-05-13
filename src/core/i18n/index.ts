@@ -460,7 +460,8 @@ That's the tour — happy linking!
   "settings.general.notifySlowStartupDesc":
     "Show a diagnostic notice when startup exceeds the performance budget.",
   "settings.general.checkStartupTime": "Check startup time",
-  "settings.general.checkStartupTimeDesc": "Runs a local startup timing profile and shows a report.",
+  "settings.general.checkStartupTimeDesc":
+    "Runs a local startup timing profile and shows a report.",
   "settings.appearance.baseScheme": "Base color scheme",
   "settings.appearance.baseSchemeDesc":
     "Choose between light, dark, or follow the operating system.",
@@ -547,7 +548,8 @@ That's the tour — happy linking!
   "settings.hotkeys.remove": "Remove",
   "settings.hotkeys.reset": "Reset",
   "settings.about.version": "Current version",
-  "settings.about.versionDesc": "Build identifier used in debug info and plugin compatibility checks.",
+  "settings.about.versionDesc":
+    "Build identifier used in debug info and plugin compatibility checks.",
   "settings.about.license": "License",
   "settings.about.licenseDesc": "Read-only license status for this local build.",
   "settings.about.licenseValue": "Local development build",
@@ -1326,8 +1328,7 @@ Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github
     "startupTiming.firstPaint": "ציור ראשון",
     "startupTiming.firstContentfulPaint": "ציור תוכן ראשון",
     "startupTiming.unavailable": "לא זמין",
-    "startupTiming.slowNotice":
-      "ההפעלה ארכה {elapsed}, יותר מתקציב הביצועים הצפוי של {expected}.",
+    "startupTiming.slowNotice": "ההפעלה ארכה {elapsed}, יותר מתקציב הביצועים הצפוי של {expected}.",
     "plugin.audioRecorder.category": "מקליט אודיו",
     "plugin.audioRecorder.toggle": "התחלה/עצירה של הקלטה",
     "plugin.audioRecorder.alreadyRecording": "הקלטה כבר מתבצעת.",
@@ -1961,6 +1962,11 @@ export function t(key: string, params?: Record<string, string | number>): string
     }
   }
   return template;
+}
+
+/** Look up the source English string for migration logic, not for rendering. */
+export function getDefaultLocaleText(key: string): string {
+  return EN_LOCALE[key] ?? key;
 }
 
 /** Add or replace a locale's strings. */

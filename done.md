@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Localized Bookmarks default group migration
+
+- **Root cause** — the Bookmarks sidebar used the English default group label
+  as both a persisted group id and a rendered fallback, so legacy saved entries
+  could keep showing `Bookmarks` even when the active locale had a translated
+  `bookmarks.defaultGroup`.
+- **Data path** — split the default bucket onto an internal sentinel, render
+  it through `bookmarks.defaultGroup`, and normalize old saved English default
+  groups from localStorage or `.granite/bookmarks.json` back into the localized
+  default bucket.
+- **Regression ratchet** — added a Bookmarks integration test that switches to
+  Hebrew with a legacy saved default group and fails if the English label still
+  renders; extended the i18n externalization audit to reject the old hard-coded
+  default-group constant.
+- **Tracker honesty** — recorded this as another broad i18n closure slice while
+  leaving the full string-externalization audit open.
+
+### Tests
+- `bun run test -- src/ui/views/sidebar/BookmarksView.test.tsx`
+- `bun run test -- src/core/i18n/externalization.test.ts src/core/i18n/index.test.ts`
+
+---
+
 ## 2026-05-13 — Clickable icon focus-ring ratchet
 
 - **Root cause** — icon-only controls had accessible names, but the shared

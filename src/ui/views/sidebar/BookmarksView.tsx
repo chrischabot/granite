@@ -2,6 +2,7 @@ import { ClickableIcon } from "@/ui/controls/ClickableIcon";
 import { useI18n } from "@/ui/i18n/useI18n";
 import { useVault } from "@/ui/vault/VaultContext";
 import { stem } from "@core/fs/path";
+import { getDefaultLocaleText } from "@core/i18n";
 import { useFileMetadata } from "@core/metadata/useMetadata";
 import { noticeManager } from "@core/notices/notice";
 import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
@@ -19,8 +20,8 @@ import {
   Trash2,
 } from "lucide-react";
 import {
-  Fragment,
   type CSSProperties,
+  Fragment,
   type KeyboardEvent as ReactKeyboardEvent,
   useCallback,
   useEffect,
@@ -36,7 +37,7 @@ interface BookmarkBase {
   readonly kind: BookmarkKind;
   readonly title: string;
   readonly addedMs: number;
-  /** Group folder name. Empty/undefined means the default "Bookmarks" group. */
+  /** Group folder name. Empty/undefined means the localized default group. */
   readonly group?: string;
 }
 
@@ -65,7 +66,8 @@ const LEGACY_KEY_V2 = "granite.bookmarks.v2";
 const LEGACY_KEY_V1 = "granite.bookmarks.v1";
 const GROUPS_KEY = "granite.bookmark-groups.v1";
 const DISK_CONFIG_NAME = "bookmarks";
-const DEFAULT_GROUP = "Bookmarks";
+const DEFAULT_GROUP = "__granite_default_bookmarks__";
+const LEGACY_DEFAULT_GROUP = getDefaultLocaleText("bookmarks.defaultGroup");
 const MENU_BUTTON_STYLE = {
   width: "100%",
   border: 0,
@@ -76,24 +78,53 @@ const MENU_BUTTON_STYLE = {
   boxShadow: "none",
 } satisfies CSSProperties;
 
+function normalizeGroupName(group: string | undefined): string {
+  const trimmed = group?.trim();
+  if (!trimmed || trimmed === LEGACY_DEFAULT_GROUP) return DEFAULT_GROUP;
+  return trimmed;
+}
+
+function persistedGroupName(group: string): string | undefined {
+  return group === DEFAULT_GROUP ? undefined : group;
+}
+
+function bookmarkGroupProps(group: string): Pick<BookmarkBase, "group"> | Record<string, never> {
+  const persisted = persistedGroupName(group);
+  return persisted ? { group: persisted } : {};
+}
+
+function normalizeBookmark<T extends Bookmark>(bookmark: T): T {
+  const group = persistedGroupName(normalizeGroupName(bookmark.group));
+  if (group === bookmark.group) return bookmark;
+  const { group: previousGroup, ...rest } = bookmark;
+  void previousGroup;
+  return (group ? { ...rest, group } : rest) as T;
+}
+
+function normalizeBookmarks(list: Bookmark[]): Bookmark[] {
+  return list.map(normalizeBookmark);
+}
+
 function load(): Bookmark[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as Bookmark[];
+    if (raw) return normalizeBookmarks(JSON.parse(raw) as Bookmark[]);
     const v2 = localStorage.getItem(LEGACY_KEY_V2);
     if (v2) {
       const list = JSON.parse(v2) as Bookmark[];
-      return list.map((b) => ({ ...b }));
+      return normalizeBookmarks(list.map((b) => ({ ...b })));
     }
     const v1 = localStorage.getItem(LEGACY_KEY_V1);
     if (v1) {
       const list = JSON.parse(v1) as Array<{ title: string; path: string; addedMs: number }>;
-      return list.map((b) => ({
-        kind: "file" as const,
-        title: b.title,
-        path: b.path,
-        addedMs: b.addedMs,
-      }));
+      return normalizeBookmarks(
+        list.map((b) => ({
+          kind: "file" as const,
+          title: b.title,
+          path: b.path,
+          addedMs: b.addedMs,
+        })),
+      );
     }
     return [];
   } catch {
@@ -194,7 +225,7 @@ export function BookmarksView() {
     void readConfigJson<BookmarksDocument>(DISK_CONFIG_NAME).then((doc) => {
       if (cancelled) return;
       if (doc) {
-        if (Array.isArray(doc.bookmarks)) setBookmarks(doc.bookmarks);
+        if (Array.isArray(doc.bookmarks)) setBookmarks(normalizeBookmarks(doc.bookmarks));
         if (Array.isArray(doc.extraGroups)) setExtraGroups(doc.extraGroups);
       }
       setHydratedFromDisk(true);
@@ -229,7 +260,7 @@ export function BookmarksView() {
   const groupedBookmarks = useMemo(() => {
     const map = new Map<string, Bookmark[]>();
     for (const b of bookmarks) {
-      const g = b.group?.trim() || DEFAULT_GROUP;
+      const g = normalizeGroupName(b.group);
       const arr = map.get(g) ?? [];
       arr.push(b);
       map.set(g, arr);
@@ -249,7 +280,7 @@ export function BookmarksView() {
           (b) =>
             b.kind === "file" &&
             b.path === activePath &&
-            (b.group ?? DEFAULT_GROUP) === activeGroup,
+            normalizeGroupName(b.group) === activeGroup,
         )
       )
         return prev;
@@ -260,7 +291,7 @@ export function BookmarksView() {
           title: stem(activePath),
           path: activePath,
           addedMs: Date.now(),
-          group: activeGroup,
+          ...bookmarkGroupProps(activeGroup),
         },
       ];
     });
@@ -284,7 +315,7 @@ export function BookmarksView() {
         path: activePath,
         heading: h.text,
         addedMs: Date.now(),
-        group: activeGroup,
+        ...bookmarkGroupProps(activeGroup),
       },
     ]);
   }, [activePath, meta, activeGroup, t]);
@@ -311,7 +342,7 @@ export function BookmarksView() {
         path: activePath,
         blockId: blk.id,
         addedMs: Date.now(),
-        group: activeGroup,
+        ...bookmarkGroupProps(activeGroup),
       },
     ]);
   }, [activePath, meta, activeGroup, t]);
@@ -326,7 +357,7 @@ export function BookmarksView() {
         title: query,
         query,
         addedMs: Date.now(),
-        group: activeGroup,
+        ...bookmarkGroupProps(activeGroup),
       },
     ]);
   }, [activeGroup, t]);
@@ -377,7 +408,7 @@ export function BookmarksView() {
 
   const allGroupNames = useMemo(() => {
     const set = new Set<string>([DEFAULT_GROUP, ...extraGroups]);
-    for (const b of bookmarks) set.add(b.group?.trim() || DEFAULT_GROUP);
+    for (const b of bookmarks) set.add(normalizeGroupName(b.group));
     return [...set];
   }, [bookmarks, extraGroups]);
 

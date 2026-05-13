@@ -100,7 +100,7 @@
 - [x] 4.5:1 contrast assertion ← _shipped 2026-05-12 theme contrast test_
 
 ### §24.21 i18n — Phase 15
-- [ ] String externalisation across UI (File Explorer failure text, locale-aware date-token ratchets, locale-bound property date pickers, native asset view strings, and stale core leaf-title fallback removal shipped; remaining broad audit stays open)
+- [ ] String externalisation across UI (File Explorer failure text, locale-aware date-token ratchets, locale-bound property date pickers, native asset view strings, stale core leaf-title fallback removal, and Bookmarks default-group migration shipped; remaining broad audit stays open)
 - [x] RTL demo locale ← _shipped 2026-05-12 i18n/RTL sweep_
 - [x] Per-note `dir: rtl` frontmatter property ← _shipped 2026-05-12 i18n/RTL sweep_
 

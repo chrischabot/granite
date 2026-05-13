@@ -276,6 +276,7 @@ const HELP_MODAL_FORBIDDEN_PATTERNS = [
 ];
 
 const BOOKMARKS_VIEW_FORBIDDEN_PATTERNS = [
+  /const DEFAULT_GROUP = "Bookmarks"/,
   /noticeManager\.show\("This note has no headings to bookmark\."/,
   /"No block IDs in this note\. Use the 'Insert block id' command first\."/,
   /`Pick a heading:\\n/,
@@ -495,10 +496,7 @@ const WORKSPACE_LEAF_TITLE_FORBIDDEN_PATTERNS = [
   /"Untitled"/,
 ];
 
-const ASSET_VIEW_FORBIDDEN_PATTERNS = [
-  />\s*Loading file…\s*</,
-  /"Loading file…"/,
-];
+const ASSET_VIEW_FORBIDDEN_PATTERNS = [/>\s*Loading file…\s*</, /"Loading file…"/];
 
 const MARKDOWN_VIEW_FORBIDDEN_PATTERNS = [
   /"Could not read this file\. Save is disabled to prevent overwrite\."/,

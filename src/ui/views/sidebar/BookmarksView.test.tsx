@@ -1,3 +1,4 @@
+import { setLocale } from "@core/i18n";
 import { act } from "react";
 import { type Root, createRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -27,6 +28,7 @@ describe("BookmarksView add menu keyboard navigation", () => {
     (
       globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }
     ).IS_REACT_ACT_ENVIRONMENT = true;
+    setLocale("en");
     localStorage.clear();
     host = document.createElement("div");
     document.body.append(host);
@@ -38,6 +40,7 @@ describe("BookmarksView add menu keyboard navigation", () => {
     host.remove();
     localStorage.clear();
     vi.restoreAllMocks();
+    setLocale("en");
   });
 
   it("uses roving focus with arrow, Home, and End keys", async () => {
@@ -104,5 +107,30 @@ describe("BookmarksView add menu keyboard navigation", () => {
 
     expect(host.querySelector("[role='menu']")).toBeNull();
     expect(addButton).toBe(document.activeElement);
+  });
+
+  it("localizes legacy default bookmark groups instead of rendering saved English", async () => {
+    localStorage.setItem(
+      "granite.bookmarks.v3",
+      JSON.stringify([
+        {
+          kind: "search",
+          title: "tag:project",
+          query: "tag:project",
+          addedMs: 1,
+          group: "Bookmarks",
+        },
+      ]),
+    );
+    setLocale("he");
+
+    await act(async () => root.render(<BookmarksView />));
+
+    const groupOptions = Array.from(host.querySelectorAll<HTMLOptionElement>("select option")).map(
+      (option) => option.textContent,
+    );
+    expect(groupOptions).toContain("סימניות");
+    expect(groupOptions).not.toContain("Bookmarks");
+    expect(host.textContent).toContain("סימניות");
   });
 });

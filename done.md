@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Native formats browser verifier
+
+- **Root cause** — native file routing had unit coverage, but the severe-test
+  list still relied on manual browser checks to prove that each accepted file
+  category opens into the correct rendered view.
+- **Browser path** — added `verify:native-formats-browser`, a Vite-served
+  Chromium fixture that opens Markdown, Canvas, Bases, image, audio, video, and
+  PDF files through `workspaceStore.openPath()` using an in-memory vault.
+- **Regression guarantee** — the verifier fails if any extension routes to the
+  wrong leaf type or asset kind, if the active leaf is not the one just opened,
+  or if the expected rendered view selector never appears.
+
+### Tests
+- `bun run verify:native-formats-browser`
+- `bun run test -- src/core/fs/file-formats.test.ts src/core/workspace/store.test.ts src/ui/views/ReadingView.test.tsx`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Broader keyboard browser audit
 
 - **Root cause** — the initial keyboard browser verifier covered shell tab

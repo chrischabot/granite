@@ -485,11 +485,17 @@ const WORKSPACE_LEAF_TITLE_FORBIDDEN_PATTERNS = [
   /return "Files"/,
   /return "Settings"/,
   /return "Web viewer"/,
+  /return "File"/,
   /return "Graph view"/,
   /return "Canvas"/,
   /return "Base"/,
   /return "New tab"/,
   /"Untitled"/,
+];
+
+const ASSET_VIEW_FORBIDDEN_PATTERNS = [
+  />\s*Loading file…\s*</,
+  /"Loading file…"/,
 ];
 
 const MARKDOWN_VIEW_FORBIDDEN_PATTERNS = [
@@ -1492,6 +1498,7 @@ describe("UI string externalization audit", () => {
       "workspace.leaf.files",
       "workspace.leaf.settings",
       "workspace.leaf.webViewer",
+      "workspace.leaf.asset",
       "workspace.leaf.graph",
       "workspace.leaf.canvas",
       "workspace.leaf.base",
@@ -1501,6 +1508,14 @@ describe("UI string externalization audit", () => {
       expect(leafTitleSource).toContain(requiredKey);
     }
 
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps native asset view loading text routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/views/AssetView.tsx`, "utf8");
+    const violations = ASSET_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+
+    expect(source).toContain("asset.loading");
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
   });
 

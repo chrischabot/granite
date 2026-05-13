@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Native asset string externalization ratchet
+
+- **Root cause** — the new native asset leaf added localized strings, but the
+  source-level i18n regression audit did not yet cover that surface.
+- **Regression ratchet** — extended `src/core/i18n/externalization.test.ts` so
+  `AssetView` loading text and the workspace asset fallback title must stay
+  routed through `asset.loading` and `workspace.leaf.asset`.
+- **Tracker honesty** — recorded this as another UI string externalization
+  improvement while leaving the full UI-wide audit open.
+
+### Tests
+- `bun run test -- src/core/i18n/externalization.test.ts src/core/i18n/index.test.ts`
+
+---
+
 ## 2026-05-13 — Native asset file opening
 
 - **Root cause** — the storage spec marks images, audio, video, and PDFs as

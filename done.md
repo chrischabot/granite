@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Canvas snap browser verifier
+
+- **Root cause** — canvas snap behavior had focused interaction-unit coverage,
+  but the severe-test list still depended on manual browser checks for real
+  drag, resize, drop, keyboard movement, debounce save, and reload persistence.
+- **Browser path** — added `verify:canvas-snap-browser`, which renders the real
+  `CanvasView` against an OPFS vault, toggles snap off, drags and resizes a
+  text node to sub-grid whole-pixel geometry, waits for the saved JSON, reloads,
+  and verifies those exact non-10 px values persist.
+- **Snap-on guarantee** — the same verifier toggles snap on, drops a vault file,
+  drags, resizes, and keyboard-nudges a selected node, then proves all resulting
+  coordinates and sizes land on the 10 px grid.
+
+### Tests
+- `bun run verify:canvas-snap-browser`
+- `bun run test -- src/core/canvas/interactions.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Format Converter command browser verifier
 
 - **Root cause** — legacy-property migration had pure unit tests, but the

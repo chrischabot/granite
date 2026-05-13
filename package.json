@@ -26,6 +26,7 @@
     "verify:tags-browser": "node scripts/verify-tags-browser.mjs",
     "verify:properties-browser": "node scripts/verify-properties-browser.mjs",
     "verify:format-converter-browser": "node scripts/verify-format-converter-browser.mjs",
+    "verify:canvas-snap-browser": "node scripts/verify-canvas-snap-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

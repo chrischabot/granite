@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Canvas Snap Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { serializeCanvas } from "@core/canvas/schema";
+      import { CanvasView } from "@/ui/views/CanvasView";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "canvas-snap-browser";
+      const canvasPath = "Board.canvas";
+      const seedCanvas = {
+        nodes: [
+          {
+            id: "seed-text",
+            type: "text",
+            x: 100,
+            y: 100,
+            width: 120,
+            height: 80,
+            text: "Seed card",
+          },
+        ],
+        edges: [],
+      };
+
+      window.__graniteCanvasSnapRead = async () =>
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            return JSON.parse(yield* fs.readText(canvasPath));
+          }),
+        );
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const bootingRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || bootingRef.current) return;
+          bootingRef.current = true;
+          void (async () => {
+            try {
+              if (activeVault?.entry.name !== vaultName) await openOpfs(vaultName);
+              await run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  const existing = yield* fs.stat(canvasPath);
+                  if (!existing) {
+                    yield* fs.writeText(canvasPath, serializeCanvas(seedCanvas));
+                  }
+                  yield* fs.writeText("Dropped.md", "# Dropped\n");
+                }),
+              );
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        window.__graniteCanvasSnapReady = ready;
+
+        if (error) {
+          window.__graniteCanvasSnapError = error;
+          return React.createElement("pre", { role: "alert" }, error);
+        }
+        if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
+
+        return React.createElement(
+          "main",
+          {
+            style: {
+              height: "100vh",
+              width: "100vw",
+              overflow: "hidden",
+            },
+          },
+          React.createElement(CanvasView, { path: canvasPath }),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

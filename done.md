@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Keyboard-only browser audit verifier
+
+- **Root cause** — the accessibility work had source and unit ratchets for
+  individual controls, but no browser flow proving keyboard users can traverse
+  the live shell and operate modal/prompt surfaces without pointer input.
+- **Browser path** — added a Chromium verifier that opens the app, tabs across
+  the ribbon/sidebar focus order, verifies core shell controls are reachable by
+  accessible name, opens Settings with Enter and checks modal focus trapping,
+  then opens Command Palette with Enter and checks ArrowDown updates the active
+  descendant before Escape closes it.
+- **Tracker closure** — closed the §24.20 keyboard-only audit item after the
+  browser verifier reached 18 distinct tab targets and passed the modal/prompt
+  keyboard flow checks.
+
+### Tests
+- `bun run verify:keyboard-browser`
+
+---
+
 ## 2026-05-13 — Browser 10k startup verifier
 
 - **Root cause** — cold-start performance had Node-side metadata and timing

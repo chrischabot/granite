@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Renderer visual browser fixture
+
+- **Root cause** — renderer CSS had strong module wiring tests, but the severe
+  tracker still relied on a broad manual visual pass for representative
+  component states.
+- **Browser path** — added `verify:renderer-visual-browser`, which serves a
+  dedicated renderer-state fixture in Chromium and verifies 44 representative
+  selectors are visibly rendered with nonzero geometry, visible typography, and
+  usable computed styles.
+- **Theme signal** — the verifier captures the fixture in light and dark
+  themes, rejects blank/suspicious screenshots, and fails if the light/dark
+  screenshot hashes or body backgrounds do not differ.
+
+### Tests
+- `bun run verify:renderer-visual-browser`
+
+---
+
 ## 2026-05-13 — Public docs browser reachability verifier
 
 - **Root cause** — the public-docs severe tests still required manually opening

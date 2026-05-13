@@ -52,6 +52,7 @@
     "verify:community-plugin-browser": "node scripts/verify-community-plugin-browser.mjs",
     "verify:icon-a11y-browser": "node scripts/verify-icon-a11y-browser.mjs",
     "verify:keyboard-populated-browser": "node scripts/verify-keyboard-populated-browser.mjs",
+    "verify:renderer-visual-browser": "node scripts/verify-renderer-visual-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

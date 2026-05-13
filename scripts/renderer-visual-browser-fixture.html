@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Renderer Visual Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header show-inline-title styled-scrollbars">
+    <main id="renderer-visual-root" class="app-container" aria-label="Renderer visual fixture">
+      <section class="fixture-section typography-fixture">
+        <div class="inline-title"><h1>Renderer States</h1></div>
+        <article class="markdown-preview-view markdown-rendered">
+          <h1>Heading One</h1>
+          <h2>Heading Two</h2>
+          <h3>Heading Three</h3>
+          <h4>Heading Four</h4>
+          <h5>Heading Five</h5>
+          <h6>Heading Six</h6>
+          <p>
+            Body <strong>bold</strong> <em>italic</em>
+            <a class="internal-link" href="#note">link</a>
+            <a class="internal-link is-unresolved" href="#missing">missing</a>
+            <kbd>Mod</kbd><kbd>P</kbd>
+          </p>
+          <blockquote class="callout" data-callout="tip">
+            <div class="callout-title">Tip</div>
+            <div class="callout-content">Callout content</div>
+          </blockquote>
+        </article>
+        <div class="markdown-source-view mod-cm6">
+          <div class="cm-host">
+            <span class="cm-header cm-header-1"># Source heading</span>
+            <span class="cm-strong cm-em">strong emphasis</span>
+            <span class="cm-formatting cm-formatting-header">#</span>
+          </div>
+        </div>
+        <p class="is-text-garbled">private garbled text</p>
+      </section>
+
+      <section class="fixture-section controls-fixture">
+        <button type="button">Default</button>
+        <button type="button" class="mod-cta">CTA</button>
+        <button type="button" class="mod-warning">Warning</button>
+        <button type="button" class="mod-destructive">Destructive</button>
+        <button type="button" class="mod-loading">Loading</button>
+        <button type="button" class="clickable-icon is-active" aria-label="Icon">+</button>
+        <button type="button" class="text-icon-button"><span>Text icon</span></button>
+        <div class="is-loading">Loading bar</div>
+        <div class="loader-spinner"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" /></svg></div>
+        <div class="loader-cube">
+          <div class="sk-cube sk-cube1"></div><div class="sk-cube sk-cube9"></div>
+        </div>
+        <div class="is-flashing">Flash</div>
+        <div class="progress-bar-container">
+          <div class="progress-bar-context">Syncing</div>
+          <div class="progress-bar-indicator">
+            <div class="progress-bar-line">
+              <div class="progress-bar-subline mod-increase"></div>
+              <div class="progress-bar-subline mod-decrease"></div>
+            </div>
+          </div>
+          <div class="progress-bar-button-container"><button type="button">Cancel</button></div>
+        </div>
+      </section>
+
+      <section class="fixture-section forms-fixture">
+        <input type="text" value="Text input" />
+        <input type="search" value="Search input" />
+        <input type="number" value="42" />
+        <input type="date" value="2026-05-13" />
+        <textarea>Textarea content</textarea>
+        <label><input type="checkbox" checked /> Checked</label>
+        <label><input type="checkbox" data-indeterminate="true" /> Indeterminate</label>
+        <label><input type="radio" checked /> Radio</label>
+        <input type="range" value="60" />
+        <span class="flair mod-pop">Pop</span>
+        <span class="flair mod-flat">Flat</span>
+        <div class="multi-select-container">
+          <span class="multi-select-pill"><span class="multi-select-pill-content">One</span><button class="multi-select-pill-remove-button" type="button">x</button></span>
+          <span class="multi-select-pill multi-select-duplicate"><span class="multi-select-pill-content">Two</span></span>
+          <span class="multi-select-input">Type</span>
+        </div>
+      </section>
+
+      <section class="fixture-section tree-fixture">
+        <div class="tree-item nav-folder">
+          <div class="tree-item-self nav-folder-title is-clickable mod-collapsible">
+            <span class="tree-item-icon">▾</span>
+            <span class="tree-item-inner">Folder</span>
+            <span class="tree-item-flair">3</span>
+          </div>
+          <div class="tree-item-children">
+            <div class="tree-item-self nav-file-title is-active"><span class="tree-item-inner">Active file</span></div>
+            <div class="tree-item-self nav-file-title is-selected"><span class="tree-item-inner">Selected file</span></div>
+            <div class="tree-item-self nav-file-title is-being-renamed"><span class="tree-item-inner">Renaming</span></div>
+            <div class="tree-item-self nav-file-title is-being-dragged-over"><span class="tree-item-inner">Drop target</span></div>
+          </div>
+        </div>
+        <div class="drop-indicator is-active"></div>
+        <div class="drag-ghost mod-leaf">Leaf drag</div>
+        <div class="drag-reorder-ghost">Reorder drag</div>
+        <div class="workspace-drop-overlay"></div>
+      </section>
+
+      <section class="fixture-section overlays-fixture">
+        <div class="prompt">
+          <div class="prompt-input-container"><input class="prompt-input" value="Command" /></div>
+          <div class="prompt-instructions"><span class="prompt-instruction-command">↵</span> run</div>
+        </div>
+        <div class="suggestion-container">
+          <div class="suggestion-item is-selected"><span class="suggestion-title">Selected</span><span class="suggestion-flair">recent</span></div>
+          <div class="suggestion-item mod-complex suggestion-secret-key"><span class="suggestion-prefix">sk</span><span class="suggestion-highlight">key</span></div>
+          <div class="suggestion-empty-suggestion">No matches</div>
+        </div>
+        <dialog open class="modal mod-sidebar-layout mod-settings" aria-label="Settings">
+          <button type="button" class="modal-close-button">x</button>
+          <aside class="modal-sidebar">Sidebar</aside>
+          <div class="modal-content">Modal content</div>
+          <div class="modal-button-container"><button type="button">Done</button></div>
+        </dialog>
+        <div class="notice-container">
+          <div class="notice notice-success"><span>Success</span><progress value="50" max="100"></progress><button class="notice-cta" type="button">Undo</button></div>
+          <div class="notice notice-warning">Warning</div>
+          <div class="notice notice-error">Error</div>
+          <div class="notice notice-info">Info</div>
+        </div>
+        <div class="card-container mod-horizontal">
+          <div class="card is-selected u-clickable"><div class="card-title">Card title</div><div class="card-description">Description</div></div>
+        </div>
+        <div class="empty-state-container"><div class="empty-state-title">Empty</div><div class="empty-state-action-list"><button class="empty-state-action" type="button">Action</button></div></div>
+      </section>
+
+      <section class="fixture-section app-fixture">
+        <div class="titlebar mod-macos"><div class="titlebar-button-container mod-left"><button class="titlebar-button mod-close" type="button"></button></div></div>
+        <div class="titlebar mod-windows"><div class="titlebar-button-container mod-right"><button class="titlebar-button mod-close" type="button"></button></div></div>
+        <div class="titlebar mod-linux"><button class="titlebar-button mod-close" type="button"></button></div>
+        <div class="release-notes-view"><div class="changelog-item mod-success">Success</div><div class="changelog-item mod-failed">Failed</div><div class="changelog-item mod-highlighted">Highlighted</div></div>
+        <div class="file-recovery-modal"><div class="file-recovery-list-item-header is-active">Snapshot</div><pre class="file-recovery-text" data-ext="md"># Snapshot</pre></div>
+        <div class="sync-history-list-container"><div class="sync-history-list-item-header is-active"><span class="sync-history-list-item-avatar mod-avatar-color-8"></span><span class="u-muted">v1</span></div></div>
+      </section>
+
+      <section class="fixture-section data-fixture">
+        <div class="community-modal-details mod-community-modal">
+          <div class="community-modal-search-results-wrapper is-empty-results"></div>
+          <div class="community-item is-selected"><span class="community-item-badge mod-update">Update</span><div class="community-item-screenshot mod-unavailable"><span class="placeholder-icon"><svg class="svg-icon"></svg></span></div></div>
+          <div class="community-readme"><img alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==" /></div>
+        </div>
+        <div class="graph-view color-fill-focused">
+          <svg class="graph-view-canvas" width="160" height="80"><circle class="graph-node-interactive" cx="40" cy="40" r="12"></circle></svg>
+          <div class="graph-view-stats">3 nodes</div>
+          <button class="graph-controls-button" type="button">⚙</button>
+          <div class="graph-controls"><div class="graph-control-section">Display</div><div class="graph-color-group"><input type="color" value="#336699" /></div><span class="graph-slider-value">1.0</span></div>
+        </div>
+        <div class="pdf-container mod-themed"><div class="pdf-toolbar"><span class="pdf-toolbar-divider"></span></div><div class="pdf-viewer-container"><div class="pdfViewer"><div class="page"></div></div></div><div class="pdf-sidebar-container" data-view="1"><div class="thumbnail"></div></div><div class="pdf-find-results-count mod-loading">1</div></div>
+        <div class="bases-view">
+          <div class="bases-header-count">3 matches</div>
+          <div class="bases-toolbar"><span class="bases-toolbar-result-count"><span class="text-button-label">3</span></span></div>
+          <table class="bases-table"><tbody><tr class="bases-table-row"><td class="bases-table-cell is-selected">Cell</td><td class="bases-table-summary-cell">Summary</td></tr></tbody></table>
+          <div class="bases-list-item-meta-label">Meta</div>
+          <div class="bases-cards-item"><span class="bases-cards-property">Property</span></div>
+          <div class="bases-map-plane"><span class="bases-map-pin"></span></div>
+        </div>
+      </section>
+    </main>
+    <script type="module">
+      import "../src/styles/index.css";
+    </script>
+  </body>
+</html>

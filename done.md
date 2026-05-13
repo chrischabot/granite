@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Link/reload/tour/update plugin i18n ratchet
+
+- **Plugin labels and notices** — routed Copy Link, Plugin Reload, Tour, and
+  plugin update-check command labels, notices, and fallback errors through
+  locale keys.
+- **Update summaries** — localized plugin-update compatibility, all-clear,
+  missing-remote, single-update, and multi-update notice scaffolding while
+  preserving plugin ids and versions as data.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if these plugin labels or notices return as hard-coded English literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n/update-check tests, full
+  `bun run test`, `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Small core plugin i18n ratchet
 
 - **Core plugin labels** — routed Bases scaffold, Web Viewer, Random Note, and

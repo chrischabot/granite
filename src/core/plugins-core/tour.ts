@@ -1,9 +1,10 @@
-import { Effect } from "effect";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
-import { workspaceStore } from "@core/workspace/store";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
+import { Effect } from "effect";
 
 const TOUR_PATH = "Welcome to Granite.md";
 
@@ -65,8 +66,8 @@ export function registerTourPlugin(): () => void {
 
   register({
     id: "tour:open",
-    category: "Help",
-    name: "Open Granite tour",
+    category: t("plugin.tour.category"),
+    name: t("plugin.tour.open"),
     callback: async () => {
       try {
         const created = await run(
@@ -80,13 +81,12 @@ export function registerTourPlugin(): () => void {
         );
         workspaceStore.openFile(TOUR_PATH);
         if (created) {
-          noticeManager.show("Created Welcome to Granite.md.", { kind: "success" });
+          noticeManager.show(t("plugin.tour.notice.created"), { kind: "success" });
         }
       } catch (err) {
-        noticeManager.show(
-          err instanceof Error ? err.message : "Could not open tour",
-          { kind: "error" },
-        );
+        noticeManager.show(err instanceof Error ? err.message : t("plugin.tour.error.open"), {
+          kind: "error",
+        });
       }
     },
   });

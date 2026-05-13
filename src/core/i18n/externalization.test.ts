@@ -601,6 +601,27 @@ const CORE_PLUGIN_SMALL_FORBIDDEN_PATTERNS = [
   /"Vault is empty\."/,
 ];
 
+const CORE_PLUGIN_MORE_FORBIDDEN_PATTERNS = [
+  /`Copied: \$\{text\}`/,
+  /"Clipboard write failed"/,
+  /category: "Links"/,
+  /name: "Copy wikilink to active note"/,
+  /name: "Copy markdown link to active note"/,
+  /name: "Copy vault path of active note"/,
+  /name: "Reload all enabled plugins"/,
+  /"No plugins are currently enabled\."/,
+  /Reloaded \$\{enabled\.length\} plugin/,
+  /category: "Help"/,
+  /name: "Open Granite tour"/,
+  /"Created Welcome to Granite\.md\."/,
+  /"Could not open tour"/,
+  /requires Granite ≥/,
+  /"All plugins are up to date\."/,
+  /"No plugins have remote manifest URLs configured\."/,
+  /has a new version available/,
+  /plugins have new versions available/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1466,6 +1487,45 @@ describe("UI string externalization audit", () => {
       "plugin.randomWalk.next",
       "plugin.randomWalk.noOutgoing",
       "plugin.randomWalk.empty",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps link, reload, tour, and plugin update notices routed through i18n keys", () => {
+    const sources = [
+      readFileSync(`${process.cwd()}/src/core/plugins-core/copy-link.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/plugin-reload.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/tour.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins/update-check.ts`, "utf8"),
+    ];
+    const source = sources.join("\n");
+    const violations = CORE_PLUGIN_MORE_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+
+    for (const requiredKey of [
+      "plugin.copyLink.category",
+      "plugin.copyLink.wikilink",
+      "plugin.copyLink.markdown",
+      "plugin.copyLink.path",
+      "plugin.copyLink.notice.copied",
+      "plugin.copyLink.error.clipboard",
+      "plugin.reload.category",
+      "plugin.reload.all",
+      "plugin.reload.empty",
+      "plugin.reload.notice.reloaded",
+      "plugin.tour.category",
+      "plugin.tour.open",
+      "plugin.tour.notice.created",
+      "plugin.tour.error.open",
+      "plugin.update.incompatible",
+      "plugin.update.allUpToDate",
+      "plugin.update.noRemoteManifests",
+      "plugin.update.oneAvailable",
+      "plugin.update.manyAvailable",
     ]) {
       expect(source).toContain(requiredKey);
     }

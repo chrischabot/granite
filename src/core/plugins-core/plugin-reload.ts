@@ -1,6 +1,7 @@
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
-import { listPlugins, setPluginEnabled } from "@core/plugins/loader";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
+import { listPlugins, setPluginEnabled } from "@core/plugins/loader";
 
 export function registerPluginReloadPlugin(): () => void {
   const registrations: Array<() => void> = [];
@@ -10,12 +11,12 @@ export function registerPluginReloadPlugin(): () => void {
 
   register({
     id: "plugins:reload-all",
-    category: "Plugins",
-    name: "Reload all enabled plugins",
+    category: t("plugin.reload.category"),
+    name: t("plugin.reload.all"),
     callback: async () => {
       const enabled = listPlugins().filter((p) => p.enabled);
       if (enabled.length === 0) {
-        noticeManager.show("No plugins are currently enabled.", { kind: "info" });
+        noticeManager.show(t("plugin.reload.empty"), { kind: "info" });
         return;
       }
       for (const p of enabled) {
@@ -23,7 +24,10 @@ export function registerPluginReloadPlugin(): () => void {
         await setPluginEnabled(p.manifest.id, true);
       }
       noticeManager.show(
-        `Reloaded ${enabled.length} plugin${enabled.length === 1 ? "" : "s"}.`,
+        t("plugin.reload.notice.reloaded", {
+          count: String(enabled.length),
+          pluginLabel: t(enabled.length === 1 ? "plugin.reload.plugin" : "plugin.reload.plugins"),
+        }),
         { kind: "success" },
       );
     },

@@ -1,7 +1,8 @@
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { stem } from "@core/fs/path";
-import { workspaceStore } from "@core/workspace/store";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
 
 function activeMarkdownPath(): string | null {
   const s = workspaceStore.getState();
@@ -13,12 +14,14 @@ function activeMarkdownPath(): string | null {
 async function writeToClipboard(text: string): Promise<void> {
   try {
     await navigator.clipboard.writeText(text);
-    noticeManager.show(`Copied: ${text}`, { kind: "success", timeoutMs: 3000 });
+    noticeManager.show(t("plugin.copyLink.notice.copied", { text }), {
+      kind: "success",
+      timeoutMs: 3000,
+    });
   } catch (err) {
-    noticeManager.show(
-      err instanceof Error ? err.message : "Clipboard write failed",
-      { kind: "error" },
-    );
+    noticeManager.show(err instanceof Error ? err.message : t("plugin.copyLink.error.clipboard"), {
+      kind: "error",
+    });
   }
 }
 
@@ -30,8 +33,8 @@ export function registerCopyLinkPlugin(): () => void {
 
   register({
     id: "links:copy-wikilink",
-    category: "Links",
-    name: "Copy wikilink to active note",
+    category: t("plugin.copyLink.category"),
+    name: t("plugin.copyLink.wikilink"),
     checkCallback: () => activeMarkdownPath() !== null,
     callback: async () => {
       const path = activeMarkdownPath();
@@ -42,8 +45,8 @@ export function registerCopyLinkPlugin(): () => void {
 
   register({
     id: "links:copy-markdown-link",
-    category: "Links",
-    name: "Copy markdown link to active note",
+    category: t("plugin.copyLink.category"),
+    name: t("plugin.copyLink.markdown"),
     checkCallback: () => activeMarkdownPath() !== null,
     callback: async () => {
       const path = activeMarkdownPath();
@@ -55,8 +58,8 @@ export function registerCopyLinkPlugin(): () => void {
 
   register({
     id: "links:copy-vault-path",
-    category: "Links",
-    name: "Copy vault path of active note",
+    category: t("plugin.copyLink.category"),
+    name: t("plugin.copyLink.path"),
     checkCallback: () => activeMarkdownPath() !== null,
     callback: async () => {
       const path = activeMarkdownPath();

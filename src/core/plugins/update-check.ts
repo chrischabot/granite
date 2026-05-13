@@ -1,3 +1,4 @@
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { listPlugins } from "./loader";
 
@@ -85,16 +86,20 @@ export async function showUpdateCheckNotices(options: UpdateCheckOptions): Promi
 
   for (const r of incompat) {
     noticeManager.show(
-      `Plugin "${r.pluginId}" requires Granite ≥ ${r.minAppVersion}; you have ${options.appVersion}.`,
+      t("plugin.update.incompatible", {
+        pluginId: r.pluginId,
+        minAppVersion: r.minAppVersion ?? "",
+        appVersion: options.appVersion,
+      }),
       { kind: "warning", timeoutMs: 0 },
     );
   }
 
   if (updates.length === 0) {
     if (results.length > 0) {
-      noticeManager.show("All plugins are up to date.", { kind: "success" });
+      noticeManager.show(t("plugin.update.allUpToDate"), { kind: "success" });
     } else {
-      noticeManager.show("No plugins have remote manifest URLs configured.", {
+      noticeManager.show(t("plugin.update.noRemoteManifests"), {
         kind: "info",
       });
     }
@@ -102,13 +107,20 @@ export async function showUpdateCheckNotices(options: UpdateCheckOptions): Promi
   }
 
   if (updates.length === 1) {
-    const u = updates[0]!;
-    noticeManager.show(`Plugin "${u.pluginId}" has a new version available (${u.latestVersion}).`, {
-      kind: "info",
-      timeoutMs: 0,
-    });
+    const u = updates[0];
+    if (!u) return;
+    noticeManager.show(
+      t("plugin.update.oneAvailable", {
+        pluginId: u.pluginId,
+        latestVersion: u.latestVersion ?? "",
+      }),
+      {
+        kind: "info",
+        timeoutMs: 0,
+      },
+    );
   } else {
-    noticeManager.show(`${updates.length} plugins have new versions available.`, {
+    noticeManager.show(t("plugin.update.manyAvailable", { count: String(updates.length) }), {
       kind: "info",
       timeoutMs: 0,
     });

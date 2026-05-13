@@ -100,5 +100,11 @@ describe("i18n", () => {
     expect(t("plugin.webViewer.error.invalidUrl")).toBe("זו אינה כתובת URL תקינה.");
     expect(t("plugin.randomNote.empty")).toBe("אין עדיין הערות בכספת.");
     expect(t("plugin.randomWalk.empty")).toBe("הכספת ריקה.");
+    expect(t("plugin.copyLink.wikilink")).toBe("העתקת קישור ויקי להערה הפעילה");
+    expect(
+      t("plugin.reload.notice.reloaded", { count: "2", pluginLabel: t("plugin.reload.plugins") }),
+    ).toBe("נטענו מחדש 2 תוספים.");
+    expect(t("plugin.tour.open")).toBe("פתיחת הסיור בגרניט");
+    expect(t("plugin.update.allUpToDate")).toBe("כל התוספים מעודכנים.");
   });
 });

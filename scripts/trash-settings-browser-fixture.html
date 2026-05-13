@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Trash Settings Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "../src/core/effect/runtime.ts";
+      import { FileSystem } from "../src/core/fs/FileSystem.ts";
+      import { settingsStore } from "../src/core/settings/store.ts";
+      import { NoticeContainer } from "../src/ui/overlay/NoticeContainer.tsx";
+      import { SettingsModal } from "../src/ui/prompts/SettingsModal.tsx";
+      import { ThemeProvider } from "../src/ui/theme/ThemeProvider.tsx";
+      import { useVault, VaultProvider } from "../src/ui/vault/VaultContext.tsx";
+      import { FileExplorerView } from "../src/ui/views/file-explorer/FileExplorerView.tsx";
+
+      const vaultName = `trash-settings-browser-${crypto.randomUUID()}`;
+      const casePaths = ["Delete-vault.md", "Delete-permanent.md", "Delete-system.md"];
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+
+        useEffect(() => {
+          if (activeVault) return;
+          void openOpfs(vaultName).catch((err) =>
+            setError(err instanceof Error ? err.message : String(err)),
+          );
+        }, [activeVault, openOpfs]);
+
+        useEffect(() => {
+          if (!activeVault || ready) return;
+          void run(
+            Effect.gen(function* () {
+              const fs = yield* FileSystem;
+              for (const path of casePaths) {
+                yield* fs.writeText(path, `# ${path}\n`);
+              }
+            }),
+          )
+            .then(() => {
+              settingsStore.update({ confirmFileDeletion: true, deletedFiles: "system" });
+              setReady(true);
+            })
+            .catch((err) => setError(err instanceof Error ? err.message : String(err)));
+        }, [activeVault, ready]);
+
+        window.__graniteTrashSettingsReady = ready;
+
+        if (error) {
+          window.__graniteTrashSettingsError = error;
+          return React.createElement("pre", { role: "alert" }, error);
+        }
+        if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(SettingsModal, { open: true, onClose: () => {} }),
+          React.createElement("main", { style: { width: 320, height: 620, padding: 16 } },
+            React.createElement(FileExplorerView),
+          ),
+          React.createElement(NoticeContainer),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(ThemeProvider, null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

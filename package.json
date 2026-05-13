@@ -20,6 +20,7 @@
     "verify:i18n-browser": "node scripts/verify-i18n-browser.mjs",
     "verify:search-performance-browser": "node scripts/verify-search-performance-browser.mjs",
     "verify:native-formats-browser": "node scripts/verify-native-formats-browser.mjs",
+    "verify:trash-settings-browser": "node scripts/verify-trash-settings-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

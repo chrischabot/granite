@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Trash settings browser verifier
+
+- **Root cause** — trash behavior had strong `deleteVaultPath()` and adapter
+  unit coverage, but the severe-test list still lacked browser proof that
+  Settings changes feed File Explorer deletion confirmations and resulting
+  notices.
+- **Browser path** — added `verify:trash-settings-browser`, a Chromium fixture
+  that opens a real OPFS vault, changes Deleted files through the Settings UI,
+  and deletes files from File Explorer via keyboard.
+- **Regression guarantee** — the verifier fails if Vault trash, Permanent
+  deletion, or unsupported System trash show the wrong confirmation mode, skip
+  the confirmation, or surface the wrong success/error notice.
+
+### Tests
+- `bun run verify:trash-settings-browser`
+- `bun run test -- src/core/fs/trash.test.ts src/core/fs/native-trash.test.ts src/core/fs/handle-adapter.test.ts src/core/settings/store.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Native formats browser verifier
 
 - **Root cause** — native file routing had unit coverage, but the severe-test

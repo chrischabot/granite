@@ -1,0 +1,183 @@
+import { spawn } from "node:child_process";
+import { createServer } from "node:net";
+import { setTimeout as delay } from "node:timers/promises";
+import { chromium } from "playwright";
+
+const cwd = process.cwd();
+
+async function getOpenPort() {
+  const server = createServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(0, "127.0.0.1", resolve);
+  });
+  const address = server.address();
+  await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
+  if (!address || typeof address === "string") throw new Error("Could not allocate a local port");
+  return address.port;
+}
+
+async function waitForServer(url, processOutput) {
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return;
+    } catch {
+      // Vite is still booting.
+    }
+    if (processOutput.exitCode !== null) {
+      throw new Error(`Vite exited before becoming ready:\n${processOutput.text}`);
+    }
+    await delay(100);
+  }
+  throw new Error(`Timed out waiting for Vite at ${url}\n${processOutput.text}`);
+}
+
+function startVite(port) {
+  const output = { text: "", exitCode: null };
+  const child = spawn(
+    "bunx",
+    ["vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
+    {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  const append = (chunk) => {
+    output.text += chunk.toString();
+    if (output.text.length > 20_000) output.text = output.text.slice(-20_000);
+  };
+  child.stdout.on("data", append);
+  child.stderr.on("data", append);
+  child.on("exit", (code) => {
+    output.exitCode = code;
+  });
+  return { child, output };
+}
+
+async function chooseFilesSection(page) {
+  await page.getByRole("button", { name: "Files & links" }).click();
+  await page.getByText("Deleted files", { exact: true }).waitFor({ state: "visible" });
+}
+
+async function setDeleteMode(page, mode) {
+  await chooseFilesSection(page);
+  const deletedFilesSelect = page
+    .locator(".setting-item")
+    .filter({ hasText: "Deleted files" })
+    .locator("select");
+  await deletedFilesSelect.selectOption(mode);
+  const confirmSwitch = page
+    .locator(".setting-item")
+    .filter({ hasText: "Confirm file deletion" })
+    .getByRole("switch");
+  if ((await confirmSwitch.getAttribute("aria-checked")) !== "true") {
+    await confirmSwitch.click();
+  }
+}
+
+async function deleteFileFromExplorer(page, filename) {
+  const row = page
+    .locator(".nav-files-container")
+    .getByRole("button", {
+      name: new RegExp(filename.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+    });
+  await row.waitFor({ state: "visible" });
+  await row.focus();
+  await page.keyboard.press("Control+Backspace");
+}
+
+async function verifyDeleteCase(page, { mode, file, confirmIncludes, noticeIncludes }) {
+  const dialogs = [];
+  const handler = async (dialog) => {
+    dialogs.push(dialog.message());
+    await dialog.accept();
+  };
+  page.on("dialog", handler);
+  try {
+    await setDeleteMode(page, mode);
+    await deleteFileFromExplorer(page, file);
+    await page.waitForFunction(
+      (text) => [...document.querySelectorAll(".notice")].some((el) => el.textContent?.includes(text)),
+      noticeIncludes,
+    );
+  } finally {
+    page.off("dialog", handler);
+  }
+  const message = dialogs.at(-1) ?? "";
+  if (!message.includes(confirmIncludes)) {
+    throw new Error(`Expected ${mode} confirmation to include "${confirmIncludes}", got "${message}"`);
+  }
+  return { mode, confirmation: message, notice: noticeIncludes };
+}
+
+async function main() {
+  const port = await getOpenPort();
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const { child, output } = startVite(port);
+  let browser;
+  const consoleMessages = [];
+
+  try {
+    await waitForServer(`${baseUrl}/scripts/trash-settings-browser-fixture.html`, output);
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({ viewport: { width: 1280, height: 820 } });
+    page.on("console", (message) => consoleMessages.push(`${message.type()}: ${message.text()}`));
+    page.on("pageerror", (error) => consoleMessages.push(`pageerror: ${error.message}`));
+
+    await page.goto(`${baseUrl}/scripts/trash-settings-browser-fixture.html`, {
+      waitUntil: "networkidle",
+    });
+    await page.waitForFunction(() => window.__graniteTrashSettingsReady === true, null, {
+      timeout: 15_000,
+    });
+    const fixtureError = await page.evaluate(() => window.__graniteTrashSettingsError ?? null);
+    if (fixtureError) throw new Error(`Fixture failed: ${fixtureError}`);
+    await page.waitForSelector(".nav-files-container");
+
+    const checks = [];
+    checks.push(
+      await verifyDeleteCase(page, {
+        mode: "vault",
+        file: "Delete-vault",
+        confirmIncludes: "vault trash",
+        noticeIncludes: "Moved to vault trash.",
+      }),
+    );
+    checks.push(
+      await verifyDeleteCase(page, {
+        mode: "permanent",
+        file: "Delete-permanent",
+        confirmIncludes: "permanent deletion",
+        noticeIncludes: "Deleted.",
+      }),
+    );
+    checks.push(
+      await verifyDeleteCase(page, {
+        mode: "system",
+        file: "Delete-system",
+        confirmIncludes: "system trash",
+        noticeIncludes: "System trash is not available",
+      }),
+    );
+
+    console.log("Trash settings browser verification passed.");
+    for (const check of checks) {
+      console.log(`${check.mode}: confirmation="${check.confirmation}", notice contains="${check.notice}"`);
+    }
+  } catch (error) {
+    if (consoleMessages.length > 0) console.error(consoleMessages.join("\n"));
+    throw error;
+  } finally {
+    if (browser) await browser.close();
+    child.kill("SIGTERM");
+    await delay(100);
+    if (child.exitCode === null) child.kill("SIGKILL");
+  }
+}
+
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});

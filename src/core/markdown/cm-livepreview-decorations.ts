@@ -8,7 +8,6 @@ import {
 } from "@codemirror/view";
 import { parseWikilink } from "@core/markdown/renderer";
 
-const BOLD_RE = /\*\*([^*\n]+)\*\*/g;
 const UNDERSCORE_BOLD_RE = /__([^_\n]+)__/g;
 const BOLD_ITALIC_STAR_RE = /\*\*\*([^*\n]+)\*\*\*/g;
 const BOLD_ITALIC_UNDERSCORE_RE = /___([^_\n]+)___/g;
@@ -89,6 +88,18 @@ function isSingleAsteriskMarker(line: string, index: number): boolean {
     line[index - 1] !== "*" &&
     line[index + 1] !== "*" &&
     !isEscaped(line, index)
+  );
+}
+
+function asteriskRunLengthAt(line: string, index: number): number {
+  let len = 0;
+  while (line[index + len] === "*") len += 1;
+  return len;
+}
+
+function isDoubleAsteriskMarker(line: string, index: number): boolean {
+  return (
+    asteriskRunLengthAt(line, index) === 2 && line[index - 1] !== "*" && !isEscaped(line, index)
   );
 }
 
@@ -264,15 +275,18 @@ export function computeLivePreviewRanges(
     });
 
     // Bold: **text** / __text__ — hide the opening and closing markers.
-    forEachMatch(BOLD_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 2)) {
-        return;
+    // A delimiter scan is used for asterisk bold so nested italic like
+    // `**strong *em* text**` still hides the outer bold markers.
+    for (let start = 0; start < line.length; start++) {
+      if (!isDoubleAsteriskMarker(line, start) || overlapsCode(start, start + 2)) continue;
+      for (let end = start + 2; end < line.length; end++) {
+        if (!isDoubleAsteriskMarker(line, end) || overlapsCode(end, end + 2)) continue;
+        addReplace(start, start + 2);
+        addReplace(end, end + 2);
+        start = end + 1;
+        break;
       }
-      addReplace(idx, idx + 2);
-      addReplace(idx + len - 2, idx + len);
-    });
+    }
 
     forEachMatch(UNDERSCORE_BOLD_RE, line, (m) => {
       const idx = m.index;

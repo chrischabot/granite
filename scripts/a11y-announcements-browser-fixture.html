@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite A11y Announcements Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { a11yAnnouncer } from "@core/a11y/announcer";
+      import { noticeManager } from "@core/notices/notice";
+      import { workspaceStore } from "@core/workspace/store";
+      import { A11yAnnouncer, WorkspaceA11yAnnouncements } from "@/ui/A11yAnnouncer";
+      import { Modal } from "@/ui/overlay/Modal";
+      import { NoticeContainer } from "@/ui/overlay/NoticeContainer";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+
+      function clearNotices() {
+        for (const notice of [...noticeManager.list()]) noticeManager.dismiss(notice.id);
+      }
+
+      function Harness() {
+        const [modal, setModal] = useState(null);
+
+        useEffect(() => {
+          a11yAnnouncer.reset();
+          clearNotices();
+          workspaceStore.reset();
+          window.__graniteA11yAnnouncementsReady = true;
+          return () => {
+            clearNotices();
+            a11yAnnouncer.reset();
+            workspaceStore.reset();
+          };
+        }, []);
+
+        window.__graniteA11yAnnouncementsOpenTabs = () => {
+          workspaceStore.openFile("Daily.md");
+          workspaceStore.openFile("Projects.md", { newTab: true });
+        };
+        window.__graniteA11yAnnouncementsOpenModal = (label) => setModal(label || "Settings");
+        window.__graniteA11yAnnouncementsCloseModal = () => setModal(null);
+        window.__graniteA11yAnnouncementsShowNotice = (kind, message) =>
+          noticeManager.show(message || `${kind} notice`, { kind, timeoutMs: 0 });
+        window.__graniteA11yAnnouncementsSnapshot = () => ({
+          announcement: a11yAnnouncer.getSnapshot(),
+          notices: noticeManager.list(),
+          activeElement: document.activeElement?.getAttribute("data-testid") || document.activeElement?.tagName || null,
+        });
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(A11yAnnouncer),
+          React.createElement(WorkspaceA11yAnnouncements),
+          React.createElement(NoticeContainer),
+          React.createElement(
+            "main",
+            { style: { padding: 24 } },
+            React.createElement("button", { type: "button", "data-testid": "before-notice" }, "Before notice"),
+            React.createElement("button", { type: "button", onClick: () => setModal("Settings") }, "Open modal"),
+          ),
+          React.createElement(
+            Modal,
+            {
+              open: modal !== null,
+              onClose: () => setModal(null),
+              ariaLabel: modal || "Settings",
+            },
+            React.createElement("button", { type: "button", "data-testid": "modal-first" }, "First modal control"),
+          ),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(ThemeProvider, null, React.createElement(Harness)),
+      );
+    </script>
+  </body>
+</html>

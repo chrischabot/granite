@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-13 — A11y announcements browser verifier
+
+- **Root cause** — screen-reader announcements had unit and integration
+  coverage, but the severe-test list still relied on manual browser checks for
+  runtime tab-change, modal-open, and notice announcement behavior.
+- **Browser path** — added `verify:a11y-announcements-browser`, which renders
+  the real live region, workspace announcement bridge, modal, and notice
+  container in Chromium, then verifies active-tab changes announce exactly once,
+  modal openings announce a meaningful label, and success/info/warning/error
+  notices announce their kind and message.
+- **Focus guarantee** — the verifier also proves notices render in `role=alert`
+  surfaces without stealing focus from the previously focused control.
+
+### Tests
+- `bun run verify:a11y-announcements-browser`
+- `node --check scripts/verify-a11y-announcements-browser.mjs`
+- `bun run audit:a11y`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Bases map browser verifier
 
 - **Root cause** — Bases map behavior had schema and projection unit coverage,

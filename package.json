@@ -35,6 +35,7 @@
     "verify:commonmark-browser": "node scripts/verify-commonmark-browser.mjs",
     "verify:rtl-browser": "node scripts/verify-rtl-browser.mjs",
     "verify:bases-map-browser": "node scripts/verify-bases-map-browser.mjs",
+    "verify:a11y-announcements-browser": "node scripts/verify-a11y-announcements-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

@@ -41,15 +41,6 @@ body [contenteditable=""] {
   -webkit-user-select: text;
 }
 
-body.is-grabbing,
-body.is-grabbing *:not(.workspace-leaf-resize-handle) {
-  cursor: grabbing !important;
-}
-
-body.is-grabbing iframe:not(.is-controlled) {
-  pointer-events: none;
-}
-
 #root {
   display: flex;
   flex-direction: column;
@@ -72,9 +63,7 @@ body.is-grabbing iframe:not(.is-controlled) {
 
 /* Block-link / search-jump highlight flash (250ms ease) */
 .is-flashing {
-  transition:
-    color 0.25s ease,
-    background-color 0.25s ease;
+  transition: color 0.25s ease, background-color 0.25s ease;
   background-color: var(--text-highlight-bg) !important;
   color: var(--text-normal);
   mix-blend-mode: var(--highlight-mix-blend-mode);

@@ -1,0 +1,149 @@
+/* SPEC: specs/renderer/drag-and-drop.md */
+
+body.is-grabbing,
+body.is-grabbing *:not(.workspace-leaf-resize-handle) {
+  cursor: grabbing !important;
+}
+
+body.is-grabbing iframe:not(.is-controlled),
+body.is-grabbing webview:not(.is-controlled) {
+  pointer-events: none;
+}
+
+.drag-ghost {
+  background-color: var(--drag-ghost-background);
+  border-radius: var(--radius-s);
+  box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
+  color: var(--drag-ghost-text-color);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-medium);
+  max-width: 300px;
+  padding: var(--size-2-3) var(--size-4-2);
+  pointer-events: none;
+  position: fixed;
+  z-index: var(--layer-dragged-item);
+}
+
+.drag-ghost.mod-leaf {
+  display: flex;
+  z-index: var(--layer-tooltip);
+}
+
+.drag-ghost-icon {
+  margin-right: var(--size-2-3);
+  position: relative;
+}
+
+.drag-reorder-ghost {
+  background-color: var(--background-primary);
+  border-radius: var(--radius-s);
+  box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
+  pointer-events: none;
+  position: fixed;
+  z-index: var(--layer-dragged-item);
+}
+
+.drag-ghost-self {
+  display: flex;
+}
+
+.drag-ghost-self > .svg-icon {
+  --icon-size: var(--icon-xs);
+  --icon-stroke: var(--icon-xs-stroke-width);
+  align-self: center;
+  flex-shrink: 0;
+  margin-right: var(--size-2-2);
+  opacity: 0.7;
+  vertical-align: middle;
+}
+
+.drag-ghost-self span,
+.drag-ghost-action {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.drag-ghost-action {
+  font-size: var(--font-ui-smaller);
+  opacity: 0.7;
+  padding: var(--size-2-1) 0 0;
+}
+
+.drag-ghost-hidden {
+  position: relative;
+  visibility: hidden;
+}
+
+.drag-ghost-hidden::before {
+  background-color: hsla(var(--interactive-accent-hsl), 0.3);
+  border-radius: 5px;
+  bottom: 0;
+  content: " ";
+  left: 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  visibility: visible;
+}
+
+.drop-indicator {
+  border: 2px solid var(--interactive-accent);
+  height: 0;
+  inset-inline-start: 0;
+  pointer-events: none;
+  position: absolute;
+  width: 100%;
+}
+
+.drop-indicator:not(.is-active) {
+  display: none;
+}
+
+.workspace-fake-target-overlay,
+.workspace-drop-overlay {
+  height: 0;
+  inset-inline-start: 0;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  transform: translate(0, 0);
+  transition: all 100ms ease-in-out;
+  width: 0;
+  will-change: transform, width, height;
+  z-index: var(--layer-cover);
+}
+
+.workspace-drop-overlay::before {
+  background-color: var(--interactive-accent);
+  border-radius: var(--radius-m);
+  bottom: 0;
+  content: " ";
+  height: calc(100% - 6px);
+  left: 0;
+  margin: auto;
+  opacity: 0.5;
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: calc(100% - 6px);
+}
+
+.workspace-fake-target-container {
+  inset-inline-start: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  visibility: hidden;
+}
+
+.workspace-fake-target-overlay {
+  background-color: var(--background-primary);
+  overflow: hidden;
+  visibility: visible;
+}
+
+.workspace-fake-target-overlay > * {
+  height: 100%;
+  width: 100%;
+}

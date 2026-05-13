@@ -179,16 +179,3 @@ body:not(.is-phone) .workspace-leaf.mod-active .tree-item-self.has-focus:focus-w
     var(--nav-item-children-padding-left)
   );
 }
-
-.drop-indicator {
-  border: 2px solid var(--interactive-accent);
-  height: 0;
-  inset-inline-start: 0;
-  pointer-events: none;
-  position: absolute;
-  width: 100%;
-}
-
-.drop-indicator:not(.is-active) {
-  display: none;
-}

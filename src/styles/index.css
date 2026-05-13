@@ -11,6 +11,7 @@
 @import "./tree-item.css";
 @import "./scrollbars.css";
 @import "./modal.css";
+@import "./drag.css";
 @import "./shell.css";
 @import "./tabs.css";
 @import "./overlays.css";

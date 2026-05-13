@@ -92,7 +92,6 @@ const MODULES = [
       ".tree-item-self .tree-item-icon",
       ".tree-item-inner-subtext",
       ".tree-item-children",
-      ".drop-indicator:not(.is-active)",
     ],
   },
   {
@@ -121,6 +120,20 @@ const MODULES = [
       ".modal.mod-image-lightbox .modal-content",
       ".modal.mod-file-browser .modal-content",
       ".mod-file-rename .rename-textarea",
+    ],
+  },
+  {
+    file: "drag.css",
+    spec: "specs/renderer/drag-and-drop.md",
+    selectors: [
+      "body.is-grabbing",
+      "body.is-grabbing webview:not(.is-controlled)",
+      ".drag-ghost.mod-leaf",
+      ".drag-reorder-ghost",
+      ".drag-ghost-hidden::before",
+      ".drop-indicator:not(.is-active)",
+      ".workspace-drop-overlay::before",
+      ".workspace-fake-target-overlay > *",
     ],
   },
 ] as const;
@@ -163,5 +176,11 @@ describe("renderer CSS module coverage", () => {
     expect(flair).not.toContain(".multi-select-pill {");
 
     expect(views).not.toContain("Generic message (used by error chrome)");
+
+    const base = readFileSync(`${STYLE_DIR}/base.css`, "utf8");
+    expect(base).not.toContain("body.is-grabbing");
+
+    expect(shell).not.toContain("Drag overlays (drop preview + fake target)");
+    expect(shell).not.toContain(".workspace-drop-overlay");
   });
 });

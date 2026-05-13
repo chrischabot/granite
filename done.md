@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Renderer drag-and-drop CSS module
+
+- **Dedicated module** — extracted drag body state, drag ghosts, reorder ghosts,
+  hidden-source marker, drop indicator, workspace drop overlay, and fake-target
+  overlay into spec-linked `src/styles/drag.css`.
+- **Regression audit** — extended the renderer module test so drag styles stay
+  imported, spec-linked, and out of broad base/shell stylesheets.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer modal CSS module
 
 - **Dedicated module** — extracted base modal styles into spec-linked

@@ -637,6 +637,23 @@ const FORMAT_CONVERTER_FORBIDDEN_PATTERNS = [
   /"Could not copy HTML"/,
 ];
 
+const NOTE_COMPOSER_FORBIDDEN_PATTERNS = [
+  /category: "Note composer"/,
+  /name: "Extract current selection to new note"/,
+  /"No text selected\."/,
+  /prompt\("New note name:", "Extract\.md"\)/,
+  /A file named/,
+  /"Selection extracted\."/,
+  /"Extract failed"/,
+  /name: "Merge current file into another file…"/,
+  /"Open a markdown note first\."/,
+  /Merge "\$\{stem\(sourcePath\)\}" into which file/,
+  /"Target must be a \.md file\."/,
+  /Target file/,
+  /Merged into/,
+  /"Merge failed"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1570,6 +1587,33 @@ describe("UI string externalization audit", () => {
       "plugin.format.copyAsHtml",
       "plugin.format.copiedHtml",
       "plugin.format.error.copyHtml",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Note Composer command labels, prompts, and notices routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/core/plugins-core/note-composer.ts`, "utf8");
+    const violations = NOTE_COMPOSER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+
+    for (const requiredKey of [
+      "plugin.noteComposer.category",
+      "plugin.noteComposer.extractSelection",
+      "plugin.noteComposer.noSelection",
+      "plugin.noteComposer.prompt.newNote",
+      "plugin.noteComposer.defaultName",
+      "plugin.noteComposer.error.exists",
+      "plugin.noteComposer.notice.extracted",
+      "plugin.noteComposer.error.extract",
+      "plugin.noteComposer.mergeInto",
+      "plugin.noteComposer.openMarkdownFirst",
+      "plugin.noteComposer.prompt.mergeTarget",
+      "plugin.noteComposer.error.targetMustBeMarkdown",
+      "plugin.noteComposer.error.targetMissing",
+      "plugin.noteComposer.notice.merged",
+      "plugin.noteComposer.error.merge",
     ]) {
       expect(source).toContain(requiredKey);
     }

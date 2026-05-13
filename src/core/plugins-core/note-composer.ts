@@ -1,10 +1,11 @@
-import { Effect } from "effect";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { extension, stem } from "@core/fs/path";
-import { workspaceStore } from "@core/workspace/store";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
+import { Effect } from "effect";
 
 declare global {
   interface WindowEventMap {
@@ -126,15 +127,18 @@ export function registerNoteComposerPlugin(): () => void {
 
   register({
     id: "note-composer:extract-selection",
-    category: "Note composer",
-    name: "Extract current selection to new note",
+    category: t("plugin.noteComposer.category"),
+    name: t("plugin.noteComposer.extractSelection"),
     callback: async () => {
       const sel = await getActiveSelection();
       if (!sel || !sel.selection) {
-        noticeManager.show("No text selected.", { kind: "warning" });
+        noticeManager.show(t("plugin.noteComposer.noSelection"), { kind: "warning" });
         return;
       }
-      const name = prompt("New note name:", "Extract.md");
+      const name = prompt(
+        t("plugin.noteComposer.prompt.newNote"),
+        t("plugin.noteComposer.defaultName"),
+      );
       if (!name) return;
       const filename = name.endsWith(".md") ? name : `${name}.md`;
       try {
@@ -142,7 +146,9 @@ export function registerNoteComposerPlugin(): () => void {
           Effect.gen(function* () {
             const fs = yield* FileSystem;
             const existing = yield* fs.stat(filename);
-            if (existing) throw new Error(`A file named "${filename}" already exists`);
+            if (existing) {
+              throw new Error(t("plugin.noteComposer.error.exists", { filename }));
+            }
             yield* fs.writeText(filename, sel.selection);
           }),
         );
@@ -153,10 +159,10 @@ export function registerNoteComposerPlugin(): () => void {
           }),
         );
         workspaceStore.openFile(filename, { newTab: true });
-        noticeManager.show("Selection extracted.", { kind: "success" });
+        noticeManager.show(t("plugin.noteComposer.notice.extracted"), { kind: "success" });
       } catch (err) {
         noticeManager.show(
-          err instanceof Error ? err.message : "Extract failed",
+          err instanceof Error ? err.message : t("plugin.noteComposer.error.extract"),
           { kind: "error" },
         );
       }
@@ -165,24 +171,26 @@ export function registerNoteComposerPlugin(): () => void {
 
   register({
     id: "note-composer:merge-into",
-    category: "Note composer",
-    name: "Merge current file into another file…",
+    category: t("plugin.noteComposer.category"),
+    name: t("plugin.noteComposer.mergeInto"),
     callback: async () => {
       const state = workspaceStore.getState();
       const groupId = state.activeGroupId;
       const group = groupId ? state.groups.get(groupId) : null;
       const leaf = group?.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
       if (!leaf || leaf.state.type !== "markdown") {
-        noticeManager.show("Open a markdown note first.", { kind: "warning" });
+        noticeManager.show(t("plugin.noteComposer.openMarkdownFirst"), { kind: "warning" });
         return;
       }
       const sourcePath = leaf.state.path;
       const target = prompt(
-        `Merge "${stem(sourcePath)}" into which file? (full vault path, .md included)`,
+        t("plugin.noteComposer.prompt.mergeTarget", { name: stem(sourcePath) }),
       );
       if (!target) return;
       if (extension(target) !== "md") {
-        noticeManager.show("Target must be a .md file.", { kind: "error" });
+        noticeManager.show(t("plugin.noteComposer.error.targetMustBeMarkdown"), {
+          kind: "error",
+        });
         return;
       }
       try {
@@ -190,7 +198,9 @@ export function registerNoteComposerPlugin(): () => void {
           Effect.gen(function* () {
             const fs = yield* FileSystem;
             const targetExists = yield* fs.stat(target);
-            if (!targetExists) throw new Error(`Target file "${target}" does not exist`);
+            if (!targetExists) {
+              throw new Error(t("plugin.noteComposer.error.targetMissing", { target }));
+            }
             const sourceText = yield* fs.readText(sourcePath);
             const targetText = yield* fs.readText(target);
             const merged = `${targetText}${targetText.endsWith("\n") ? "" : "\n"}\n${sourceText}`;
@@ -208,12 +218,18 @@ export function registerNoteComposerPlugin(): () => void {
         );
         workspaceStore.openFile(target);
         noticeManager.show(
-          `Merged into "${stem(target)}". Rewrote ${rewriteCount} link${rewriteCount === 1 ? "" : "s"}.`,
+          t("plugin.noteComposer.notice.merged", {
+            name: stem(target),
+            count: String(rewriteCount),
+            linkLabel: t(
+              rewriteCount === 1 ? "plugin.noteComposer.link" : "plugin.noteComposer.links",
+            ),
+          }),
           { kind: "success" },
         );
       } catch (err) {
         noticeManager.show(
-          err instanceof Error ? err.message : "Merge failed",
+          err instanceof Error ? err.message : t("plugin.noteComposer.error.merge"),
           { kind: "error" },
         );
       }

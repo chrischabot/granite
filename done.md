@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Note Composer i18n ratchet
+
+- **Note Composer labels** — routed extract-selection and merge-into command
+  names/categories through locale keys.
+- **Prompts and notices** — routed new-note and merge prompts, selection and
+  active-note warnings, duplicate/missing-target errors, extract/merge success
+  notices, and fallback errors through i18n.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if Note Composer's command labels, prompts, notices, or surfaced errors
+  return as hard-coded English literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Format Converter i18n ratchet
 
 - **Format Converter labels** — routed wikilink conversion, legacy-property

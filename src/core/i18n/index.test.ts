@@ -115,5 +115,13 @@ describe("i18n", () => {
         noteLabel: t("plugin.format.note"),
       }),
     ).toBe("הועברו 2 מאפיינים ישנים ב-1 הערה.");
+    expect(t("plugin.noteComposer.noSelection")).toBe("לא נבחר טקסט.");
+    expect(
+      t("plugin.noteComposer.notice.merged", {
+        name: "Archive",
+        count: "2",
+        linkLabel: t("plugin.noteComposer.links"),
+      }),
+    ).toBe('מוזג אל "Archive". שוכתבו 2 קישורים.');
   });
 });

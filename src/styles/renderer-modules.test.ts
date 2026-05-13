@@ -324,6 +324,24 @@ const MODULES = [
       "body:not(.is-phone) .community-item.is-selected .flair",
     ],
   },
+  {
+    file: "view-graph.css",
+    spec: ["specs/renderer/view-graph.md", "specs/renderer/design-tokens.md"],
+    selectors: [
+      ".graph-view.color-fill-focused",
+      ".graph-view.color-fill-unresolved",
+      ".graph-view.color-line-highlight",
+      ".graph-controls.is-close > .graph-control-section",
+      ".workspace-split:not(.mod-root) .graph-controls.is-close",
+      ".graph-controls-button",
+      ".graph-controls .setting-item.mod-slider .setting-item-control",
+      ".graph-color-group",
+      '.graph-color-group input[type="color"]',
+      ".graph-color-button-container",
+      ".graph-slider-value",
+      ".graph-view-stats",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {

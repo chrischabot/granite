@@ -23,6 +23,7 @@
 @import "./card.css";
 @import "./view-release-notes.css";
 @import "./view-history-sync.css";
+@import "./view-graph.css";
 @import "./shell.css";
 @import "./tabs.css";
 @import "./overlays.css";

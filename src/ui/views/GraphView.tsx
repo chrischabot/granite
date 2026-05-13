@@ -348,19 +348,7 @@ export function GraphView() {
 
   if (nodes.length === 0) {
     return (
-      <div
-        ref={containerRef}
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "var(--text-faint)",
-          padding: "var(--size-4-6)",
-          textAlign: "center",
-        }}
-      >
+      <div ref={containerRef} className="graph-view graph-view-empty">
         {config.filter || config.localGraph ? t("graph.empty.filtered") : t("graph.empty.noNotes")}
       </div>
     );
@@ -392,14 +380,7 @@ export function GraphView() {
   return (
     <div
       ref={containerRef}
-      style={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
-        background: "var(--background-primary)",
-        cursor: draggingRef.current ? "grabbing" : "grab",
-        overflow: "hidden",
-      }}
+      className={`graph-view${draggingRef.current ? " is-dragging" : ""}`}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
@@ -410,7 +391,7 @@ export function GraphView() {
         ref={svgRef}
         width={size.w}
         height={size.h}
-        style={{ display: "block" }}
+        className="graph-view-canvas"
         aria-label={t("graph.aria")}
       >
         <title>{t("graph.aria")}</title>
@@ -450,7 +431,7 @@ export function GraphView() {
             return (
               <g
                 key={n.id}
-                style={{ cursor: "pointer" }}
+                className="graph-node-interactive"
                 tabIndex={0}
                 onMouseEnter={() => setHover(n.id)}
                 onMouseLeave={() => setHover((h) => (h === n.id ? null : h))}
@@ -485,11 +466,7 @@ export function GraphView() {
                     textAnchor="middle"
                     fontSize={config.display.textSize * fontScale}
                     fill="var(--text-normal)"
-                    style={{
-                      userSelect: "none",
-                      fontFamily: "var(--font-interface)",
-                      pointerEvents: "none",
-                    }}
+                    className="graph-view-label"
                     opacity={dim ? 0.4 : 1}
                   >
                     {n.display}
@@ -500,20 +477,7 @@ export function GraphView() {
           })}
         </g>
       </svg>
-      <div
-        style={{
-          position: "absolute",
-          top: 12,
-          right: 12,
-          padding: "4px 10px",
-          fontSize: "var(--font-ui-smaller)",
-          color: "var(--text-muted)",
-          background: "var(--background-secondary)",
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "var(--radius-s)",
-          pointerEvents: "none",
-        }}
-      >
+      <div className="graph-view-stats">
         {t("graph.stats", {
           nodes: nodes.length,
           nodeLabel: t(nodes.length === 1 ? "graph.node" : "graph.nodes"),
@@ -523,24 +487,11 @@ export function GraphView() {
       </div>
       <button
         type="button"
+        className="graph-controls-button"
         aria-label={t(showControls ? "graph.controls.hide" : "graph.controls.show")}
         onClick={(e) => {
           e.stopPropagation();
           setShowControls((v) => !v);
-        }}
-        style={{
-          position: "absolute",
-          top: 12,
-          left: 12,
-          padding: 6,
-          background: "var(--background-secondary)",
-          border: "1px solid var(--background-modifier-border)",
-          borderRadius: "var(--radius-s)",
-          color: "var(--text-muted)",
-          cursor: "var(--cursor-link)",
-          display: "flex",
-          alignItems: "center",
-          height: "auto",
         }}
       >
         <Settings2 size={14} />
@@ -556,56 +507,17 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
   const t = useI18n();
   return (
     <div
+      className="graph-controls"
       onMouseDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
-      style={{
-        position: "absolute",
-        top: 48,
-        left: 12,
-        width: 280,
-        maxHeight: "calc(100% - 64px)",
-        overflowY: "auto",
-        padding: "var(--size-4-3)",
-        background: "var(--background-secondary)",
-        border: "1px solid var(--background-modifier-border)",
-        borderRadius: "var(--radius-m)",
-        fontSize: "var(--font-ui-smaller)",
-        color: "var(--text-muted)",
-        boxShadow: "var(--shadow-s)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--size-4-3)",
-      }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <div
-          style={{
-            fontWeight: "var(--font-semibold)",
-            color: "var(--text-normal)",
-            fontSize: "var(--font-ui-small)",
-          }}
-        >
-          {t("graph.controls.title")}
-        </div>
+      <div className="graph-control-panel-header">
+        <div className="graph-control-panel-title">{t("graph.controls.title")}</div>
         <button
           type="button"
+          className="clickable-icon graph-control-icon-button"
           onClick={onClose}
           aria-label={t("graph.controls.close")}
-          style={{
-            padding: 2,
-            background: "transparent",
-            border: 0,
-            color: "var(--text-muted)",
-            cursor: "var(--cursor-link)",
-            height: "auto",
-            boxShadow: "none",
-          }}
         >
           <X size={12} />
         </button>
@@ -617,23 +529,15 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           placeholder={t("graph.filterPlaceholder")}
           value={config.filter}
           onChange={(e) => updateGraphConfig({ filter: e.currentTarget.value })}
-          style={{ width: "100%" }}
         />
-        <p style={{ margin: "var(--size-2-2) 0 0", color: "var(--text-faint)" }}>
+        <p className="graph-control-help">
           {t("graph.controls.searchSyntax")} <code>tag:</code>, <code>path:</code>,{" "}
           <code>file:</code>, <code>[name]</code>, <code>[name:value]</code>, <code>-term</code>.
         </p>
       </ControlBlock>
 
       <ControlBlock title={t("graph.controls.localGraph")}>
-        <label
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "var(--size-4-2)",
-            cursor: "var(--cursor-link)",
-          }}
-        >
+        <label className="graph-control-toggle">
           <input
             type="checkbox"
             checked={config.localGraph}
@@ -660,7 +564,6 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
           onChange={(e) =>
             updateGraphConfig({ colorMode: e.currentTarget.value as GraphColorMode })
           }
-          style={{ width: "100%" }}
         >
           <option value="none">{t("graph.color.neutral")}</option>
           <option value="tag">{t("graph.color.tag")}</option>
@@ -670,79 +573,59 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
       </ControlBlock>
 
       <ControlBlock title={t("graph.controls.groups")}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-2-3)" }}>
+        <div className="graph-color-list">
           {config.groups.length === 0 ? (
-            <div style={{ color: "var(--text-faint)" }}>
+            <div className="graph-control-muted">
               {t("graph.groups.emptyBefore")} <kbd>+</kbd> {t("graph.groups.emptyAfter")}
             </div>
           ) : (
             config.groups.map((g) => (
-              <div
-                key={g.id}
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr 36px 24px",
-                  gap: "var(--size-2-2)",
-                  alignItems: "center",
-                }}
-              >
+              <div key={g.id} className="graph-color-group">
                 <input
                   type="text"
                   value={g.name}
                   onChange={(e) => updateGraphGroup(g.id, { name: e.currentTarget.value })}
                   placeholder={t("graph.groups.namePlaceholder")}
-                  style={{ width: "100%", minWidth: 0 }}
+                  className="graph-color-name"
                 />
                 <input
                   type="text"
                   value={g.query}
                   onChange={(e) => updateGraphGroup(g.id, { query: e.currentTarget.value })}
                   placeholder={t("graph.groups.queryPlaceholder")}
-                  style={{ width: "100%", minWidth: 0, fontFamily: "var(--font-monospace)" }}
+                  className="graph-color-query"
                 />
                 <input
                   type="color"
                   value={hslToHex(g.color) ?? "#7c52ed"}
                   onChange={(e) => updateGraphGroup(g.id, { color: e.currentTarget.value })}
-                  style={{ width: 36, padding: 0 }}
                 />
                 <button
                   type="button"
+                  className="clickable-icon graph-control-icon-button"
                   aria-label={t("graph.groups.remove", { name: g.name })}
                   onClick={() => removeGraphGroup(g.id)}
-                  style={{
-                    padding: 2,
-                    background: "transparent",
-                    border: 0,
-                    color: "var(--text-muted)",
-                    cursor: "var(--cursor-link)",
-                    height: "auto",
-                    boxShadow: "none",
-                  }}
                 >
                   <Trash2 size={12} />
                 </button>
               </div>
             ))
           )}
-          <button
-            type="button"
-            onClick={() =>
-              addGraphGroup({
-                name: t("graph.groups.newName"),
-                query: "",
-                color: colorForStringSafe(`g${config.groups.length + 1}`),
-              })
-            }
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              alignSelf: "flex-start",
-            }}
-          >
-            <Plus size={12} /> {t("graph.groups.add")}
-          </button>
+          <div className="graph-color-button-container">
+            <button
+              type="button"
+              className="text-icon-button"
+              onClick={() =>
+                addGraphGroup({
+                  name: t("graph.groups.newName"),
+                  query: "",
+                  color: colorForStringSafe(`g${config.groups.length + 1}`),
+                })
+              }
+            >
+              <Plus size={12} /> {t("graph.groups.add")}
+            </button>
+          </div>
         </div>
       </ControlBlock>
 
@@ -816,13 +699,13 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
         />
         <button
           type="button"
+          className="graph-reset-button"
           onClick={() =>
             updateGraphConfig({
               display: DEFAULT_GRAPH_CONFIG.display,
               forces: DEFAULT_GRAPH_CONFIG.forces,
             })
           }
-          style={{ alignSelf: "flex-start", marginTop: "var(--size-2-3)" }}
         >
           {t("graph.reset")}
         </button>
@@ -839,18 +722,8 @@ function ControlBlock({
   children: React.ReactNode;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "var(--size-2-2)" }}>
-      <div
-        style={{
-          fontWeight: "var(--font-semibold)",
-          color: "var(--text-normal)",
-          fontSize: "var(--font-ui-smaller)",
-          textTransform: "uppercase",
-          letterSpacing: "0.05em",
-        }}
-      >
-        {title}
-      </div>
+    <div className="graph-control-section">
+      <div className="graph-control-section-header">{title}</div>
       {children}
     </div>
   );
@@ -872,14 +745,7 @@ function Slider({
   onChange: (v: number) => void;
 }) {
   return (
-    <label
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr auto",
-        alignItems: "center",
-        gap: "var(--size-4-2)",
-      }}
-    >
+    <label className="graph-slider">
       <input
         type="range"
         min={min}
@@ -887,18 +753,9 @@ function Slider({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.currentTarget.value))}
-        style={{ width: "100%" }}
       />
-      <span
-        style={{
-          color: "var(--text-muted)",
-          fontVariantNumeric: "tabular-nums",
-          minWidth: 64,
-          textAlign: "end",
-          fontSize: "var(--font-ui-smaller)",
-        }}
-      >
-        <span style={{ color: "var(--text-faint)" }}>{label}: </span>
+      <span className="graph-slider-value">
+        <span className="graph-slider-label">{label}: </span>
         {Number.isInteger(value) ? value : value.toFixed(3)}
       </span>
     </label>

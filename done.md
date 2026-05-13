@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Renderer graph CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/view-graph.css` for
+  graph color-token hooks, the graph canvas shell, empty/stat overlays,
+  floating controls panel, collapsed-control state, control sections, group
+  color rows, swatches, and slider value chrome.
+- **Token coverage** — added the missing `--graph-*` token family from
+  `specs/renderer/design-tokens.md`.
+- **Regression audit** — extended the renderer module test so graph selectors
+  and graph design-token links remain wired.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted graph/style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer community browser CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/settings-community.css`

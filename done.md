@@ -3025,6 +3025,25 @@
 
 ---
 
+## 2026-05-13 — Multi-window vault browser verification
+
+- **Standalone vault windows** — added a Playwright-backed Vite fixture that
+  creates two OPFS vaults, clicks the Vault Picker's real "Open in new window"
+  action for the inactive vault, and verifies the original window remains on
+  its active vault while the spawned URL bootstraps the requested vault.
+- **Leaf pop-out regression coverage** — the same verifier now right-clicks the
+  real workspace tab, chooses the tab menu's "Open in new window" item, and
+  verifies the pop-out opens the requested markdown leaf in the original vault
+  instead of degrading to a vault-root window.
+
+### Tests
+- Added `scripts/multi-window-vault-browser-fixture.html` and
+  `scripts/verify-multi-window-vault-browser.mjs`, exposed as
+  `bun run verify:multi-window-vault-browser`.
+- Validation: `bun run verify:multi-window-vault-browser` passes.
+
+---
+
 ## 2026-05-12 — Native host system-trash bridge
 
 - **Native trash bridge** — `handleAdapter()` now wires System trash mode to a

@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Multi-Window Vault Browser Fixture</title>
+    <style>
+      body {
+        margin: 0;
+      }
+
+      #root {
+        height: 100vh;
+      }
+
+      .fixture-shell {
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .fixture-toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--background-modifier-border);
+        background: var(--background-secondary);
+      }
+    </style>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { workspaceStore } from "@core/workspace/store";
+      import { MenuHost } from "@/ui/overlay/Menu";
+      import { Workspace } from "@/ui/shell/Workspace";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { VaultPicker } from "@/ui/prompts/VaultPicker";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const baseName = params.get("base") || "multi-window-vault";
+      const vaultOneName = `${baseName}-one`;
+      const vaultTwoName = `${baseName}-two`;
+      const requestMode =
+        params.get("popout") === "1" ? "popout" : params.get("vaultWindow") === "1" ? "vault" : null;
+
+      const openedWindows = [];
+      window.open = (url, target, features) => {
+        openedWindows.push({ url: String(url), target, features });
+        return null;
+      };
+
+      async function writeNote(path, text) {
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            yield* fs.writeText(path, text);
+          }),
+        );
+      }
+
+      function snapshot(activeVault, vaults) {
+        const state = workspaceStore.getState();
+        return {
+          activeVaultId: activeVault?.entry.id ?? null,
+          activeVaultName: activeVault?.entry.name ?? null,
+          vaults: vaults.map((vault) => ({ id: vault.id, name: vault.name, kind: vault.kind })),
+          openedWindows,
+          leaves: [...state.leaves.values()].map((leaf) => ({ id: leaf.id, state: leaf.state })),
+          titles: [...document.querySelectorAll(".workspace-tab-header-inner-title")].map(
+            (el) => el.textContent?.trim() ?? "",
+          ),
+        };
+      }
+
+      function Harness() {
+        const { activeVault, vaults, openOpfs, refreshList } = useVault();
+        const workspace = useSyncExternalStore(
+          workspaceStore.subscribe,
+          workspaceStore.getState,
+          workspaceStore.getServerSnapshot,
+        );
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const [pickerOpen, setPickerOpen] = useState(false);
+        const bootingRef = useRef(false);
+        const requestRefreshRef = useRef(false);
+
+        useEffect(() => {
+          if (!requestMode || ready) return;
+          if (!requestRefreshRef.current) {
+            requestRefreshRef.current = true;
+            void refreshList().catch((err) => {
+              setError(err instanceof Error ? err.message : String(err));
+            });
+          }
+          const hasRequestedLeaf = [...workspace.leaves.values()].some(
+            (leaf) => leaf.state.type === "markdown" && leaf.state.path === "One.md",
+          );
+          if (activeVault && (requestMode === "vault" || hasRequestedLeaf)) {
+            setReady(true);
+          }
+        }, [activeVault, ready, refreshList, workspace.leaves]);
+
+        useEffect(() => {
+          if (requestMode) return;
+          if (ready || bootingRef.current) return;
+          bootingRef.current = true;
+          void (async () => {
+            try {
+              await openOpfs(vaultOneName);
+              await writeNote("One.md", "# One\n\nfirst vault");
+              workspaceStore.openFile("One.md", { mode: "source" });
+              await openOpfs(vaultTwoName);
+              await writeNote("Two.md", "# Two\n\nsecond vault");
+              workspaceStore.openFile("Two.md", { mode: "source" });
+              await openOpfs(vaultOneName);
+              workspaceStore.openFile("One.md", { mode: "source" });
+              await refreshList();
+              setPickerOpen(true);
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [openOpfs, ready, refreshList]);
+
+        window.__graniteMultiWindowVaultReady = ready;
+        window.__graniteMultiWindowVaultError = error;
+        window.__graniteMultiWindowVaultSnapshot = () => snapshot(activeVault, vaults);
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        return React.createElement(
+          "div",
+          { className: "fixture-shell" },
+          React.createElement(
+            "div",
+            { className: "fixture-toolbar" },
+            React.createElement(
+              "button",
+              { type: "button", onClick: () => setPickerOpen(true) },
+              "Open vault picker",
+            ),
+            React.createElement("span", null, ready ? "Multi-window vault fixture ready" : "Loading"),
+          ),
+          React.createElement(Workspace),
+          React.createElement(MenuHost),
+          React.createElement(VaultPicker, {
+            open: pickerOpen,
+            onClose: () => setPickerOpen(false),
+          }),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

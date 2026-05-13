@@ -404,17 +404,6 @@ body:not(.show-ribbon) .side-dock-ribbon {
   background-color: var(--background-secondary);
 }
 
-.workspace-sidedock-empty-state {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-faint);
-  font-size: var(--font-ui-small);
-  padding: var(--size-4-6);
-  text-align: center;
-}
-
 /* -------------------------------------------------------------------------- *
  * Status bar — bottom-right floating capsule
  * -------------------------------------------------------------------------- */

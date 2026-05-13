@@ -1,0 +1,122 @@
+/* SPEC: specs/renderer/empty-state.md */
+
+.empty-state {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  inset-inline-start: 0;
+  justify-content: center;
+  padding: var(--size-4-6);
+  position: absolute;
+  text-align: center;
+  top: 0;
+  user-select: none;
+  width: 100%;
+}
+
+.empty-state-container {
+  margin: 20px;
+  max-height: 280px;
+  max-width: 480px;
+  text-align: center;
+}
+
+.empty-state-title {
+  color: var(--text-normal);
+  font-size: var(--h2-size);
+  font-weight: var(--h2-weight);
+  line-height: var(--line-height-tight);
+  margin: 20px 0;
+  position: relative;
+}
+
+.empty-state-action-list {
+  color: var(--text-muted);
+  font-size: var(--font-text-size);
+  line-height: var(--line-height-tight);
+  margin-top: 20px;
+}
+
+.empty-state-action {
+  background: none;
+  border: 0;
+  box-shadow: none;
+  color: var(--text-accent);
+  cursor: var(--cursor);
+  height: auto;
+  line-height: 36px;
+  padding: 0;
+}
+
+@media (hover: hover) {
+  .empty-state-action:hover {
+    color: var(--text-accent-hover);
+  }
+}
+
+.empty-state-action.mobile-tap {
+  color: var(--text-accent-hover);
+}
+
+.empty-state kbd {
+  background: var(--background-secondary);
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+  padding: 0 var(--size-2-2);
+}
+
+.workspace-sidedock-empty-state {
+  align-items: center;
+  color: var(--text-faint);
+  display: flex;
+  flex: 1 1 auto;
+  font-size: var(--font-ui-small);
+  justify-content: center;
+  padding: var(--size-4-6);
+  text-align: center;
+}
+
+.feedback-banner-container {
+  display: none;
+  padding-bottom: var(--size-4-5);
+  padding-left: max(var(--size-4-4), var(--safe-area-inset-left));
+  padding-right: max(var(--size-4-4), var(--safe-area-inset-right));
+  padding-top: var(--size-4-4);
+}
+
+body.is-phone .feedback-banner-container {
+  display: block;
+}
+
+.feedback-banner {
+  position: relative;
+}
+
+.feedback-banner-title {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--size-4-4);
+  padding-inline-start: var(--size-4-4);
+}
+
+.feedback-banner-content {
+  background-color: var(--setting-items-background);
+  border-radius: var(--setting-items-radius);
+  display: flex;
+  flex-direction: column;
+  font-size: var(--font-ui-small);
+  padding: var(--size-4-4);
+  row-gap: var(--size-4-4);
+}
+
+.feedback-banner-dismiss-button {
+  color: var(--interactive-accent);
+  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-semibold);
+  inset-inline-end: var(--size-4-2);
+  padding: var(--size-4-2) var(--size-4-1);
+  position: absolute;
+  top: -8px;
+}

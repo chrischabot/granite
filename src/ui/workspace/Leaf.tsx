@@ -121,154 +121,73 @@ function EmptyLeafBody() {
 
   if (!activeVault) {
     return (
-      <div
-        className="empty-state"
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          gap: "var(--size-4-4)",
-          color: "var(--text-faint)",
-          userSelect: "none",
-          padding: "var(--size-4-6)",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            fontSize: "var(--font-ui-large)",
-            fontWeight: "var(--font-semibold)",
-            color: "var(--text-normal)",
-          }}
-        >
-          {t("app.welcome.title")}
-        </div>
-        <div
-          style={{
-            fontSize: "var(--font-ui-medium)",
-            maxWidth: 480,
-            color: "var(--text-muted)",
-          }}
-        >
-          {t("app.welcome.body")}
-        </div>
-        <div style={{ display: "flex", gap: "var(--size-4-2)", marginTop: "var(--size-4-4)" }}>
-          <button
-            type="button"
-            className="mod-cta"
-            disabled={!canPickFolder}
-            onClick={() => {
-              void pickFolder().catch((err) => {
-                alert(err instanceof Error ? err.message : String(err));
-              });
-            }}
-            title={
-              canPickFolder
-                ? t("vaultPicker.pickFolderTitle")
-                : t("vaultPicker.pickFolderUnavailable")
-            }
-          >
-            <FolderOpen size={14} style={{ marginRight: "var(--size-2-2)" }} />
-            {t("app.welcome.pickFolder")}
-          </button>
-          <button
-            type="button"
-            disabled={!canUseOpfs}
-            onClick={() => {
-              const name = prompt(
-                t("vaultPicker.prompt.opfsName"),
-                t("vaultPicker.prompt.opfsDefault"),
-              );
-              if (!name) return;
-              void openOpfs(name).catch((err) => {
-                alert(err instanceof Error ? err.message : String(err));
-              });
-            }}
-            title={t("workspace.empty.createBrowserVaultTitle")}
-          >
-            <Globe size={14} style={{ marginRight: "var(--size-2-2)" }} />
-            {t("app.welcome.opfsVault")}
-          </button>
-        </div>
-        <div
-          style={{
-            fontSize: "var(--font-ui-small)",
-            color: "var(--text-faint)",
-            marginTop: "var(--size-4-3)",
-          }}
-        >
-          {t("app.welcome.haveVault")}{" "}
-          <button
-            type="button"
-            style={{
-              background: "none",
-              border: 0,
-              color: "var(--text-accent)",
-              cursor: "var(--cursor)",
-              padding: 0,
-              textDecoration: "underline",
-              boxShadow: "none",
-              height: "auto",
-            }}
-            onClick={() => void commandRegistry.run("app:open-vault-switcher")}
-          >
-            {t("app.welcome.openSwitcher")}
-          </button>
-          .
+      <div className="empty-state">
+        <div className="empty-state-container">
+          <div className="empty-state-title">{t("app.welcome.title")}</div>
+          <div className="empty-state-action-list">{t("app.welcome.body")}</div>
+          <div className="modal-button-container">
+            <button
+              type="button"
+              className="mod-cta"
+              disabled={!canPickFolder}
+              onClick={() => {
+                void pickFolder().catch((err) => {
+                  alert(err instanceof Error ? err.message : String(err));
+                });
+              }}
+              title={
+                canPickFolder
+                  ? t("vaultPicker.pickFolderTitle")
+                  : t("vaultPicker.pickFolderUnavailable")
+              }
+            >
+              <FolderOpen size={14} style={{ marginRight: "var(--size-2-2)" }} />
+              {t("app.welcome.pickFolder")}
+            </button>
+            <button
+              type="button"
+              disabled={!canUseOpfs}
+              onClick={() => {
+                const name = prompt(
+                  t("vaultPicker.prompt.opfsName"),
+                  t("vaultPicker.prompt.opfsDefault"),
+                );
+                if (!name) return;
+                void openOpfs(name).catch((err) => {
+                  alert(err instanceof Error ? err.message : String(err));
+                });
+              }}
+              title={t("workspace.empty.createBrowserVaultTitle")}
+            >
+              <Globe size={14} style={{ marginRight: "var(--size-2-2)" }} />
+              {t("app.welcome.opfsVault")}
+            </button>
+          </div>
+          <div className="empty-state-action-list">
+            {t("app.welcome.haveVault")}{" "}
+            <button
+              type="button"
+              className="empty-state-action"
+              onClick={() => void commandRegistry.run("app:open-vault-switcher")}
+            >
+              {t("app.welcome.openSwitcher")}
+            </button>
+            .
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="empty-state"
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        height: "100%",
-        gap: "var(--size-4-3)",
-        color: "var(--text-faint)",
-        userSelect: "none",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "var(--font-ui-large)",
-          fontWeight: "var(--font-semibold)",
-          color: "var(--text-normal)",
-        }}
-      >
-        {t("app.empty.noFile")}
-      </div>
-      <div style={{ fontSize: "var(--font-ui-small)", maxWidth: 420, textAlign: "center" }}>
-        {t("workspace.empty.openHint.beforeQuickSwitcher")}{" "}
-        <kbd
-          style={{
-            padding: "0 4px",
-            borderRadius: 4,
-            background: "var(--background-secondary)",
-            color: "var(--text-normal)",
-          }}
-        >
-          ⌘O
-        </kbd>{" "}
-        {t("workspace.empty.openHint.afterQuickSwitcher")}{" "}
-        <kbd
-          style={{
-            padding: "0 4px",
-            borderRadius: 4,
-            background: "var(--background-secondary)",
-            color: "var(--text-normal)",
-          }}
-        >
-          ⌘P
-        </kbd>{" "}
-        {t("workspace.empty.openHint.afterCommandPalette")}
+    <div className="empty-state">
+      <div className="empty-state-container">
+        <div className="empty-state-title">{t("app.empty.noFile")}</div>
+        <div className="empty-state-action-list">
+          {t("workspace.empty.openHint.beforeQuickSwitcher")} <kbd>⌘O</kbd>{" "}
+          {t("workspace.empty.openHint.afterQuickSwitcher")} <kbd>⌘P</kbd>{" "}
+          {t("workspace.empty.openHint.afterCommandPalette")}
+        </div>
       </div>
     </div>
   );

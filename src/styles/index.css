@@ -13,6 +13,7 @@
 @import "./modal.css";
 @import "./drag.css";
 @import "./splash.css";
+@import "./empty-state.css";
 @import "./shell.css";
 @import "./tabs.css";
 @import "./overlays.css";

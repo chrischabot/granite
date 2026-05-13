@@ -147,6 +147,19 @@ const MODULES = [
       ".help-options-container .setting-item-description",
     ],
   },
+  {
+    file: "empty-state.css",
+    spec: "specs/renderer/empty-state.md",
+    selectors: [
+      ".empty-state-container",
+      ".empty-state-title",
+      ".empty-state-action-list",
+      ".empty-state-action.mobile-tap",
+      ".workspace-sidedock-empty-state",
+      "body.is-phone .feedback-banner-container",
+      ".feedback-banner-dismiss-button",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {
@@ -193,5 +206,6 @@ describe("renderer CSS module coverage", () => {
 
     expect(shell).not.toContain("Drag overlays (drop preview + fake target)");
     expect(shell).not.toContain(".workspace-drop-overlay");
+    expect(shell).not.toContain(".workspace-sidedock-empty-state");
   });
 });

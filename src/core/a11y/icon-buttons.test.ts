@@ -5,7 +5,9 @@ import { describe, expect, it } from "vitest";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const uiRoot = join(root, "src/ui");
+const basesCss = readFileSync(join(root, "src/styles/view-bases.css"), "utf8");
 const buttonsCss = readFileSync(join(root, "src/styles/buttons.css"), "utf8");
+const graphCss = readFileSync(join(root, "src/styles/view-graph.css"), "utf8");
 const shellCss = readFileSync(join(root, "src/styles/shell.css"), "utf8");
 const treeItemCss = readFileSync(join(root, "src/styles/tree-item.css"), "utf8");
 
@@ -101,6 +103,20 @@ describe("icon-only accessibility audit", () => {
     expect(shellCss).toMatch(/\.status-bar-item\.mod-clickable:focus-visible\s*\{/);
     expect(shellCss).toMatch(
       /\.status-bar-item\.mod-clickable:focus-visible\s*\{[^}]*--background-modifier-border-focus/s,
+    );
+  });
+
+  it("keeps graph nodes visibly keyboard-focusable", () => {
+    expect(graphCss).toMatch(/\.graph-node-interactive:focus-visible circle\s*\{/);
+    expect(graphCss).toMatch(
+      /\.graph-node-interactive:focus-visible circle\s*\{[^}]*--background-modifier-border-focus/s,
+    );
+  });
+
+  it("keeps Bases rows visibly keyboard-focusable", () => {
+    expect(basesCss).toMatch(/\.bases-table-row:focus-visible\s*\{/);
+    expect(basesCss).toMatch(
+      /\.bases-table-row:focus-visible\s*\{[^}]*--background-modifier-border-focus/s,
     );
   });
 });

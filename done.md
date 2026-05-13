@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-13 — Graph node and Bases row focus-ring ratchets
+
+- **Root cause** — graph nodes and Bases table rows are keyboard-activatable
+  custom controls, but graph nodes had no focus-visible state and Bases only
+  styled focused cells, not the focusable row element.
+- **Focus path** — added a focus-visible SVG circle stroke for graph nodes and
+  an inset focus ring for Bases rows using
+  `--background-modifier-border-focus`.
+- **Regression ratchet** — extended `src/core/a11y/icon-buttons.test.ts` to
+  read `view-graph.css` and `view-bases.css` and fail if those shared focus
+  indicators disappear.
+- **Tracker honesty** — kept the full keyboard-only audit open because this
+  is source-level coverage for two more custom control classes, not a browser
+  traversal.
+
+### Tests
+- `bun run test -- src/core/a11y/icon-buttons.test.ts`
+- `bun run audit:a11y`
+
+---
+
 ## 2026-05-13 — Custom row and status-bar focus-ring ratchets
 
 - **Root cause** — tree-item rows and clickable status-bar items are custom

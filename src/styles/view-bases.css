@@ -226,6 +226,11 @@
   background-color: var(--bases-table-cell-background-active);
 }
 
+.bases-table-row:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
+}
+
 .bases-table-active-cell:focus,
 .bases-table-cell:focus {
   border-radius: var(--bases-table-cell-radius-focus);

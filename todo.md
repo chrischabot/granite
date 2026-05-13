@@ -95,7 +95,7 @@
 - [ ] Save round-trip < 50 ms (adapter budget test shipped; browser/host verification remains)
 
 ### §24.20 Accessibility — Phase 16
-- [ ] Full keyboard-only audit (workspace tablist, shared menu, Bookmarks add-menu keyboard, clickable-icon focus-ring, tree-item row focus-ring, and status-bar focus-ring ratchets shipped; full browser flow audit remains)
+- [ ] Full keyboard-only audit (workspace tablist, shared menu, Bookmarks add-menu keyboard, clickable-icon focus-ring, tree-item row focus-ring, status-bar focus-ring, graph-node focus-ring, and Bases row focus-ring ratchets shipped; full browser flow audit remains)
 - [x] Screen-reader announcement of tab changes / modal opens / notice content ← _shipped 2026-05-12 a11y live announcements_
 - [x] 4.5:1 contrast assertion ← _shipped 2026-05-12 theme contrast test_
 

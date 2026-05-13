@@ -36,6 +36,12 @@
 
 .graph-node-interactive {
   cursor: pointer;
+  outline: none;
+}
+
+.graph-node-interactive:focus-visible circle {
+  stroke: var(--background-modifier-border-focus);
+  stroke-width: 3;
 }
 
 .graph-view-stats {

@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Localized Bases embed filter summary
+
+- **Root cause** — fenced Bases embeds render HTML outside React, and their
+  header displayed a bare filter expression without routing the visible filter
+  summary through the i18n layer.
+- **Embed path** — replaced the unlabeled filter code chip with the localized
+  `reading.embed.filterSummary` string so the embedded Base header exposes the
+  same translated filter label used by other reading-mode embeds.
+- **Regression ratchet** — extended the Bases externalization audit to reject
+  the old bare `<code class="bases-fence-filter">` pattern and require
+  `reading.embed.filterSummary` in the Bases embed source set.
+- **Tracker honesty** — recorded this as another string-externalization slice
+  while keeping the broad UI audit open.
+
+### Tests
+- `bun run test -- src/core/i18n/externalization.test.ts`
+
+---
+
 ## 2026-05-13 — Graph node and Bases row focus-ring ratchets
 
 - **Root cause** — graph nodes and Bases table rows are keyboard-activatable

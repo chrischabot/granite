@@ -295,6 +295,16 @@
         return computedSnapshot();
       }
 
+      async function editTheme(path, css) {
+        files.set(path, css);
+        for (const watcher of [...watchers]) watcher({ type: "modify", path });
+        await waitFor(() => {
+          const style = document.head.querySelector(`style[data-granite-theme="${path}"]`);
+          return style?.textContent?.includes(css.trim()) ?? false;
+        });
+        return computedSnapshot();
+      }
+
       async function run() {
         localStorage.clear();
         document.head.querySelectorAll("style[data-granite-theme]").forEach((el) => el.remove());
@@ -316,8 +326,9 @@
             ok: false,
             message: error instanceof Error ? error.message : String(error),
             stack: error instanceof Error ? error.stack : undefined,
-          })),
+        })),
         applyTheme,
+        editTheme,
         themeA: THEME_A,
         themeB: THEME_B,
       };

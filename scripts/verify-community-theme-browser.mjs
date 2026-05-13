@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { createServer } from "node:net";
 import { setTimeout as delay } from "node:timers/promises";
 import { chromium } from "playwright";
@@ -77,13 +77,50 @@ function assertSnapshot(label, snapshot) {
 
 async function capture(page, label, path, mode) {
   const snapshot = await page.evaluate(
-    ({ themePath, themeMode }) => window.__graniteCommunityThemeFixture.applyTheme(themePath, themeMode),
+    ({ themePath, themeMode }) =>
+      window.__graniteCommunityThemeFixture.applyTheme(themePath, themeMode),
     { themePath: path, themeMode: mode },
   );
   assertSnapshot(label, snapshot);
   const png = await page.locator("#visual-root").screenshot();
   if (png.length < 10_000) throw new Error(`${label} screenshot was too small to be credible`);
   return { label, snapshot, hash: hash(png), bytes: png.length };
+}
+
+async function verifyExternalReload(page, themePath) {
+  const updatedCss = `
+.theme-light {
+  --background-primary: #102030;
+  --background-secondary: #1a3040;
+  --text-normal: #f6fbff;
+  --interactive-accent: #88c0d0;
+  --graph-node: #88c0d0;
+}
+.theme-dark {
+  --background-primary: #102030;
+  --background-secondary: #1a3040;
+  --text-normal: #f6fbff;
+  --interactive-accent: #88c0d0;
+  --graph-node: #88c0d0;
+}
+`;
+  const before = await page.evaluate(() =>
+    getComputedStyle(document.body).getPropertyValue("--background-primary").trim(),
+  );
+  const after = await page.evaluate(
+    ({ path, css }) => window.__graniteCommunityThemeFixture.editTheme(path, css),
+    { path: themePath, css: updatedCss },
+  );
+  if (after.backgroundPrimary !== "#102030") {
+    throw new Error(
+      `Edited community theme did not reload expected token: ${JSON.stringify(after)}`,
+    );
+  }
+  if (before === after.backgroundPrimary) {
+    throw new Error(
+      `Edited community theme token did not change: before=${before}, after=${after.backgroundPrimary}`,
+    );
+  }
 }
 
 async function main() {
@@ -123,12 +160,17 @@ async function main() {
     ];
     const hashes = new Set(captures.map((capture) => capture.hash));
     if (hashes.size !== captures.length) {
-      throw new Error(`Theme screenshots did not produce distinct visual hashes: ${JSON.stringify(captures)}`);
+      throw new Error(
+        `Theme screenshots did not produce distinct visual hashes: ${JSON.stringify(captures)}`,
+      );
     }
     const activeThemes = new Set(captures.map((capture) => capture.snapshot.activeTheme));
     if (!activeThemes.has(themeA) || !activeThemes.has(themeB)) {
-      throw new Error(`Theme loader did not switch across both themes: ${JSON.stringify(captures)}`);
+      throw new Error(
+        `Theme loader did not switch across both themes: ${JSON.stringify(captures)}`,
+      );
     }
+    await verifyExternalReload(page, themeB);
 
     console.log("Community theme browser visual verification passed.");
     for (const captureResult of captures) {

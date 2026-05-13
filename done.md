@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-05-13 — Community theme external reload browser coverage
+
+- **Root cause** — community-theme discovery, mounting, and live CSS refresh had
+  unit coverage, while the browser severe-test checklist still required a
+  manual pass for editing the active `.obsidian/themes/<name>/theme.css`
+  without restarting.
+- **Browser path** — extended `verify:community-theme-browser` so the existing
+  Vite/Chromium fixture mutates the active community theme CSS through its
+  filesystem fixture, emits the same modify watcher event the loader receives
+  from a real vault, and verifies the injected stylesheet plus computed
+  `--background-primary` token update without a page reload.
+- **Visual coverage retained** — the verifier still discovers two Obsidian
+  layout themes, switches both through light/dark mode, screenshots the shared
+  workspace/Markdown/settings/graph/canvas/bases fixture, checks nonblank
+  distinct hashes, and asserts visible text/background tokens.
+
+### Tests
+- `bun run verify:community-theme-browser`
+- `node --check scripts/verify-community-theme-browser.mjs`
+- `bun run test -- src/core/themes/loader.test.ts`
+- `bunx biome check scripts/community-theme-browser-fixture.html scripts/verify-community-theme-browser.mjs`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Workspace restart browser verifier
 
 - **Root cause** — browser restart behavior had unit coverage for

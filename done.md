@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Live preview DOM rendering ratchet
+
+- **Integration coverage** — extended
+  `src/core/markdown/cm-livepreview-decorations.test.ts` beyond pure range
+  calculation by mounting the real `livePreviewDecorations` CodeMirror
+  extension in the test DOM.
+- **Regression target** — the new test proves non-cursor inline, table, and
+  callout markers are removed from rendered editor text while the active cursor
+  line remains raw/editable.
+- **Tracker honesty** — updated `todo.md` and severe-testing notes to record
+  this stronger automated ratchet while leaving the remaining browser/manual
+  verification item open.
+
+### Tests
+- `bun run test src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Lighthouse accessibility audit
 
 - **Root cause fix** — Lighthouse flagged the workspace tab headers as

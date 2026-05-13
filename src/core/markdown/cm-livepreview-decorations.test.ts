@@ -1,5 +1,7 @@
+import { EditorState } from "@codemirror/state";
+import { EditorView } from "@codemirror/view";
 import { describe, expect, it } from "vitest";
-import { computeLivePreviewRanges } from "./cm-livepreview-decorations";
+import { computeLivePreviewRanges, livePreviewDecorations } from "./cm-livepreview-decorations";
 
 function hiddenSlices(text: string, cursorLineIndex: number): string[] {
   const ranges = computeLivePreviewRanges(text, cursorLineIndex);
@@ -197,6 +199,35 @@ describe("computeLivePreviewRanges", () => {
     const ranges = computeLivePreviewRanges(text, -1);
     for (let i = 1; i < ranges.length; i++) {
       expect(rangeAt(ranges, i).from).toBeGreaterThanOrEqual(rangeAt(ranges, i - 1).to);
+    }
+  });
+
+  it("renders replacement decorations in CodeMirror while keeping the cursor line raw", () => {
+    const parent = document.createElement("div");
+    document.body.append(parent);
+    const doc =
+      "cursor **raw**\nrender **hidden** and [[Target|alias]]\n| A | B |\n| -- | -- |\n| **x** | y |\n> [!warning]+ Careful";
+    const view = new EditorView({
+      parent,
+      state: EditorState.create({
+        doc,
+        selection: { anchor: doc.indexOf("raw") },
+        extensions: [livePreviewDecorations],
+      }),
+    });
+
+    try {
+      const text = view.dom.textContent ?? "";
+      expect(text).toContain("cursor **raw**");
+      expect(text).toContain("render hidden and alias");
+      expect(text).toContain("Careful");
+      expect(text).not.toContain("**hidden**");
+      expect(text).not.toContain("[[Target|alias]]");
+      expect(text).not.toContain("| -- | -- |");
+      expect(text).not.toContain("[!warning]+");
+    } finally {
+      view.destroy();
+      parent.remove();
     }
   });
 });

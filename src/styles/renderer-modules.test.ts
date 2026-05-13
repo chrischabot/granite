@@ -71,6 +71,18 @@ const MODULES = [
       ".notice-error",
     ],
   },
+  {
+    file: "tree-item.css",
+    spec: "specs/renderer/tree-item.md",
+    selectors: [
+      ".tree-item-self::before",
+      ".tree-item-self.is-being-renamed",
+      ".tree-item-self .tree-item-icon",
+      ".tree-item-inner-subtext",
+      ".tree-item-children",
+      ".drop-indicator:not(.is-active)",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {
@@ -100,5 +112,9 @@ describe("renderer CSS module coverage", () => {
     expect(overlays).not.toContain("Inputs — base shared rule");
     expect(overlays).not.toContain("Buttons (default, mod-cta");
     expect(overlays).not.toContain("Notice container (toasts)");
+
+    const views = readFileSync(`${STYLE_DIR}/views.css`, "utf8");
+    expect(views).not.toContain("Tree item rows");
+    expect(views).not.toContain(".tree-item-self {");
   });
 });

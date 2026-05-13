@@ -742,7 +742,6 @@ export function FileExplorerView() {
               <TreeRow
                 key={node.entry.path}
                 node={node}
-                depth={0}
                 collapsed={collapsed}
                 activePath={activePath}
                 renaming={renaming}
@@ -768,7 +767,6 @@ export function FileExplorerView() {
 
 interface RowProps {
   node: TreeNode;
-  depth: number;
   collapsed: ReadonlySet<VaultPath>;
   activePath: VaultPath | null;
   renaming: { path: VaultPath; value: string } | null;
@@ -788,7 +786,6 @@ interface RowProps {
 function TreeRow(props: RowProps) {
   const {
     node,
-    depth,
     collapsed,
     activePath,
     renaming,
@@ -804,7 +801,6 @@ function TreeRow(props: RowProps) {
     onImportExternalFiles,
     onRowClick,
   } = props;
-  const indent = depth * 16;
   const isDir = node.entry.type === "directory";
   const isCollapsed = isDir && collapsed.has(node.entry.path);
   const fileExt = node.entry.type === "file" ? (node.entry as VaultFile).extension : "";
@@ -864,7 +860,6 @@ function TreeRow(props: RowProps) {
       <button
         type="button"
         className={`tree-item-self ${isDir ? "mod-collapsible" : "is-clickable"}${isActive ? " is-active" : ""}${isSelected ? " is-selected" : ""}${isRenaming ? " is-being-renamed" : ""}${dragOver ? " is-being-dragged-over" : ""}`}
-        style={{ paddingInlineStart: 24 + indent }}
         draggable={!isDir && !isRenaming}
         onDragStart={(e) => {
           if (isDir || isRenaming) return;
@@ -951,7 +946,6 @@ function TreeRow(props: RowProps) {
             <TreeRow
               key={child.entry.path}
               node={child}
-              depth={depth + 1}
               collapsed={collapsed}
               activePath={activePath}
               renaming={renaming}

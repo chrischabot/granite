@@ -1,6 +1,6 @@
 /* ===========================================================================
  * Granite — Views (file explorer, markdown editor, helpers)
- * Source: specs/renderer/view-file-explorer.md, tree-item.md, editor-codemirror.md
+ * Source: specs/renderer/view-file-explorer.md, editor-codemirror.md
  * =========================================================================== */
 
 /* -------------------------------------------------------------------------- *
@@ -29,59 +29,6 @@
   padding: var(--size-4-1) var(--size-4-3) var(--size-4-6);
 }
 
-/* -------------------------------------------------------------------------- *
- * Tree item rows
- * -------------------------------------------------------------------------- */
-.tree-item-self {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  display: flex;
-  border-radius: var(--nav-item-radius);
-  color: var(--nav-item-color);
-  font: inherit;
-  font-size: var(--nav-item-size);
-  line-height: var(--line-height-tight);
-  font-weight: var(--nav-item-weight);
-  margin-bottom: var(--nav-item-margin-bottom);
-  padding: var(--size-4-1) var(--size-4-2);
-  position: relative;
-  cursor: var(--cursor);
-  user-select: none;
-  gap: var(--size-2-2);
-  outline: none;
-  text-align: start;
-  width: 100%;
-}
-
-@media (hover: hover) {
-  .tree-item-self.is-clickable:hover,
-  .tree-item-self.mod-collapsible:hover {
-    color: var(--nav-item-color-hover);
-    background-color: var(--nav-item-background-hover);
-  }
-}
-
-.tree-item-self.is-active {
-  color: var(--nav-item-color-active);
-  background-color: var(--nav-item-background-active);
-}
-
-.tree-item-self.is-selected {
-  color: var(--nav-item-color-selected);
-  background-color: var(--nav-item-background-selected);
-}
-
-.tree-item-self.has-focus {
-  box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
-}
-
-.tree-item-self.is-being-dragged-over {
-  background-color: hsla(var(--color-accent-hsl), 0.18);
-  outline: 2px dashed hsla(var(--color-accent-hsl), 0.5);
-  outline-offset: -2px;
-}
-
 .tag-pane-options {
   align-items: center;
   color: var(--text-muted);
@@ -103,36 +50,6 @@
 .tag-pane-tag-button {
   cursor: var(--cursor);
   text-align: start;
-}
-
-.tree-item-self .collapse-icon {
-  display: flex;
-  align-items: center;
-  color: var(--nav-collapse-icon-color);
-}
-
-.tree-item-self .collapse-icon.is-collapsed {
-  color: var(--nav-collapse-icon-color-collapsed);
-}
-
-.tree-item-inner {
-  flex: 1 1 auto;
-  overflow: hidden;
-  white-space: var(--nav-item-white-space);
-  min-width: 0;
-}
-
-.tree-item-inner-text {
-  display: inline-block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 100%;
-}
-
-.tree-item-children {
-  /* Nested rows compose their own padding via depth*16 in JS to keep
-     indent independent of parent rules. */
 }
 
 /* -------------------------------------------------------------------------- *

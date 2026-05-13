@@ -117,8 +117,8 @@
 ## Renderer fidelity backlog
 
 Phase 13 schedules per-component CSS module reorganization across 5 batches.
-20 of the 75 spec files have no dedicated CSS module yet (e.g. `typography.md`,
-`tree-item.md`, `multi-select.md`,
+19 of the 75 spec files have no dedicated CSS module yet (e.g. `typography.md`,
+`multi-select.md`,
 `modal.md`, `drag-and-drop.md`, `splash.md`, `scrollbars.md`,
 `view-pdf.md`, `view-release-notes.md`, `view-history-sync.md`,
 `settings-community-plugins.md`, `settings-community-themes.md`,

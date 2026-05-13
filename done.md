@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Renderer tree item CSS module
+
+- **Dedicated module** — extracted the shared tree row primitive into
+  spec-linked `src/styles/tree-item.css`, including rename, drag, cut, icon,
+  focus, nested-child, and drop-indicator states from the renderer spec.
+- **Regression audit** — extended the renderer module test so tree item styles
+  stay imported, spec-linked, and out of the file-explorer view stylesheet.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer notice CSS module
 
 - **Dedicated module** — extracted toast container/base/action/progress/kind

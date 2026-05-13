@@ -43,6 +43,7 @@ import { parseWikilink } from "@core/markdown/renderer";
 import { metadataCache } from "@core/metadata/cache";
 import { useFileMetadata } from "@core/metadata/useMetadata";
 import { noticeManager } from "@core/notices/notice";
+import { applySpellcheckAttributes } from "@core/settings/spellcheck";
 import { useSettings } from "@core/settings/useSettings";
 import { markClean, markDirty } from "@core/workspace/dirty";
 import { collectFoldRanges, foldEffectsForRanges } from "@core/workspace/folds";
@@ -292,7 +293,10 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
       if (restoreFoldEffects.length > 0) {
         view.dispatch({ effects: restoreFoldEffects });
       }
-      view.contentDOM.spellcheck = settings.spellcheck;
+      applySpellcheckAttributes(view.contentDOM, {
+        spellcheck: settings.spellcheck,
+        spellcheckLanguages: settings.spellcheckLanguages,
+      });
 
       const cleanupExternalWatch = await run(
         Effect.gen(function* () {
@@ -785,6 +789,7 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
     settings.autoPairBrackets,
     settings.readableLineWidth,
     settings.spellcheck,
+    settings.spellcheckLanguages,
     settings.livePreview,
     settings.editorKeymap,
     t,

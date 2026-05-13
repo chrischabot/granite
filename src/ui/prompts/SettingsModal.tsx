@@ -10,6 +10,7 @@ import {
   removeUserHotkey,
   subscribeHotkeys,
 } from "@core/commands/hotkeys";
+import { showStartupTimingReport } from "@core/perf/startup";
 import { getDailyNotesSettings, setDailyNotesSettings } from "@core/plugins-core/daily-notes";
 import { getTemplatesSettings, setTemplatesSettings } from "@core/plugins-core/templates";
 import {
@@ -18,7 +19,6 @@ import {
   subscribeSettingsTabs,
 } from "@core/plugins/host-registries";
 import { listPlugins, setPluginEnabled, subscribe as subscribePlugins } from "@core/plugins/loader";
-import { showStartupTimingReport } from "@core/perf/startup";
 import { settingsStore } from "@core/settings/store";
 import { useSettings } from "@core/settings/useSettings";
 import { listSnippets, setEnabled, subscribe as subscribeSnippets } from "@core/snippets/loader";
@@ -388,6 +388,20 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                     <Toggle
                       checked={settings.spellcheck}
                       onChange={(v) => settingsStore.update({ spellcheck: v })}
+                    />
+                  }
+                />
+                <SettingItem
+                  name={t("settings.editor.spellcheckLanguages")}
+                  desc={t("settings.editor.spellcheckLanguagesDesc")}
+                  control={
+                    <input
+                      className="input"
+                      value={settings.spellcheckLanguages}
+                      placeholder={t("settings.editor.spellcheckLanguagesPlaceholder")}
+                      onChange={(e) =>
+                        settingsStore.update({ spellcheckLanguages: e.currentTarget.value })
+                      }
                     />
                   }
                 />

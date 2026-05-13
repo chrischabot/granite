@@ -127,6 +127,24 @@
 
 ---
 
+## 2026-05-13 — Spellcheck language settings ratchet
+
+- **Root cause** — the editor exposed only a browser spellcheck toggle even
+  though the settings and editor specs require configurable spellcheck
+  languages, with system/default behavior when no language is configured.
+- **Settings path** — added persisted `spellcheckLanguages`, localized Settings
+  UI copy, settings-filter coverage, and a normalization helper that applies
+  the first valid BCP 47 tag as the CodeMirror editable DOM `lang` attribute.
+- **Tracker honesty** — this closes the source-level language hook; OS/browser
+  dictionary behavior still needs browser/manual validation before the full
+  editor acceptance item is closed.
+
+### Tests
+- `bun run test -- src/core/settings/spellcheck.test.ts src/core/settings/store.test.ts src/core/i18n/externalization.test.ts`
+- `bunx biome check src/core/settings/store.ts src/core/settings/spellcheck.ts src/core/settings/spellcheck.test.ts src/ui/views/MarkdownView.tsx src/ui/prompts/SettingsModal.tsx src/ui/prompts/settings-filter.ts src/core/i18n/index.ts src/core/i18n/externalization.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview footnote reference ratchet
 
 - **Root cause** — Live Preview decoration coverage had no footnote-reference

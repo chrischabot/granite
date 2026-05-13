@@ -28,6 +28,8 @@ export interface UserSettings {
   excludedFiles: string;
   /** Browser spellcheck inside the source editor. */
   spellcheck: boolean;
+  /** Comma-separated BCP 47 language tags for browser spellcheck. Empty follows system/default. */
+  spellcheckLanguages: string;
   /** When true, format markers like `**`, `==`, and wikilink brackets are
    *  hidden on non-cursor lines for a cleaner reading experience. */
   livePreview: boolean;
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   showNestedTags: true,
   excludedFiles: "",
   spellcheck: false,
+  spellcheckLanguages: "",
   livePreview: true,
   editorKeymap: "standard",
   fileExplorerSort: "name-asc",

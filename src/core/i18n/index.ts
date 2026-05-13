@@ -508,6 +508,10 @@ That's the tour — happy linking!
   "settings.editor.autoPairDesc": "Automatically close (), [], {}, and quotes.",
   "settings.editor.spellcheck": "Spellcheck",
   "settings.editor.spellcheckDesc": "Use the browser's native spellcheck inside the source editor.",
+  "settings.editor.spellcheckLanguages": "Spellcheck languages",
+  "settings.editor.spellcheckLanguagesDesc":
+    "Comma-separated language tags. Leave empty to follow the browser or operating system.",
+  "settings.editor.spellcheckLanguagesPlaceholder": "en-US, he, fr-CA",
   "settings.editor.livePreview": "Live preview",
   "settings.editor.livePreviewDesc":
     "Hide markdown formatting characters (**bold**, ==highlight==, [[wikilink]] brackets) on lines without the cursor. The cursor line always stays raw so you can edit.",
@@ -1469,6 +1473,10 @@ Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github
     "settings.editor.autoPairDesc": "סגירה אוטומטית של (), [], {}, ומרכאות.",
     "settings.editor.spellcheck": "בדיקת איות",
     "settings.editor.spellcheckDesc": "שימוש בבדיקת האיות המובנית של הדפדפן בעורך המקור.",
+    "settings.editor.spellcheckLanguages": "שפות בדיקת איות",
+    "settings.editor.spellcheckLanguagesDesc":
+      "תגי שפה מופרדים בפסיקים. השאירו ריק כדי להשתמש בדפדפן או במערכת ההפעלה.",
+    "settings.editor.spellcheckLanguagesPlaceholder": "he, en-US, fr-CA",
     "settings.editor.livePreview": "תצוגה חיה",
     "settings.editor.livePreviewDesc":
       "הסתרת תווי עיצוב Markdown (**מודגש**, ==הדגשה==, סוגרי [[קישור ויקי]]) בשורות ללא הסמן. שורת הסמן תמיד נשארת גולמית כדי שתוכלו לערוך.",

@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Settings persistence browser verifier
+
+- **Root cause** — settings persistence had unit coverage for `.granite`
+  precedence and migration, but the severe-test list still relied on manual
+  browser checks for fresh vault creation, Settings UI edits across reload, and
+  per-vault hydration.
+- **Browser path** — added `verify:settings-persistence-browser`, which opens a
+  fresh OPFS vault through `VaultProvider`, verifies `.granite/settings.json`
+  exists and includes every `DEFAULT_SETTINGS` key, changes Appearance font
+  size through the Settings UI, reloads with conflicting legacy localStorage,
+  and proves disk settings win.
+- **Vault isolation guarantee** — the verifier opens a second OPFS vault, saves
+  a different font size, then switches between the two vaults and verifies each
+  active vault hydrates its own `.granite/settings.json`.
+
+### Tests
+- `bun run verify:settings-persistence-browser`
+- `node --check scripts/verify-settings-persistence-browser.mjs`
+- `bun run test -- src/core/settings/store.test.ts src/ui/prompts/settings-filter.test.ts src/ui/prompts/SettingsModal.test.tsx`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Hotkeys browser verifier
 
 - **Root cause** — hotkey multi-binding and physical-key normalization had unit

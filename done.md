@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Debug info browser verifier
+
+- **Root cause** — debug-info collection and command registration had unit
+  coverage, but the severe-test list still relied on a manual browser check
+  for the command-palette path, visible sticky notice, clipboard parity, and
+  content-leak guard.
+- **Browser path** — added `verify:debug-info-browser`, which opens a real OPFS
+  vault, seeds Markdown and non-Markdown files including a sentinel secret in a
+  note body, runs `Show debug info` through the real command palette, and
+  verifies the sticky notice is readable.
+- **Leak guard** — the verifier asserts the visible notice and clipboard dump
+  match exactly, include the expected support-diagnostic labels/counts, and do
+  not include note-body content.
+
+### Tests
+- `bun run verify:debug-info-browser`
+- `node --check scripts/verify-debug-info-browser.mjs`
+- `bun run test -- src/core/plugins-core/debug-info.test.ts`
+- `bunx biome check package.json scripts/verify-debug-info-browser.mjs scripts/debug-info-browser-fixture.html`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Error boundary browser verifier
 
 - **Root cause** — the severe-test list still relied on manual browser checks

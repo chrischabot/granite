@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Debug Info Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { commandRegistry } from "@core/commands/CommandRegistry";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { noticeManager } from "@core/notices/notice";
+      import { workspaceStore } from "@core/workspace/store";
+      import { CommandsBootstrap } from "@/ui/commands/CommandsBootstrap";
+      import { NoticeContainer } from "@/ui/overlay/NoticeContainer";
+      import { CommandPalette } from "@/ui/prompts/CommandPalette";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "debug-info-browser";
+      const secretText = "SECRET_NOTE_BODY_SHOULD_NOT_APPEAR";
+      let clipboardText = "";
+
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async (text) => {
+            clipboardText = text;
+          },
+        },
+      });
+
+      function clearNotices() {
+        for (const notice of [...noticeManager.list()]) noticeManager.dismiss(notice.id);
+      }
+
+      async function seedVault() {
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            yield* fs.mkdir("Projects");
+            yield* fs.mkdir("Assets");
+            yield* fs.writeText(
+              "Projects/Visible.md",
+              `# Visible\n\nstatus: public\n\n${secretText}`,
+            );
+            yield* fs.writeText("Projects/Plan.md", "# Plan\n\nNothing sensitive here.");
+            yield* fs.writeText("Assets/logo.txt", "binary-ish placeholder");
+          }),
+        );
+        workspaceStore.openFile("Projects/Visible.md");
+      }
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [paletteOpen, setPaletteOpen] = useState(false);
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const bootingRef = useRef(false);
+        const seededRef = useRef(false);
+
+        useEffect(() => {
+          clearNotices();
+          workspaceStore.reset();
+          return () => {
+            clearNotices();
+            workspaceStore.reset();
+          };
+        }, []);
+
+        useEffect(() => {
+          if (bootingRef.current || activeVault?.entry.name === vaultName) return;
+          bootingRef.current = true;
+          void openOpfs(vaultName).catch((err) => {
+            setError(err instanceof Error ? err.message : String(err));
+          });
+        }, [activeVault, openOpfs]);
+
+        useEffect(() => {
+          if (activeVault?.entry.name !== vaultName || seededRef.current) return;
+          seededRef.current = true;
+          void seedVault()
+            .then(() => setReady(true))
+            .catch((err) => setError(err instanceof Error ? err.message : String(err)));
+        }, [activeVault]);
+
+        window.__graniteDebugInfoReady =
+          ready && commandRegistry.get("granite:show-debug-info") !== undefined;
+        window.__graniteDebugInfoError = error;
+        window.__graniteDebugInfoClipboard = () => clipboardText;
+        window.__graniteDebugInfoNotices = () => noticeManager.list();
+        window.__graniteDebugInfoSecret = secretText;
+        window.__graniteDebugInfoOpenPalette = () => setPaletteOpen(true);
+
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(CommandsBootstrap, {
+            openPalette: () => setPaletteOpen(true),
+            openSwitcher: () => {},
+            openVaultPicker: () => {},
+            openSettings: () => {},
+            openHelp: () => {},
+            openInstallPlugin: () => {},
+            openFileRecovery: () => {},
+          }),
+          React.createElement(NoticeContainer),
+          React.createElement(CommandPalette, {
+            open: paletteOpen,
+            onClose: () => setPaletteOpen(false),
+          }),
+          React.createElement(
+            "main",
+            { style: { padding: 24 } },
+            React.createElement(
+              "button",
+              { type: "button", onClick: () => setPaletteOpen(true) },
+              "Open command palette",
+            ),
+            React.createElement("p", null, ready ? "Debug fixture ready" : "Loading"),
+          ),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

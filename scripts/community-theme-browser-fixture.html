@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Community Theme Browser Fixture</title>
+  </head>
+  <body class="theme-light">
+    <main id="visual-root" class="app-container mod-windows" aria-label="Community theme visual fixture">
+      <section class="workspace">
+        <aside class="workspace-split mod-left-split">
+          <div class="nav-header">
+            <button class="clickable-icon" type="button" aria-label="New note">+</button>
+            <button class="clickable-icon is-active" type="button" aria-label="Search">?</button>
+          </div>
+          <div class="nav-files-container">
+            <div class="tree-item nav-folder">
+              <div class="tree-item-self nav-folder-title is-clickable">
+                <span class="tree-item-inner">Projects</span>
+                <span class="tree-item-flair">12</span>
+              </div>
+            </div>
+            <div class="tree-item nav-file">
+              <div class="tree-item-self nav-file-title is-active">
+                <span class="tree-item-inner">Theme audit.md</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+        <section class="workspace-leaf">
+          <header class="view-header">
+            <div class="view-header-title">Theme audit</div>
+          </header>
+          <article class="markdown-preview-view">
+            <h1>Community Theme Cross-Render</h1>
+            <p>
+              This page exercises <a class="internal-link" href="#theme">wikilinks</a>,
+              <mark>highlights</mark>, tags, callouts, tables, and task styling.
+            </p>
+            <blockquote class="callout" data-callout="tip">
+              <div class="callout-title">Tip</div>
+              <div class="callout-content">Theme variables should reach rendered Markdown.</div>
+            </blockquote>
+            <ul class="contains-task-list">
+              <li class="task-list-item"><input type="checkbox" checked /> Finished visual pass</li>
+            </ul>
+            <table>
+              <thead>
+                <tr><th>Name</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Canvas</td><td>Visible</td></tr>
+                <tr><td>Bases</td><td>Visible</td></tr>
+              </tbody>
+            </table>
+          </article>
+        </section>
+        <aside class="workspace-split mod-right-split">
+          <div class="setting-item">
+            <div class="setting-item-info">
+              <div class="setting-item-name">Appearance</div>
+              <div class="setting-item-description">Community theme fixture</div>
+            </div>
+            <div class="setting-item-control">
+              <button type="button" class="mod-cta">Apply</button>
+            </div>
+          </div>
+          <div class="graph-view" aria-label="Graph">
+            <svg class="graph-view-svg" viewBox="0 0 220 120" width="220" height="120">
+              <line class="graph-link" x1="44" y1="60" x2="176" y2="60" />
+              <circle class="graph-node is-focused" cx="44" cy="60" r="18" />
+              <circle class="graph-node" cx="176" cy="60" r="18" />
+            </svg>
+          </div>
+          <div class="canvas-wrapper">
+            <div class="canvas-node is-selected">
+              <div class="canvas-node-content">Canvas card</div>
+            </div>
+          </div>
+          <div class="bases-view">
+            <table class="bases-table">
+              <tbody>
+                <tr><td>Theme</td><td>Applied</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <script type="module">
+      import "../src/styles/index.css";
+      import { disposeRuntime, setAppLayer } from "../src/core/effect/runtime.ts";
+      import { FileSystem } from "../src/core/fs/FileSystem.ts";
+      import { extension } from "../src/core/fs/path.ts";
+      import {
+        activeThemePath,
+        bindThemes,
+        listThemes,
+        setActiveTheme,
+        unbindThemes,
+      } from "../src/core/themes/loader.ts";
+      import { Effect, Layer } from "effect";
+
+      const THEME_A = ".obsidian/themes/Nordic Minimal/theme.css";
+      const THEME_B = ".obsidian/themes/Highland Contrast/theme.css";
+      const files = new Map([
+        [
+          THEME_A,
+          `
+.theme-light {
+  --background-primary: #f8faf7;
+  --background-secondary: #e9eee8;
+  --background-secondary-alt: #dde5dc;
+  --background-modifier-border: #9aa995;
+  --background-modifier-hover: #d9e3d8;
+  --text-normal: #203027;
+  --text-muted: #65746a;
+  --text-accent: #386f5c;
+  --interactive-accent: #3f8067;
+  --interactive-accent-hover: #316653;
+  --color-accent-hsl: 159, 34%, 38%;
+  --callout-color: 63, 128, 103;
+  --text-highlight-bg: rgba(225, 190, 80, 0.45);
+  --canvas-background: #eef5ec;
+  --graph-line: #78907d;
+  --graph-node: #3f8067;
+}
+.theme-dark {
+  --background-primary: #141b18;
+  --background-secondary: #1e2924;
+  --background-secondary-alt: #27352f;
+  --background-modifier-border: #50665b;
+  --background-modifier-hover: #26362f;
+  --text-normal: #e4eee6;
+  --text-muted: #a8b7ad;
+  --text-accent: #92d3bb;
+  --interactive-accent: #6db89f;
+  --interactive-accent-hover: #86c7b2;
+  --color-accent-hsl: 161, 34%, 57%;
+  --callout-color: 109, 184, 159;
+  --text-highlight-bg: rgba(235, 203, 98, 0.35);
+  --canvas-background: #17211d;
+  --graph-line: #6f9281;
+  --graph-node: #86c7b2;
+}
+`,
+        ],
+        [
+          THEME_B,
+          `
+.theme-light {
+  --background-primary: #fff7ed;
+  --background-secondary: #f1e1cf;
+  --background-secondary-alt: #ead1b8;
+  --background-modifier-border: #b98a5f;
+  --background-modifier-hover: #efdac3;
+  --text-normal: #3d2416;
+  --text-muted: #7b604e;
+  --text-accent: #8c3f1f;
+  --interactive-accent: #b74f2a;
+  --interactive-accent-hover: #963f20;
+  --color-accent-hsl: 16, 63%, 44%;
+  --callout-color: 183, 79, 42;
+  --text-highlight-bg: rgba(91, 143, 99, 0.35);
+  --canvas-background: #f9ead8;
+  --graph-line: #ba8a62;
+  --graph-node: #b74f2a;
+}
+.theme-dark {
+  --background-primary: #211711;
+  --background-secondary: #2d2118;
+  --background-secondary-alt: #3a2b20;
+  --background-modifier-border: #7f5c42;
+  --background-modifier-hover: #3b2a1f;
+  --text-normal: #f6e5d3;
+  --text-muted: #c6ad98;
+  --text-accent: #f0a66f;
+  --interactive-accent: #df7d45;
+  --interactive-accent-hover: #ed9665;
+  --color-accent-hsl: 22, 70%, 57%;
+  --callout-color: 223, 125, 69;
+  --text-highlight-bg: rgba(103, 155, 116, 0.3);
+  --canvas-background: #271b14;
+  --graph-line: #a87a59;
+  --graph-node: #ed9665;
+}
+`,
+        ],
+        [".obsidian/themes/Nordic Minimal/manifest.json", '{"name":"Nordic Minimal"}'],
+        [".obsidian/themes/Highland Contrast/manifest.json", '{"name":"Highland Contrast"}'],
+      ]);
+      const writes = [];
+      const watchers = [];
+
+      function makeThemeFs() {
+        return {
+          rootName: "browser-community-theme-vault",
+          list: () => Effect.succeed([]),
+          listAll: (opts) => {
+            const extensions = new Set(opts?.extensions ?? []);
+            return Effect.succeed(
+              [...files.entries()]
+                .filter(([path]) => extensions.size === 0 || extensions.has(extension(path)))
+                .map(([path, text]) => ({
+                  type: "file",
+                  path,
+                  name: path.split("/").pop() ?? path,
+                  size: text.length,
+                  mtimeMs: 0,
+                  ctimeMs: 0,
+                  extension: extension(path),
+                })),
+            );
+          },
+          readText: (path) => {
+            const text = files.get(path);
+            if (text === undefined) return Effect.fail({ _tag: "FsNotFound", path });
+            return Effect.succeed(text);
+          },
+          readBytes: (path) => {
+            const text = files.get(path);
+            if (text === undefined) return Effect.fail({ _tag: "FsNotFound", path });
+            return Effect.succeed(new TextEncoder().encode(text));
+          },
+          writeText: (path, content) =>
+            Effect.sync(() => {
+              writes.push(path);
+              files.set(path, content);
+            }),
+          writeBytes: (path, bytes) =>
+            Effect.sync(() => {
+              writes.push(path);
+              files.set(path, new TextDecoder().decode(bytes));
+            }),
+          mkdir: () => Effect.void,
+          rename: () => Effect.void,
+          remove: () => Effect.void,
+          stat: () => Effect.succeed(null),
+          watch: (listener) => {
+            watchers.push(listener);
+            return () => {
+              const index = watchers.indexOf(listener);
+              if (index >= 0) watchers.splice(index, 1);
+            };
+          },
+        };
+      }
+
+      function waitFor(predicate) {
+        const started = performance.now();
+        return new Promise((resolve, reject) => {
+          const tick = () => {
+            if (predicate()) {
+              resolve();
+              return;
+            }
+            if (performance.now() - started > 1500) {
+              reject(new Error("Timed out waiting for community theme fixture"));
+              return;
+            }
+            requestAnimationFrame(tick);
+          };
+          tick();
+        });
+      }
+
+      function computedSnapshot() {
+        const bodyStyle = getComputedStyle(document.body);
+        const rootStyle = getComputedStyle(document.querySelector("#visual-root"));
+        const markdownStyle = getComputedStyle(document.querySelector(".markdown-preview-view"));
+        const canvasStyle = getComputedStyle(document.querySelector(".canvas-wrapper"));
+        const graphNodeStyle = getComputedStyle(document.querySelector(".graph-node"));
+        return {
+          bodyBackground: bodyStyle.backgroundColor,
+          bodyText: bodyStyle.color,
+          rootBackground: rootStyle.backgroundColor,
+          markdownText: markdownStyle.color,
+          canvasBackground: canvasStyle.backgroundColor,
+          graphNodeFill: graphNodeStyle.fill,
+          backgroundPrimary: bodyStyle.getPropertyValue("--background-primary").trim(),
+          textNormal: bodyStyle.getPropertyValue("--text-normal").trim(),
+          interactiveAccent: bodyStyle.getPropertyValue("--interactive-accent").trim(),
+          activeTheme: activeThemePath(),
+        };
+      }
+
+      async function applyTheme(path, mode) {
+        document.body.classList.toggle("theme-light", mode === "light");
+        document.body.classList.toggle("theme-dark", mode === "dark");
+        await setActiveTheme(path);
+        await waitFor(() => {
+          const style = document.head.querySelector(`style[data-granite-theme="${path}"]`);
+          return style?.textContent?.includes("--background-primary") ?? false;
+        });
+        await waitFor(() => computedSnapshot().activeTheme === path);
+        return computedSnapshot();
+      }
+
+      async function run() {
+        localStorage.clear();
+        document.head.querySelectorAll("style[data-granite-theme]").forEach((el) => el.remove());
+        await disposeRuntime();
+        unbindThemes();
+        setAppLayer(() => Layer.succeed(FileSystem, makeThemeFs()));
+        bindThemes("community-theme-browser");
+        await waitFor(() => listThemes().length === 2);
+        return {
+          ok: true,
+          themes: listThemes(),
+          writes,
+        };
+      }
+
+      window.__graniteCommunityThemeFixture = {
+        run: () =>
+          run().catch((error) => ({
+            ok: false,
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+          })),
+        applyTheme,
+        themeA: THEME_A,
+        themeB: THEME_B,
+      };
+    </script>
+  </body>
+</html>

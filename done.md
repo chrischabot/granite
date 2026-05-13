@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Community theme browser visual verifier
+
+- **Root cause** — the theme loader tests proved discovery, injection,
+  no-rewrite behavior, and CSSOM live reload, but the open compatibility item
+  still lacked browser visual evidence that Obsidian-layout community themes
+  reach representative Granite surfaces.
+- **Browser path** — added a Vite-served Chromium fixture that discovers two
+  `.obsidian/themes/<name>/theme.css` fixtures through the real theme loader,
+  renders workspace chrome, Markdown, settings rows, graph SVG, canvas, and
+  bases table surfaces, then switches each theme through light and dark mode.
+- **Visual gate** — the verifier captures screenshots for all four
+  theme/mode combinations, fails if theme variables do not resolve to visible
+  text/background values, fails if screenshots are blank-sized, and fails if
+  the four visual hashes are not distinct.
+- **Tracker closure** — closed the §24.23 community theme visual cross-render
+  item after Chromium produced four distinct screenshots with expected
+  computed tokens for both themes in light and dark mode.
+
+### Tests
+- `bun run verify:community-theme-browser`
+
+---
+
 ## 2026-05-13 — Obsidian vault browser round-trip verifier
 
 - **Root cause** — the large compatibility ratchet proved metadata indexing in

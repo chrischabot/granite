@@ -127,6 +127,23 @@
 
 ---
 
+## 2026-05-13 — Live Preview block-id marker ratchet
+
+- **Root cause** — `07_markdown_syntax.md` defines `^id` block-reference
+  targets, but Live Preview did not hide those source markers on inactive
+  lines.
+- **Decoration path** — added a block-id marker recognizer for trailing
+  paragraph/list markers and standalone block-id lines. Inactive Live Preview
+  now hides ` ^my-block` or `^my-block` while the cursor line remains raw.
+- **Tracker honesty** — kept the Live Preview TODO open because this is source
+  and CM unit coverage, not the outstanding browser/manual verification pass.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview nested underscore-bold-in-italic ratchet
 
 - **Root cause** — the single-underscore italic path still used a content

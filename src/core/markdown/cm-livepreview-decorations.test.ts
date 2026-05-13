@@ -189,6 +189,14 @@ describe("computeLivePreviewRanges", () => {
     expect(hiddenSlices("- [?] maybe\n- [-] canceled", -1)).toEqual(["[?]", "[-]"]);
   });
 
+  it("hides paragraph block id markers", () => {
+    expect(hiddenSlices("Paragraph with a target ^my-block", -1)).toEqual([" ^my-block"]);
+  });
+
+  it("hides standalone block id marker lines", () => {
+    expect(hiddenSlices("Paragraph\n\n^my-block\n\nnext", -1)).toEqual(["^my-block"]);
+  });
+
   it("hides GFM table pipes and separator rows", () => {
     const text = "| A | B |\n| -- | :--: |\n| **x** | y \\| z |";
     expect(hiddenSlices(text, -1)).toEqual([

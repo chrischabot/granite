@@ -19,6 +19,7 @@ const INLINE_MATH_RE = /(?<!\$)\$([^$\n]+)\$(?!\$)/g;
 const CALLOUT_RE = /^(\s*>+\s*)\[!([^\]\n]+)\]([+-])?/;
 const HEADING_RE = /^(\s{0,3})(#{1,6})(\s+)/;
 const TASK_RE = /^(\s*(?:[-*+]|\d+[.)])\s+)\[[^\]\n]\](\s+)/;
+const BLOCK_ID_RE = /(^|\s)\^([A-Za-z0-9-]+)\s*$/;
 
 const replaceDeco = Decoration.replace({});
 
@@ -247,6 +248,11 @@ export function computeLivePreviewRanges(
     if (taskMatch) {
       const prefixLen = taskMatch[1]?.length ?? 0;
       addReplace(prefixLen, prefixLen + 3);
+    }
+
+    const blockIdMatch = line.match(BLOCK_ID_RE);
+    if (blockIdMatch?.index !== undefined) {
+      addReplace(blockIdMatch.index, line.length);
     }
 
     // Callouts: > [!note]+ Title — hide the Obsidian type marker/fold sign,

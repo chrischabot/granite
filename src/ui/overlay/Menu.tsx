@@ -1,10 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-  type ReactNode,
-} from "react";
+import { type CSSProperties, type ReactNode, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 export interface MenuItem {
@@ -36,6 +30,7 @@ export function MenuHost() {
   const [req, setReq] = useState<MenuRequest | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
   useEffect(() => {
     const handler = (next: MenuRequest | null) => {
@@ -56,11 +51,17 @@ export function MenuHost() {
         setReq(null);
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        setActiveIndex((i) => Math.min(req.items.length - 1, i + 1));
+        setActiveIndex((i) => (i + 1) % req.items.length);
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
-        setActiveIndex((i) => Math.max(0, i - 1));
-      } else if (e.key === "Enter") {
+        setActiveIndex((i) => (i - 1 + req.items.length) % req.items.length);
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        setActiveIndex(0);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        setActiveIndex(req.items.length - 1);
+      } else if (e.key === "Enter" || e.key === " ") {
         e.preventDefault();
         const item = req.items[activeIndex];
         if (item && !item.disabled) {
@@ -78,6 +79,12 @@ export function MenuHost() {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onMouseDown, true);
     };
+  }, [req, activeIndex]);
+
+  useEffect(() => {
+    if (!req) return;
+    itemRefs.current.length = req.items.length;
+    itemRefs.current[activeIndex]?.focus();
   }, [req, activeIndex]);
 
   if (!req) return null;
@@ -98,14 +105,18 @@ export function MenuHost() {
     <div ref={ref} className="menu" role="menu" style={style}>
       <div className="menu-scroll">
         {req.items.map((item, i) => (
-          <div
+          <button
+            type="button"
             key={item.id}
+            ref={(node) => {
+              itemRefs.current[i] = node;
+            }}
             className={`menu-item${item.warning ? " is-warning" : ""}${
               item.disabled ? " is-disabled" : ""
             }${activeIndex === i ? " selected" : ""}`}
             role="menuitem"
             aria-disabled={item.disabled}
-            tabIndex={0}
+            tabIndex={activeIndex === i ? 0 : -1}
             onMouseEnter={() => setActiveIndex(i)}
             onClick={() => {
               if (item.disabled) return;
@@ -119,7 +130,7 @@ export function MenuHost() {
               </span>
             )}
             <span className="menu-item-title">{item.label}</span>
-          </div>
+          </button>
         ))}
       </div>
     </div>,

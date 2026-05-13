@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-13 — Shared menu keyboard navigation
+
+- **Keyboard gap** — shared context menus only supported arrow movement and
+  Enter activation, so keyboard users could not jump to menu boundaries or
+  activate items with Space.
+- **Roving focus** — menu items now keep a single tabbable active item and move
+  DOM focus as keyboard selection changes.
+- **Navigation parity** — ArrowUp/ArrowDown wrap, Home/End jump to menu
+  boundaries, and Space activates the focused item alongside Enter.
+- **Regression ratchet** — added `src/ui/overlay/Menu.test.tsx` to exercise the
+  portal-backed menu with real document key events.
+- **Tracker honesty** — recorded this as another keyboard-only audit
+  improvement while leaving the full browser flow audit open.
+
+### Tests
+- `bunx biome check --write src/ui/overlay/Menu.tsx src/ui/overlay/Menu.test.tsx`
+- `bun run test src/ui/overlay/Menu.test.tsx`
+- `bun run test src/ui/overlay/Menu.test.tsx src/ui/workspace/TabStrip.test.tsx src/core/a11y/icon-buttons.test.ts`
+- `bun run test`
+- `bun run build`
+- `git diff --check`
+
+---
+
 ## 2026-05-13 — Workspace tablist keyboard navigation
 
 - **Keyboard gap** — workspace tabs exposed ARIA `tab`/`tablist` semantics but

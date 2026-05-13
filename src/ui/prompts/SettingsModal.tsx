@@ -352,6 +352,24 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   }
                 />
                 <SettingItem
+                  name={t("settings.editor.defaultEditingMode")}
+                  desc={t("settings.editor.defaultEditingModeDesc")}
+                  control={
+                    <select
+                      className="dropdown"
+                      value={settings.defaultEditingMode}
+                      onChange={(e) =>
+                        settingsStore.update({
+                          defaultEditingMode: e.currentTarget.value as "live-preview" | "source",
+                        })
+                      }
+                    >
+                      <option value="live-preview">{t("settings.editor.mode.livePreview")}</option>
+                      <option value="source">{t("settings.editor.mode.source")}</option>
+                    </select>
+                  }
+                />
+                <SettingItem
                   name={t("settings.editor.lineNumbers")}
                   desc={t("settings.editor.lineNumbersDesc")}
                   control={

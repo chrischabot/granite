@@ -1,4 +1,4 @@
-import { nativeFileKindForExtension, type NativeFileKind } from "@core/fs/file-formats";
+import { type NativeFileKind, nativeFileKindForExtension } from "@core/fs/file-formats";
 import { extension } from "@core/fs/path";
 import type { VaultPath } from "@core/fs/types";
 import { settingsStore } from "@core/settings/store";
@@ -133,7 +133,10 @@ export const workspaceStore = {
     const group = state.groups.get(groupId);
     if (!group) throw new Error(`Active group ${groupId} not in workspace`);
 
-    const mode: MarkdownViewMode = opts.mode ?? settingsStore.getState().defaultViewMode;
+    const settings = settingsStore.getState();
+    const mode: MarkdownViewMode =
+      opts.mode ??
+      (settings.defaultViewMode === "reading" ? "reading" : settings.defaultEditingMode);
     const desired: LeafState = {
       type: "markdown",
       path,

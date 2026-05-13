@@ -1,4 +1,5 @@
 import { commandRegistry } from "@core/commands/CommandRegistry";
+import { useSettings } from "@core/settings/useSettings";
 import { workspaceStore } from "@core/workspace/store";
 import type { Leaf } from "@core/workspace/types";
 import {
@@ -12,13 +13,13 @@ import {
 import { ClickableIcon } from "../controls/ClickableIcon";
 import { useI18n } from "../i18n/useI18n";
 import { useVault } from "../vault/VaultContext";
+import { AssetView } from "../views/AssetView";
 import { BasesView } from "../views/BasesView";
 import { CanvasView } from "../views/CanvasView";
 import { GraphView } from "../views/GraphView";
 import { MarkdownView } from "../views/MarkdownView";
 import { ReadingView } from "../views/ReadingView";
 import { WebViewerView } from "../views/WebViewerView";
-import { AssetView } from "../views/AssetView";
 import { SidebarLeafView } from "../views/sidebar/SidebarLeafView";
 import { displayLeafTitle } from "./leaf-title";
 
@@ -48,6 +49,7 @@ export function LeafBody({ leaf, groupId, isActiveGroup }: LeafBodyProps) {
 
 function ViewHeader({ leaf, groupId: _groupId }: { leaf: Leaf; groupId?: string }) {
   const t = useI18n();
+  const settings = useSettings();
   const title = displayLeafTitle(leaf, t);
   const isMarkdown = leaf.state.type === "markdown";
   const isReading = isMarkdown && leaf.state.mode === "reading";
@@ -62,7 +64,9 @@ function ViewHeader({ leaf, groupId: _groupId }: { leaf: Leaf; groupId?: string 
           <ClickableIcon
             ariaLabel={t(isReading ? "workspace.action.editNote" : "workspace.action.readNote")}
             icon={isReading ? <Edit3 /> : <BookOpen />}
-            onClick={() => workspaceStore.setMode(leaf.id, isReading ? "source" : "reading")}
+            onClick={() =>
+              workspaceStore.setMode(leaf.id, isReading ? settings.defaultEditingMode : "reading")
+            }
           />
         )}
         {isMarkdown && (
@@ -93,6 +97,7 @@ function ViewBody({ leaf }: { leaf: Leaf }) {
         <MarkdownView
           leafId={leaf.id}
           path={s.path}
+          livePreview={s.mode === "live-preview"}
           fragment={s.fragment ?? null}
           {...(s.folds ? { folds: s.folds } : {})}
         />

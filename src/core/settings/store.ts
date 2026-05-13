@@ -19,6 +19,7 @@ export interface UserSettings {
   autoPairBrackets: boolean;
   newNoteFolder: string;
   defaultViewMode: "source" | "reading";
+  defaultEditingMode: "live-preview" | "source";
   attachmentsFolder: string;
   confirmFileDeletion: boolean;
   deletedFiles: DeletedFilesMode;
@@ -53,6 +54,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   autoPairBrackets: true,
   newNoteFolder: "",
   defaultViewMode: "source",
+  defaultEditingMode: "live-preview",
   attachmentsFolder: "attachments",
   confirmFileDeletion: true,
   deletedFiles: "system",

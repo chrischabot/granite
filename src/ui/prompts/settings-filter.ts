@@ -42,7 +42,7 @@ export const BUILTIN_SETTINGS_SECTIONS: ReadonlyArray<SettingsSectionInfo> = [
     titleKey: "settings.editor",
     group: "options",
     searchText:
-      "editor default view mode source reading line numbers readable line length auto pair brackets spellcheck languages locale live preview key bindings vim",
+      "editor default view editing mode live preview source reading line numbers readable line length auto pair brackets spellcheck languages locale key bindings vim",
   },
   {
     id: "files",

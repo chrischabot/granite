@@ -499,6 +499,11 @@ That's the tour — happy linking!
   "settings.editor.defaultViewDesc": "Whether opening a note shows source or reading view first.",
   "settings.editor.view.source": "Editing (source)",
   "settings.editor.view.reading": "Reading view",
+  "settings.editor.defaultEditingMode": "Default editing mode",
+  "settings.editor.defaultEditingModeDesc":
+    "Choose whether editing tabs open in Live Preview or raw Source mode.",
+  "settings.editor.mode.livePreview": "Live Preview",
+  "settings.editor.mode.source": "Source mode",
   "settings.editor.lineNumbers": "Show line numbers",
   "settings.editor.lineNumbersDesc": "Display line numbers in the editor gutter.",
   "settings.editor.readableLineLength": "Readable line length",
@@ -1464,6 +1469,11 @@ Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github
     "settings.editor.defaultViewDesc": "האם פתיחת הערה תציג קודם מקור או תצוגת קריאה.",
     "settings.editor.view.source": "עריכה (מקור)",
     "settings.editor.view.reading": "תצוגת קריאה",
+    "settings.editor.defaultEditingMode": "מצב עריכה ברירת מחדל",
+    "settings.editor.defaultEditingModeDesc":
+      "בחרו אם לשוניות עריכה ייפתחו בתצוגה חיה או במצב מקור גולמי.",
+    "settings.editor.mode.livePreview": "תצוגה חיה",
+    "settings.editor.mode.source": "מצב מקור",
     "settings.editor.lineNumbers": "הצגת מספרי שורות",
     "settings.editor.lineNumbersDesc": "הצגת מספרי שורות בשול העורך.",
     "settings.editor.readableLineLength": "אורך שורה קריא",

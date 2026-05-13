@@ -58,6 +58,7 @@ import { InlineTitle } from "./InlineTitle";
 export interface MarkdownViewProps {
   leafId: LeafId;
   path: VaultPath;
+  livePreview?: boolean;
   fragment?: string | null;
   folds?: ReadonlyArray<{ readonly from: number; readonly to: number }>;
 }
@@ -112,7 +113,13 @@ declare global {
   }
 }
 
-export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProps) {
+export function MarkdownView({
+  leafId,
+  path,
+  livePreview = false,
+  fragment,
+  folds,
+}: MarkdownViewProps) {
   const t = useI18n();
   const settings = useSettings();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -202,7 +209,7 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
           icons: false,
         }),
         unresolvedWikilinkExtension,
-        settings.livePreview ? livePreviewDecorations : [],
+        livePreview ? livePreviewDecorations : [],
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         markdown({ base: markdownLanguage }),
         EditorView.lineWrapping,
@@ -790,7 +797,7 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
     settings.readableLineWidth,
     settings.spellcheck,
     settings.spellcheckLanguages,
-    settings.livePreview,
+    livePreview,
     settings.editorKeymap,
     t,
   ]);
@@ -849,7 +856,7 @@ export function MarkdownView({ leafId, path, fragment, folds }: MarkdownViewProp
         </div>
         <div
           ref={containerRef}
-          className={`cm-host markdown-source-view mod-cm6${settings.livePreview ? " is-live-preview" : ""}${noteDirection ? ` ${noteDirection}` : ""}`}
+          className={`cm-host markdown-source-view mod-cm6${livePreview ? " is-live-preview" : ""}${noteDirection ? ` ${noteDirection}` : ""}`}
           dir={noteDirection ?? undefined}
           style={{
             display: loadState === "loaded" || loadState === "missing" ? "block" : "none",

@@ -127,6 +127,25 @@
 
 ---
 
+## 2026-05-13 — Per-leaf Live Preview mode ratchet
+
+- **Root cause** — the workspace already modeled Markdown leaves as
+  `source`, `live-preview`, or `reading`, but the editor ignored that leaf mode
+  and used a global `settings.livePreview` toggle, so a Source-mode leaf could
+  still receive Live Preview decorations.
+- **Mode path** — `MarkdownView` now receives the leaf's Live Preview state
+  explicitly, new note opens resolve through `defaultEditingMode`, and the
+  Reading/Edit toggle returns to the configured editing mode.
+- **Settings path** — added the missing localized "Default editing mode"
+  setting from `16_settings_reference.md`, with Live Preview as the default and
+  Source mode as the alternate.
+
+### Tests
+- `bun run test -- src/core/workspace/store.test.ts src/ui/views/MarkdownView.test.tsx src/core/settings/store.test.ts src/core/i18n/externalization.test.ts`
+- `bunx biome check src/core/workspace/store.ts src/core/workspace/store.test.ts src/core/settings/store.ts src/ui/workspace/Leaf.tsx src/ui/views/MarkdownView.tsx src/ui/views/MarkdownView.test.tsx src/ui/prompts/SettingsModal.tsx src/ui/prompts/settings-filter.ts src/core/i18n/index.ts src/core/i18n/externalization.test.ts`
+
+---
+
 ## 2026-05-13 — Spellcheck language settings ratchet
 
 - **Root cause** — the editor exposed only a browser spellcheck toggle even

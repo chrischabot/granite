@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — FSA vault-window permission handshake
+
+- **Root cause** — the multi-window severe tests still carried a manual FSA
+  permission prompt repeat even though the permission decision was duplicated
+  inline in `VaultContext`.
+- **Product fix** — extracted the stored-handle read/write permission handshake
+  to `ensureReadwritePermission()` and routed both standalone vault-window FSA
+  bootstrap and in-window FSA reopen through it.
+- **Coverage** — added focused tests for already-granted handles,
+  prompt-to-granted requests, prompt-to-denied requests, and legacy handles
+  without permission APIs; reran the existing multi-window browser verifier for
+  the URL/window behavior.
+
+### Tests
+- `bun run test -- src/core/vault/permissions.test.ts src/core/vault/window-url.test.ts`
+- `bun run verify:multi-window-vault-browser`
+
+---
+
 ## 2026-05-13 — Renderer visual browser fixture
 
 - **Root cause** — renderer CSS had strong module wiring tests, but the severe

@@ -17,6 +17,7 @@ import { bindPlugins, unbindPlugins } from "@core/plugins/loader";
 import { bindSettings, settingsStore, unbindSettings } from "@core/settings/store";
 import { bindSnippets, unbindSnippets } from "@core/snippets/loader";
 import { bindThemes, unbindThemes } from "@core/themes/loader";
+import { ensureReadwritePermission } from "@core/vault/permissions";
 import {
   type VaultEntry,
   freshVaultId,
@@ -118,15 +119,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
             } else if (target.kind === "fsa") {
               const handle = await loadHandle(target.id);
               if (handle) {
-                const h = handle as FileSystemDirectoryHandle & {
-                  queryPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
-                  requestPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
-                };
-                let state = (await h.queryPermission?.({ mode: "readwrite" })) ?? "granted";
-                if (state !== "granted") {
-                  state = (await h.requestPermission?.({ mode: "readwrite" })) ?? "denied";
-                }
-                if (state === "granted") {
+                if (await ensureReadwritePermission(handle)) {
                   await setActive(target, handle);
                 }
               }
@@ -300,15 +293,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         if (meta.kind === "fsa") {
           const handle = await loadHandle(id);
           if (!handle) throw new Error(t("vaultContext.error.lostHandle"));
-          const h = handle as FileSystemDirectoryHandle & {
-            queryPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
-            requestPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
-          };
-          let state = (await h.queryPermission?.({ mode: "readwrite" })) ?? "granted";
-          if (state !== "granted") {
-            state = (await h.requestPermission?.({ mode: "readwrite" })) ?? "denied";
-          }
-          if (state !== "granted") {
+          if (!(await ensureReadwritePermission(handle))) {
             throw new Error(t("vaultContext.error.permissionDenied"));
           }
           await setActive(meta, handle);

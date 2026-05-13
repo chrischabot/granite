@@ -1,3 +1,4 @@
+import { APP_VERSION } from "@core/app/version";
 import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
@@ -7,8 +8,6 @@ import { noticeManager } from "@core/notices/notice";
 import { listPlugins } from "@core/plugins/loader";
 import { workspaceStore } from "@core/workspace/store";
 import { Effect } from "effect";
-
-const GRANITE_VERSION = "0.1.0-dev";
 
 export interface DebugInfo {
   readonly version: string;
@@ -60,7 +59,7 @@ export async function collectDebugInfo(): Promise<DebugInfo> {
     enabled: plugin.enabled,
   }));
   return {
-    version: GRANITE_VERSION,
+    version: APP_VERSION,
     platform: globalThis.navigator?.platform || "unknown",
     userAgent: globalThis.navigator?.userAgent || "unknown",
     vaultRoot: fsInfo.rootName,

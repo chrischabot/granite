@@ -6,6 +6,7 @@ describe("getVisibleSettingsSections", () => {
     const sections = getVisibleSettingsSections("", [{ id: "demo", name: "Demo plugin" }]);
     expect(sections.map((s) => s.id)).toContain("general");
     expect(sections.map((s) => s.id)).toContain("appearance");
+    expect(sections.map((s) => s.id)).toContain("about");
     expect(sections.map((s) => s.id)).toContain("templates");
     expect(sections.map((s) => s.id)).toContain("plugin:demo");
   });
@@ -16,6 +17,7 @@ describe("getVisibleSettingsSections", () => {
     expect(getVisibleSettingsSections("startup profiling", []).map((s) => s.id)).toEqual([
       "general",
     ]);
+    expect(getVisibleSettingsSections("version license", []).map((s) => s.id)).toEqual(["about"]);
   });
 
   it("matches all query terms instead of any single term", () => {

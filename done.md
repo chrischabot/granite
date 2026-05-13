@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Settings About section and shared app version
+
+- **Root cause** — `16_settings_reference.md` lists About as a built-in Options
+  section with read-only version, license, and credits, but Settings had no
+  About tab. The app version string was also duplicated across debug info,
+  plugin APIs, and update checks.
+- **Settings path** — added an About section to the settings filter and modal,
+  with localized version, license, and credits rows.
+- **Version source** — introduced `APP_VERSION` so About, debug info, plugin
+  compatibility, and update checks read the same build identifier.
+- **Regression ratchet** — added `src/ui/prompts/SettingsModal.test.tsx` and
+  extended settings filter/i18n externalization tests so the About section
+  remains visible, searchable, and localized.
+
+### Tests
+- `bun run test -- src/ui/prompts/SettingsModal.test.tsx src/ui/prompts/settings-filter.test.ts src/core/i18n/index.test.ts src/core/i18n/externalization.test.ts src/core/plugins-core/debug-info.test.ts src/core/plugins/update-check.test.ts`
+
+---
+
 ## 2026-05-13 — Community theme live-reload ratchet
 
 - **Root cause** — the compatibility tracker still needs real browser visual

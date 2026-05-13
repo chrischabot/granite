@@ -70,6 +70,7 @@
 ### §24.15 Settings — Phase 16
 - [x] Live filter input ← _shipped 2026-05-12 settings sweep_
 - [x] All defaults persisted to `.granite/` ← _shipped 2026-05-12 settings persistence sweep_
+- [x] About section with read-only version/license/credits ← _shipped 2026-05-13 settings about sweep_
 
 ### §24.16 Themes & snippets — closed
 

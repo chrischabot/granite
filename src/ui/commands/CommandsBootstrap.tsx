@@ -1,3 +1,4 @@
+import { APP_VERSION } from "@core/app/version";
 import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { initHotkeyDispatcher } from "@core/commands/hotkeys";
 import { getLocale, subscribeI18n, t as translate } from "@core/i18n";
@@ -110,7 +111,7 @@ export function CommandsBootstrap({
       id: "plugins:check-updates",
       category: t("command.category.plugins"),
       name: t("command.checkPluginUpdates"),
-      callback: () => showUpdateCheckNotices({ appVersion: "0.1.0-dev" }),
+      callback: () => showUpdateCheckNotices({ appVersion: APP_VERSION }),
     });
 
     register({

@@ -1,3 +1,4 @@
+import { APP_VERSION } from "@core/app/version";
 import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import {
   addUserHotkey,
@@ -521,6 +522,26 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   {t("settings.hotkeys.desc.afterReset")}
                 </p>
                 <HotkeyTable key={hotkeyVersion} commands={commands} />
+              </>
+            )}
+            {visibleSectionIds.has(section) && section === "about" && (
+              <>
+                <h2>{t("settings.about")}</h2>
+                <SettingItem
+                  name={t("settings.about.version")}
+                  desc={t("settings.about.versionDesc")}
+                  control={<code>{APP_VERSION}</code>}
+                />
+                <SettingItem
+                  name={t("settings.about.license")}
+                  desc={t("settings.about.licenseDesc")}
+                  control={<span>{t("settings.about.licenseValue")}</span>}
+                />
+                <SettingItem
+                  name={t("settings.about.credits")}
+                  desc={t("settings.about.creditsDesc")}
+                  control={<span>{t("settings.about.creditsValue")}</span>}
+                />
               </>
             )}
             {visibleSectionIds.has(section) && section === "plugins" && (

@@ -8,6 +8,7 @@ export type BuiltinSettingsSection =
   | "daily-notes"
   | "templates"
   | "hotkeys"
+  | "about"
   | "plugins";
 
 /** Either a builtin section id, or `plugin:<tabId>` for a plugin-supplied tab. */
@@ -55,6 +56,12 @@ export const BUILTIN_SETTINGS_SECTIONS: ReadonlyArray<SettingsSectionInfo> = [
     titleKey: "settings.hotkeys",
     group: "options",
     searchText: "hotkeys keyboard shortcuts commands capture reset conflicts",
+  },
+  {
+    id: "about",
+    titleKey: "settings.about",
+    group: "options",
+    searchText: "about version credits license legal app information",
   },
   {
     id: "plugins",

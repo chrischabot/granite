@@ -1,3 +1,4 @@
+import { APP_VERSION } from "@core/app/version";
 import { commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
@@ -30,10 +31,6 @@ import type {
 const PLUGINS_DIR = ".granite/plugins";
 const STORAGE_KEY = "granite.plugins.enabled.v1";
 const DISK_CONFIG_NAME = "plugins-enabled";
-/** Build version string. Sourced from package.json at release time; dev
- *  builds advertise this placeholder so plugins can branch on it. */
-const GRANITE_VERSION = "0.1.0-dev";
-
 interface PluginEntry {
   manifest: PluginManifest;
   enabled: boolean;
@@ -124,7 +121,7 @@ function makeApi(pluginId: string): PluginApi {
         ),
     },
     granite: {
-      version: GRANITE_VERSION,
+      version: APP_VERSION,
       activeThemePath: activeThemePath(),
     },
     statusBar: {

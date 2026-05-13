@@ -2,6 +2,7 @@ import type { BaseConfig } from "@core/bases/schema";
 import type { SummaryResult } from "@core/bases/summary";
 import { stem } from "@core/fs/path";
 import { workspaceStore } from "@core/workspace/store";
+import { useI18n } from "../../i18n/useI18n";
 import { type Row, formatCellValue } from "./shared";
 
 export interface MapPoint {
@@ -71,6 +72,7 @@ function SummaryBar({ summaries }: { readonly summaries: ReadonlyArray<SummaryRe
 }
 
 export function BasesMapView({ config, rows, grouped, summaries }: BasesMapViewProps) {
+  const t = useI18n();
   const points = collectMapPoints(rows, config);
   const groups = grouped
     ? [...grouped.entries()].map(([key, rs]) => [key, collectMapPoints(rs, config)] as const)
@@ -79,7 +81,7 @@ export function BasesMapView({ config, rows, grouped, summaries }: BasesMapViewP
   const renderMap = (pts: ReadonlyArray<MapPoint>) => (
     <div
       className="bases-map-plane"
-      aria-label="Map view"
+      aria-label={t("bases.map.aria")}
       style={{
         position: "relative",
         minHeight: 420,
@@ -125,7 +127,7 @@ export function BasesMapView({ config, rows, grouped, summaries }: BasesMapViewP
             boxShadow: "0 0 0 2px var(--text-accent)",
             cursor: "var(--cursor-link)",
           }}
-          aria-label={`Open ${stem(point.row.file.path)}`}
+          aria-label={t("bases.map.open", { name: stem(point.row.file.path) })}
         />
       ))}
     </div>
@@ -134,7 +136,8 @@ export function BasesMapView({ config, rows, grouped, summaries }: BasesMapViewP
   return (
     <div style={{ flex: "1 1 auto", overflow: "auto", padding: "var(--size-4-3)" }}>
       <div style={{ marginBottom: "var(--size-4-3)", color: "var(--text-muted)" }}>
-        Map coordinates from <code>{config.mapLatitude}</code> / <code>{config.mapLongitude}</code>
+        {t("bases.map.coordinatesFrom")} <code>{config.mapLatitude}</code> /{" "}
+        <code>{config.mapLongitude}</code>
       </div>
       {points.length === 0 ? (
         <div
@@ -146,7 +149,7 @@ export function BasesMapView({ config, rows, grouped, summaries }: BasesMapViewP
             borderRadius: "var(--radius-m)",
           }}
         >
-          No rows have valid latitude and longitude values.
+          {t("bases.map.empty")}
         </div>
       ) : groups ? (
         groups.map(([key, pts]) => (

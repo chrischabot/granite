@@ -514,6 +514,24 @@ const CANVAS_VIEW_FORBIDDEN_PATTERNS = [
   />\s*Link\s*</,
 ];
 
+const BASES_VIEW_FORBIDDEN_PATTERNS = [
+  />\s*Bases\s*</,
+  />\s*Open a `\.base` YAML file to use this view\.\s*</,
+  />\s*Loading base…\s*</,
+  />\s*No matching files\.\s*</,
+  />\s*Map coordinates from\s*</,
+  /aria-label="Map view"/,
+  /aria-label=\{`Open \$\{stem\(point\.row\.file\.path\)\}`\}/,
+  />\s*No rows have valid latitude and longitude values\.\s*</,
+  />Loading…</,
+  /class="bases-fence-empty">No matching files\./,
+  /schemaColumnLabel/,
+  /filter: <code>/,
+  /"no filter"/,
+  /match\{filtered\.length === 1 \? "" : "es"\}/,
+  /grouped by \{config\.groupBy\}/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1236,6 +1254,40 @@ describe("UI string externalization audit", () => {
       "canvas.file.noFile",
       "canvas.file.openHint",
       "canvas.link.label",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Bases view chrome, table/list/card/map labels, and embeds routed through i18n keys", () => {
+    const sources = [
+      readFileSync(`${process.cwd()}/src/ui/views/BasesView.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/views/bases/BasesTableView.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/views/bases/BasesListView.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/views/bases/BasesCardsView.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/views/bases/BasesMapView.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/views/bases/embed.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/views/bases/shared.ts`, "utf8"),
+    ];
+    const source = sources.join("\n");
+    const violations = BASES_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+
+    for (const requiredKey of [
+      "bases.title",
+      "bases.empty.noPath",
+      "bases.filterLabel",
+      "bases.noFilter",
+      "bases.matchCount",
+      "bases.groupedBy",
+      "bases.loading",
+      "bases.embed.loading",
+      "bases.empty.noMatchingFiles",
+      "bases.column.name",
+      "bases.map.aria",
+      "bases.map.open",
+      "bases.map.empty",
     ]) {
       expect(source).toContain(requiredKey);
     }

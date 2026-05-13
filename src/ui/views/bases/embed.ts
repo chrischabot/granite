@@ -1,24 +1,22 @@
-import { Effect } from "effect";
+import { type ColumnKey, parseBaseConfig } from "@core/bases/schema";
+import { type SummaryResult, computeSummaries, groupRowsBy } from "@core/bases/summary";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
-import {
-  columnLabel as schemaColumnLabel,
-  parseBaseConfig,
-  type ColumnKey,
-} from "@core/bases/schema";
-import { computeSummaries, groupRowsBy, type SummaryResult } from "@core/bases/summary";
+import type { VaultFile, VaultPath } from "@core/fs/types";
+import { t } from "@core/i18n";
 import { metadataCache } from "@core/metadata/cache";
 import { fileMatchesQuery, parseQuery } from "@core/search/query";
 import { settingsStore } from "@core/settings/store";
 import { workspaceStore } from "@core/workspace/store";
-import type { VaultFile, VaultPath } from "@core/fs/types";
+import { Effect } from "effect";
 import {
+  type Row,
   computeRow,
   formatCellValue,
+  localizedColumnLabel,
   makeThisContext,
   sortRows,
-  type Row,
 } from "./shared";
 
 function escapeHtml(s: string): string {
@@ -51,7 +49,7 @@ export async function renderBasesEmbed(
   const headerHtml = `<div class="bases-fence-header">
     <span class="bases-fence-name">${escapeHtml(config.name)}</span>
     ${config.filter ? ` · <code class="bases-fence-filter">${escapeHtml(config.filter)}</code>` : ""}
-  </div><div class="bases-fence-body">Loading…</div>`;
+  </div><div class="bases-fence-body">${escapeHtml(t("bases.embed.loading"))}</div>`;
   wrap.innerHTML = headerHtml;
   const body = wrap.querySelector(".bases-fence-body");
   if (!body) return () => {};
@@ -72,9 +70,8 @@ export async function renderBasesEmbed(
   }
 
   const patterns = parseExcludePatterns(settingsStore.getState().excludedFiles);
-  const eligible = patterns.length === 0
-    ? files
-    : files.filter((f) => !isExcluded(f.path, patterns));
+  const eligible =
+    patterns.length === 0 ? files : files.filter((f) => !isExcluded(f.path, patterns));
 
   // Hydrate metadata for the candidate set so the filter can resolve.
   await Promise.all(eligible.map((f) => metadataCache.ensure(f.path as VaultPath)));
@@ -112,8 +109,7 @@ export async function renderBasesEmbed(
   for (const k of Object.keys(config.formulas)) {
     if (!displayCols.includes(k)) displayCols.push(k);
   }
-  const colLabel = (c: ColumnKey) =>
-    c in config.formulas ? c : schemaColumnLabel(c);
+  const colLabel = (c: ColumnKey) => localizedColumnLabel(c, config.formulas, t);
 
   const grouped = config.groupBy
     ? groupRowsBy(sorted, config.groupBy, (row, c) => row.cells[c])
@@ -138,9 +134,11 @@ export async function renderBasesEmbed(
 
   let html = `<table class="bases-fence-table"><thead><tr>`;
   for (const c of displayCols) html += `<th>${escapeHtml(colLabel(c))}</th>`;
-  html += `</tr></thead><tbody>`;
+  html += "</tr></thead><tbody>";
   if (sorted.length === 0) {
-    html += `<tr><td colspan="${displayCols.length}" class="bases-fence-empty">No matching files.</td></tr>`;
+    html += `<tr><td colspan="${displayCols.length}" class="bases-fence-empty">${escapeHtml(
+      t("bases.empty.noMatchingFiles"),
+    )}</td></tr>`;
   } else if (grouped) {
     for (const [key, rs] of grouped.entries()) {
       html += groupHeadingHtml(key, rs.length);
@@ -149,7 +147,7 @@ export async function renderBasesEmbed(
   } else {
     for (const row of sorted) html += renderRowHtml(row);
   }
-  html += `</tbody>`;
+  html += "</tbody>";
   if (summaries.length > 0) {
     html += `<tfoot><tr><td colspan="${displayCols.length}" class="bases-fence-summary">`;
     html += summaries
@@ -158,14 +156,14 @@ export async function renderBasesEmbed(
           `<span><strong>${escapeHtml(s.label)}:</strong> ${escapeHtml(formatSummaryValue(s.value))}</span>`,
       )
       .join(" · ");
-    html += `</td></tr></tfoot>`;
+    html += "</td></tr></tfoot>";
   }
-  html += `</table>`;
+  html += "</table>";
   body.innerHTML = html;
 
   // Wire row clicks to open the underlying file.
   const handlers: Array<{ el: HTMLElement; fn: (e: MouseEvent) => void }> = [];
-  body.querySelectorAll<HTMLElement>("tr[data-path]").forEach((tr) => {
+  for (const tr of body.querySelectorAll<HTMLElement>("tr[data-path]")) {
     tr.style.cursor = "var(--cursor-link)";
     const fn = (e: MouseEvent) => {
       const path = tr.getAttribute("data-path");
@@ -176,7 +174,7 @@ export async function renderBasesEmbed(
     };
     tr.addEventListener("click", fn);
     handlers.push({ el: tr, fn });
-  });
+  }
   return () => {
     for (const h of handlers) h.el.removeEventListener("click", h.fn);
   };

@@ -17,6 +17,7 @@ import { settingsStore } from "@core/settings/store";
 import { Effect } from "effect";
 import { Table } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useI18n } from "../i18n/useI18n";
 import { BasesCardsView } from "./bases/BasesCardsView";
 import { BasesListView } from "./bases/BasesListView";
 import { BasesMapView } from "./bases/BasesMapView";
@@ -28,6 +29,7 @@ export interface BasesViewProps {
 }
 
 export function BasesView({ path }: BasesViewProps) {
+  const t = useI18n();
   const [config, setConfig] = useState<BaseConfig>(DEFAULT_BASE);
   const [files, setFiles] = useState<ReadonlyArray<VaultFile>>([]);
   const [loading, setLoading] = useState(true);
@@ -229,9 +231,11 @@ export function BasesView({ path }: BasesViewProps) {
         }}
       >
         <Table size={48} style={{ color: "var(--text-muted)", opacity: 0.6 }} />
-        <div style={{ fontSize: "var(--font-ui-large)", color: "var(--text-normal)" }}>Bases</div>
+        <div style={{ fontSize: "var(--font-ui-large)", color: "var(--text-normal)" }}>
+          {t("bases.title")}
+        </div>
         <div style={{ maxWidth: 460, fontSize: "var(--font-ui-small)" }}>
-          Open a `.base` YAML file to use this view.
+          {t("bases.empty.noPath")}
         </div>
       </div>
     );
@@ -262,21 +266,26 @@ export function BasesView({ path }: BasesViewProps) {
         <div style={{ color: "var(--text-muted)" }}>
           {config.filter ? (
             <>
-              filter: <code>{config.filter}</code>
+              {t("bases.filterLabel")}: <code>{config.filter}</code>
             </>
           ) : (
-            "no filter"
+            t("bases.noFilter")
           )}
         </div>
         <div style={{ color: "var(--text-faint)", marginInlineStart: "auto" }}>
-          {filtered.length} match{filtered.length === 1 ? "" : "es"}
+          {t("bases.matchCount", {
+            count: String(filtered.length),
+            matchLabel: t(filtered.length === 1 ? "bases.match" : "bases.matches"),
+          })}
           {config.view !== "table" && <> · {config.view}</>}
-          {config.groupBy && <> · grouped by {config.groupBy}</>}
+          {config.groupBy && <> · {t("bases.groupedBy", { group: String(config.groupBy) })}</>}
         </div>
       </div>
       {error && <div className="message mod-error">{error}</div>}
       {loading ? (
-        <div style={{ padding: "var(--size-4-4)", color: "var(--text-faint)" }}>Loading base…</div>
+        <div style={{ padding: "var(--size-4-4)", color: "var(--text-faint)" }}>
+          {t("bases.loading")}
+        </div>
       ) : config.view === "list" ? (
         <BasesListView
           config={config}

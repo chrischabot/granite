@@ -1,9 +1,9 @@
 import type { BaseConfig, ColumnKey } from "@core/bases/schema";
-import { columnLabel as schemaColumnLabel } from "@core/bases/schema";
 import type { SummaryResult } from "@core/bases/summary";
 import { stem } from "@core/fs/path";
 import { workspaceStore } from "@core/workspace/store";
-import { type Row, formatCellValue } from "./shared";
+import { useI18n } from "../../i18n/useI18n";
+import { type Row, formatCellValue, localizedColumnLabel } from "./shared";
 
 export interface BasesListViewProps {
   readonly config: BaseConfig;
@@ -13,9 +13,8 @@ export interface BasesListViewProps {
   readonly displayColumns: ReadonlyArray<ColumnKey>;
 }
 
-function columnLabel(key: ColumnKey, formulas: Readonly<Record<string, string>>): string {
-  if (key in formulas) return key;
-  return schemaColumnLabel(key);
+function openRow(row: Row, newTab = false) {
+  workspaceStore.openFile(row.file.path, { newTab });
 }
 
 function ListRow({
@@ -27,20 +26,25 @@ function ListRow({
   meta: ReadonlyArray<ColumnKey>;
   formulas: Readonly<Record<string, string>>;
 }) {
+  const t = useI18n();
   return (
-    <div
+    <button
+      type="button"
       onClick={(e) => {
-        workspaceStore.openFile(row.file.path, {
-          newTab: e.metaKey || e.ctrlKey,
-        });
+        openRow(row, e.metaKey || e.ctrlKey);
       }}
       style={{
+        width: "100%",
         padding: "var(--size-4-2) var(--size-4-3)",
         borderBottom: "1px solid var(--background-modifier-border)",
+        borderTop: 0,
+        borderInline: 0,
+        background: "transparent",
         cursor: "var(--cursor-link)",
         display: "flex",
         flexDirection: "column",
         gap: "var(--size-2-2)",
+        textAlign: "left",
       }}
     >
       <div
@@ -67,14 +71,16 @@ function ListRow({
             if (!value) return null;
             return (
               <span key={col}>
-                <span style={{ color: "var(--text-faint)" }}>{columnLabel(col, formulas)}:</span>{" "}
+                <span style={{ color: "var(--text-faint)" }}>
+                  {localizedColumnLabel(col, formulas, t)}:
+                </span>{" "}
                 {value}
               </span>
             );
           })}
         </div>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -85,6 +91,7 @@ export function BasesListView({
   summaries,
   displayColumns,
 }: BasesListViewProps) {
+  const t = useI18n();
   // The "title" of each list row is always the filename; the remaining
   // columns become the muted metadata strip beneath.
   const metaCols = displayColumns.filter((c) => c !== "file.name");
@@ -110,7 +117,7 @@ export function BasesListView({
             color: "var(--text-faint)",
           }}
         >
-          No matching files.
+          {t("bases.empty.noMatchingFiles")}
         </div>
       ) : grouped ? (
         [...grouped.entries()].map(([key, rs]) => (

@@ -87,5 +87,8 @@ describe("i18n", () => {
     expect(t("canvas.stats", { zoom: "125", count: "2", nodeLabel: t("canvas.nodes") })).toBe(
       "125% · 2 צמתים",
     );
+    expect(t("bases.title")).toBe("בסיסים");
+    expect(t("bases.empty.noMatchingFiles")).toBe("אין קבצים תואמים.");
+    expect(t("bases.map.open", { name: "London" })).toBe("פתיחת London");
   });
 });

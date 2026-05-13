@@ -3,10 +3,11 @@ import {
   type BaseConfig,
   type ColumnKey,
   type SortOrder,
-  columnLabel as schemaColumnLabel,
+  columnLabel as builtInColumnLabel,
 } from "@core/bases/schema";
 import { stem } from "@core/fs/path";
 import type { VaultFile, VaultPath } from "@core/fs/types";
+import type { t as translate } from "@core/i18n";
 import { metadataCache } from "@core/metadata/cache";
 import type { ReactNode } from "react";
 
@@ -146,7 +147,31 @@ export function sortRows(rows: ReadonlyArray<Row>, column: ColumnKey, order: Sor
 export function columnLabel(key: ColumnKey, formulas: Readonly<Record<string, string>>): string {
   // Formula columns inherit the key as their label.
   if (key in formulas) return key;
-  return schemaColumnLabel(key);
+  return builtInColumnLabel(key);
+}
+
+export function localizedColumnLabel(
+  key: ColumnKey,
+  formulas: Readonly<Record<string, string>>,
+  t: typeof translate,
+): string {
+  if (key in formulas) return key;
+  switch (key) {
+    case "file.name":
+      return t("bases.column.name");
+    case "file.path":
+      return t("bases.column.path");
+    case "file.modified":
+      return t("bases.column.modified");
+    case "file.created":
+      return t("bases.column.created");
+    case "file.size":
+      return t("bases.column.size");
+    case "tags":
+      return t("bases.column.tags");
+    default:
+      return key;
+  }
 }
 
 export function formatCellValue(v: unknown, key: ColumnKey): string {

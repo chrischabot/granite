@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Bases view i18n ratchet
+
+- **Bases view chrome** — routed no-path/loading states, filter summary,
+  match count, grouping summary, and base title through locale keys.
+- **Bases renderers** — routed table/list/cards empty states and built-in
+  column labels through `t()` while preserving user-defined formula and summary
+  labels as vault content.
+- **Bases map and embeds** — routed map aria labels, coordinate helper, empty
+  state, embedded base loading text, embedded empty state, and embedded column
+  labels through shared localized labels.
+- **Accessibility cleanup** — converted list/card row activators and sortable
+  headers to semantic buttons, and added keyboard activation for table rows.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if Bases view's formerly hard-coded labels return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n/Bases tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-12 — Canvas view i18n ratchet
 
 - **Canvas toolbar** — routed add-text, snap-to-grid, zoom, fit, color, delete,

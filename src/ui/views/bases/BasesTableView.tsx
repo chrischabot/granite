@@ -1,13 +1,9 @@
-import {
-  type BaseConfig,
-  type ColumnKey,
-  type SortOrder,
-  columnLabel as schemaColumnLabel,
-} from "@core/bases/schema";
+import type { BaseConfig, ColumnKey, SortOrder } from "@core/bases/schema";
 import type { SummaryResult } from "@core/bases/summary";
 import { workspaceStore } from "@core/workspace/store";
-import type { ReactNode } from "react";
-import { type Row, formatCellValue } from "./shared";
+import type { KeyboardEvent, ReactNode } from "react";
+import { useI18n } from "../../i18n/useI18n";
+import { type Row, formatCellValue, localizedColumnLabel } from "./shared";
 
 export interface BasesTableViewProps {
   readonly config: BaseConfig;
@@ -26,7 +22,7 @@ function renderCell(v: unknown, key: ColumnKey): ReactNode {
       <span style={{ display: "inline-flex", gap: 4, flexWrap: "wrap" }}>
         {v.map((t, i) => (
           <span
-            key={i}
+            key={`${String(t)}-${i}`}
             className="tag"
             style={{
               background: "var(--tag-background)",
@@ -45,9 +41,12 @@ function renderCell(v: unknown, key: ColumnKey): ReactNode {
   return formatCellValue(v, key);
 }
 
-function columnLabel(key: ColumnKey, formulas: Readonly<Record<string, string>>): string {
-  if (key in formulas) return key;
-  return schemaColumnLabel(key);
+function openRow(row: Row, newTab = false) {
+  workspaceStore.openFile(row.file.path, { newTab });
+}
+
+function isActivationKey(e: KeyboardEvent): boolean {
+  return e.key === "Enter" || e.key === " ";
 }
 
 export function BasesTableView({
@@ -60,6 +59,7 @@ export function BasesTableView({
   onToggleSort,
   displayColumns,
 }: BasesTableViewProps) {
+  const t = useI18n();
   const renderRows = (rs: ReadonlyArray<Row>) =>
     rs.map((row) => (
       <tr
@@ -67,10 +67,14 @@ export function BasesTableView({
         onClick={(e) => {
           if (e.target instanceof HTMLAnchorElement || (e.target as HTMLElement).closest("a"))
             return;
-          workspaceStore.openFile(row.file.path, {
-            newTab: e.metaKey || e.ctrlKey,
-          });
+          openRow(row, e.metaKey || e.ctrlKey);
         }}
+        onKeyDown={(e) => {
+          if (!isActivationKey(e)) return;
+          e.preventDefault();
+          openRow(row, e.metaKey || e.ctrlKey);
+        }}
+        tabIndex={0}
         style={{ cursor: "var(--cursor-link)" }}
       >
         {displayColumns.map((col) => (
@@ -133,7 +137,6 @@ export function BasesTableView({
               return (
                 <th
                   key={col}
-                  onClick={() => onToggleSort(col)}
                   style={{
                     textAlign: "left",
                     padding: "var(--size-2-3) var(--size-4-3)",
@@ -146,10 +149,23 @@ export function BasesTableView({
                     borderBottom: "1px solid var(--background-modifier-border)",
                   }}
                 >
-                  {columnLabel(col, config.formulas)}
-                  {isActive && (
-                    <span style={{ marginInlineStart: 4 }}>{sortOrder === "asc" ? "▲" : "▼"}</span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => onToggleSort(col)}
+                    style={{
+                      all: "unset",
+                      cursor: "pointer",
+                      display: "inline-flex",
+                      alignItems: "center",
+                    }}
+                  >
+                    {localizedColumnLabel(col, config.formulas, t)}
+                    {isActive && (
+                      <span style={{ marginInlineStart: 4 }}>
+                        {sortOrder === "asc" ? "▲" : "▼"}
+                      </span>
+                    )}
+                  </button>
                 </th>
               );
             })}
@@ -166,7 +182,7 @@ export function BasesTableView({
                   textAlign: "center",
                 }}
               >
-                No matching files.
+                {t("bases.empty.noMatchingFiles")}
               </td>
             </tr>
           ) : grouped ? (

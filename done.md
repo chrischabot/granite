@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-13 — Vim mode browser verifier
+
+- **Root cause** — Vim mode had a manual severe-test entry but no runtime
+  browser verifier, and enabling the keymap exposed a real CodeMirror plugin
+  crash because `vim({ status: true })` initializes the library's status panel
+  before its `view.cm` shim is available.
+- **Product fix** — switched the editor to the library-supported `vim()` setup,
+  removing the crashing status panel while keeping Vim normal/insert mode
+  behavior active.
+- **Browser path** — added `verify:vim-mode-browser`, which toggles Key
+  bindings to Vim through the real Settings modal, focuses `MarkdownView`, uses
+  Vim's `gg0i` sequence to enter insert mode at the start of the note, verifies
+  inserted text is saved, then presses `hjkl` after `Esc` and verifies normal
+  navigation does not mutate the editor or disk text.
+
+### Tests
+- `bun run verify:vim-mode-browser`
+- `node --check scripts/verify-vim-mode-browser.mjs`
+- `bun run test -- src/ui/views/MarkdownView.test.tsx src/core/settings/store.test.ts src/ui/prompts/SettingsModal.test.tsx`
+- `bunx biome check src/ui/views/MarkdownView.tsx package.json scripts/vim-mode-browser-fixture.html scripts/verify-vim-mode-browser.mjs`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Fold persistence browser verifier
 
 - **Root cause** — fold normalization and workspace snapshot persistence had

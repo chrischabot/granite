@@ -256,7 +256,7 @@ export function MarkdownView({
           },
           { dark: document.body.classList.contains("theme-dark") },
         ),
-        settings.editorKeymap === "vim" ? vim({ status: true }) : [],
+        settings.editorKeymap === "vim" ? vim() : [],
         keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...foldKeymap]),
         EditorView.updateListener.of((update) => {
           if (

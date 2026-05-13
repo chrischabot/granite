@@ -42,6 +42,7 @@
     "verify:error-boundary-browser": "node scripts/verify-error-boundary-browser.mjs",
     "verify:debug-info-browser": "node scripts/verify-debug-info-browser.mjs",
     "verify:fold-persistence-browser": "node scripts/verify-fold-persistence-browser.mjs",
+    "verify:vim-mode-browser": "node scripts/verify-vim-mode-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

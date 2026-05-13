@@ -68,6 +68,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   private onWindowError = (event: ErrorEvent): void => {
+    if (
+      event.message.includes(
+        "There was an error during concurrent rendering but React was able to recover",
+      )
+    ) {
+      return;
+    }
     reportCapturedError(event.error ?? event.message, { source: "window" });
   };
 

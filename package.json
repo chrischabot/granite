@@ -39,6 +39,7 @@
     "verify:theme-contrast-browser": "node scripts/verify-theme-contrast-browser.mjs",
     "verify:file-recovery-browser": "node scripts/verify-file-recovery-browser.mjs",
     "verify:external-edit-browser": "node scripts/verify-external-edit-browser.mjs",
+    "verify:error-boundary-browser": "node scripts/verify-error-boundary-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

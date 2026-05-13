@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-13 — Error boundary browser verifier
+
+- **Root cause** — the severe-test list still relied on manual browser checks
+  for React render crashes, unhandled Promise rejections, and fire-and-forget
+  Effect failures, and React's recoverable concurrent-render `window` error
+  could mask the real React boundary report in runtime state.
+- **Product fix** — ignored React's generic recoverable concurrent-render
+  window shim so the boundary preserves the actual React error source, message,
+  and component stack.
+- **Browser path** — added `verify:error-boundary-browser`, which triggers a
+  persistent render crash, verifies the full-screen boundary shows the real
+  render-error message and `BrokenRender` component stack, resets the boundary,
+  then verifies unhandled Promise rejections and `runFork(Effect.fail(...))`
+  failures reach the same boundary channel.
+
+### Tests
+- `bun run verify:error-boundary-browser`
+- `node --check scripts/verify-error-boundary-browser.mjs`
+- `bun run test -- src/core/errors/reporter.test.ts src/core/effect/runtime.test.ts src/ui/overlay/ErrorBoundary.test.tsx`
+- `bunx biome check src/ui/overlay/ErrorBoundary.tsx scripts/error-boundary-browser-fixture.html scripts/verify-error-boundary-browser.mjs`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — External edit browser verifier
 
 - **Root cause** — external-edit detection had unit coverage for the 200 ms

@@ -64,6 +64,9 @@ describe("i18n", () => {
     expect(t("commandPalette.pin")).toBe("נעיצת פקודה");
     expect(t("templatePicker.placeholder")).toBe("בחירת תבנית…");
     expect(t("vaultPicker.title")).toBe("ניהול כספות");
+    expect(t("vaultContext.reopenGrant", { name: "Work" })).toBe(
+      'לפתוח מחדש את "Work"? לחצו כאן כדי לאשר גישה לתיקייה.',
+    );
     expect(t("help.section.workspace")).toBe("סביבת עבודה");
     expect(t("bookmarks.defaultGroup")).toBe("סימניות");
     expect(t("graph.controls.title")).toBe("פקדי גרף");

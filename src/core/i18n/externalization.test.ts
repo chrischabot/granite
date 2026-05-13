@@ -228,6 +228,16 @@ const VAULT_PICKER_FORBIDDEN_PATTERNS = [
   />\s*In-browser vault\s*</,
 ];
 
+const VAULT_CONTEXT_FORBIDDEN_PATTERNS = [
+  /Could not bootstrap pop-out/,
+  /Reopen "\$\{recent\.name\}"\? Click here to grant folder access\./,
+  /"Could not reopen vault"/,
+  /Plugin loader failed/,
+  /Vault \$\{id\} not in registry/,
+  /"Folder handle was lost; please re-pick the folder"/,
+  /"Read\/write permission was denied for this folder"/,
+];
+
 const HELP_MODAL_FORBIDDEN_PATTERNS = [
   /title: "Workspace"/,
   /what: "Open the command palette"/,
@@ -1125,10 +1135,14 @@ describe("UI string externalization audit", () => {
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
   });
 
-  it("keeps modal, vault picker, help, and bookmark labels routed through i18n keys", () => {
+  it("keeps modal, vault picker/context, help, and bookmark labels routed through i18n keys", () => {
     const modalSource = readFileSync(`${process.cwd()}/src/ui/overlay/Modal.tsx`, "utf8");
     const vaultPickerSource = readFileSync(
       `${process.cwd()}/src/ui/prompts/VaultPicker.tsx`,
+      "utf8",
+    );
+    const vaultContextSource = readFileSync(
+      `${process.cwd()}/src/ui/vault/VaultContext.tsx`,
       "utf8",
     );
     const helpSource = readFileSync(`${process.cwd()}/src/ui/prompts/HelpModal.tsx`, "utf8");
@@ -1139,6 +1153,7 @@ describe("UI string externalization audit", () => {
     const violations = [
       ...MODAL_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(modalSource)),
       ...VAULT_PICKER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(vaultPickerSource)),
+      ...VAULT_CONTEXT_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(vaultContextSource)),
       ...HELP_MODAL_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(helpSource)),
       ...BOOKMARKS_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(bookmarksSource)),
     ];
@@ -1156,6 +1171,17 @@ describe("UI string externalization audit", () => {
       "vaultPicker.opfs",
     ]) {
       expect(vaultPickerSource).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "vaultContext.error.bootstrapPopout",
+      "vaultContext.reopenGrant",
+      "vaultContext.error.reopen",
+      "vaultContext.error.pluginLoader",
+      "vaultContext.error.notInRegistry",
+      "vaultContext.error.lostHandle",
+      "vaultContext.error.permissionDenied",
+    ]) {
+      expect(vaultContextSource).toContain(requiredKey);
     }
     for (const requiredKey of [
       "help.title",

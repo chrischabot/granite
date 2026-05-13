@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Vault Context i18n ratchet
+
+- **Vault lifecycle notices** — routed pop-out bootstrap failure, reopen-grant
+  notice, reopen fallback, and plugin-loader binding failure copy through
+  locale keys.
+- **Surfaced reopen errors** — routed missing registry entry, lost folder
+  handle, and read/write permission denial errors through i18n because they can
+  surface through the reopen notice flow.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if Vault Context lifecycle notices or surfaced errors return as
+  hard-coded English literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Plugin Loader i18n ratchet
 
 - **Loader failure notices** — routed plugin main-file read failures and

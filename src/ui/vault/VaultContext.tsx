@@ -7,6 +7,7 @@ import {
   opfsSupported,
   pickDirectoryFSA,
 } from "@core/fs/handle-adapter";
+import { t } from "@core/i18n";
 import { bindTypeRegistry, unbindTypeRegistry } from "@core/metadata/type-registry";
 import { noticeManager } from "@core/notices/notice";
 import { bindPlugins, unbindPlugins } from "@core/plugins/loader";
@@ -139,7 +140,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
             }
           } catch (err) {
             noticeManager.show(
-              `Could not bootstrap pop-out: ${err instanceof Error ? err.message : String(err)}`,
+              t("vaultContext.error.bootstrapPopout", {
+                message: err instanceof Error ? err.message : String(err),
+              }),
               { kind: "error" },
             );
           }
@@ -161,21 +164,21 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           /* ignore */
         }
       } else if (recent.kind === "fsa") {
-        const noticeId = noticeManager.show(
-          `Reopen "${recent.name}"? Click here to grant folder access.`,
-          {
-            kind: "info",
-            timeoutMs: 0,
-            onActivate: () => {
-              noticeManager.dismiss(noticeId);
-              void reopen(recent.id).catch((err) => {
-                noticeManager.show(err instanceof Error ? err.message : "Could not reopen vault", {
+        const noticeId = noticeManager.show(t("vaultContext.reopenGrant", { name: recent.name }), {
+          kind: "info",
+          timeoutMs: 0,
+          onActivate: () => {
+            noticeManager.dismiss(noticeId);
+            void reopen(recent.id).catch((err) => {
+              noticeManager.show(
+                err instanceof Error ? err.message : t("vaultContext.error.reopen"),
+                {
                   kind: "error",
-                });
-              });
-            },
+                },
+              );
+            });
           },
-        );
+        });
       }
     })();
   }, []);
@@ -208,7 +211,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
         kind: entry.kind,
       }).catch((err) => {
         noticeManager.show(
-          `Plugin loader failed: ${err instanceof Error ? err.message : String(err)}`,
+          t("vaultContext.error.pluginLoader", {
+            message: err instanceof Error ? err.message : String(err),
+          }),
           { kind: "error" },
         );
       });
@@ -251,10 +256,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const reopen = useCallback(
     async (id: string) => {
       const meta = vaults.find((v) => v.id === id);
-      if (!meta) throw new Error(`Vault ${id} not in registry`);
+      if (!meta) throw new Error(t("vaultContext.error.notInRegistry", { id }));
       if (meta.kind === "fsa") {
         const handle = await loadHandle(id);
-        if (!handle) throw new Error("Folder handle was lost; please re-pick the folder");
+        if (!handle) throw new Error(t("vaultContext.error.lostHandle"));
         const h = handle as FileSystemDirectoryHandle & {
           queryPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
           requestPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
@@ -264,7 +269,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           state = (await h.requestPermission?.({ mode: "readwrite" })) ?? "denied";
         }
         if (state !== "granted") {
-          throw new Error("Read/write permission was denied for this folder");
+          throw new Error(t("vaultContext.error.permissionDenied"));
         }
         await setActive(meta, handle);
       } else {

@@ -1,11 +1,12 @@
-import { Effect } from "effect";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { extension, normalize, stem } from "@core/fs/path";
 import type { VaultFile } from "@core/fs/types";
-import { workspaceStore } from "@core/workspace/store";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
+import { Effect } from "effect";
 
 const SETTINGS_KEY = "granite.templates.v1";
 
@@ -42,34 +43,53 @@ export function setTemplatesSettings(s: TemplatesSettings): void {
 const PAD2 = (n: number) => n.toString().padStart(2, "0");
 
 function formatDate(d: Date, fmt: string): string {
-  return fmt.replace(
-    /YYYY|YY|MMMM|MMM|MM|DD|HH|mm|ss|D|M/g,
-    (token) => {
-      switch (token) {
-        case "YYYY": return d.getFullYear().toString();
-        case "YY": return d.getFullYear().toString().slice(-2);
-        case "MM": return PAD2(d.getMonth() + 1);
-        case "M": return (d.getMonth() + 1).toString();
-        case "DD": return PAD2(d.getDate());
-        case "D": return d.getDate().toString();
-        case "HH": return PAD2(d.getHours());
-        case "mm": return PAD2(d.getMinutes());
-        case "ss": return PAD2(d.getSeconds());
-        case "MMMM":
-          return [
-            "January", "February", "March", "April", "May", "June",
-            "July", "August", "September", "October", "November", "December",
-          ][d.getMonth()] ?? "";
-        case "MMM":
-          return [
-            "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-            "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-          ][d.getMonth()] ?? "";
-        default:
-          return token;
-      }
-    },
-  );
+  return fmt.replace(/YYYY|YY|MMMM|MMM|MM|DD|HH|mm|ss|D|M/g, (token) => {
+    switch (token) {
+      case "YYYY":
+        return d.getFullYear().toString();
+      case "YY":
+        return d.getFullYear().toString().slice(-2);
+      case "MM":
+        return PAD2(d.getMonth() + 1);
+      case "M":
+        return (d.getMonth() + 1).toString();
+      case "DD":
+        return PAD2(d.getDate());
+      case "D":
+        return d.getDate().toString();
+      case "HH":
+        return PAD2(d.getHours());
+      case "mm":
+        return PAD2(d.getMinutes());
+      case "ss":
+        return PAD2(d.getSeconds());
+      case "MMMM":
+        return (
+          [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+          ][d.getMonth()] ?? ""
+        );
+      case "MMM":
+        return (
+          ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][
+            d.getMonth()
+          ] ?? ""
+        );
+      default:
+        return token;
+    }
+  });
 }
 
 function expandTokens(template: string, ctx: { title: string }): string {
@@ -145,15 +165,12 @@ export function registerTemplatesPlugin(): () => void {
 
   register({
     id: "templates:insert",
-    category: "Templates",
-    name: "Insert template",
+    category: t("plugin.templates.category"),
+    name: t("plugin.templates.insert"),
     callback: async () => {
       const list = await listTemplates();
       if (list.length === 0) {
-        noticeManager.show(
-          "No templates found. Set a template folder under Settings → Templates.",
-          { kind: "warning" },
-        );
+        noticeManager.show(t("plugin.templates.empty"), { kind: "warning" });
         return;
       }
       // Dispatch to <TemplatePicker> which will render the SuggestModal.
@@ -163,8 +180,8 @@ export function registerTemplatesPlugin(): () => void {
 
   register({
     id: "templates:insert-current-date",
-    category: "Templates",
-    name: "Insert current date",
+    category: t("plugin.templates.category"),
+    name: t("plugin.templates.insertDate"),
     callback: () => {
       const settings = getTemplatesSettings();
       const txt = formatDate(new Date(), settings.dateFormat);
@@ -183,8 +200,8 @@ export function registerTemplatesPlugin(): () => void {
 
   register({
     id: "templates:insert-current-time",
-    category: "Templates",
-    name: "Insert current time",
+    category: t("plugin.templates.category"),
+    name: t("plugin.templates.insertTime"),
     callback: () => {
       const settings = getTemplatesSettings();
       const txt = formatDate(new Date(), settings.timeFormat);

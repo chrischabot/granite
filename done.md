@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Templates/workspaces i18n ratchet
+
+- **Templates labels** — routed template insertion, current-date, and
+  current-time command names/categories through locale keys.
+- **Workspaces prompts** — routed save/load/delete workspace command
+  names/categories, empty-state notices, prompts, success summaries, and load
+  errors through i18n.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if Templates or Workspaces plugin strings return as hard-coded English
+  literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Vault editing plugin i18n ratchet
 
 - **Vault editing labels** — routed Vault Find/Replace and Tag Rename command

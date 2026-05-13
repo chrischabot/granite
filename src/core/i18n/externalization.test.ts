@@ -703,6 +703,26 @@ const CORE_PLUGIN_VAULT_EDIT_FORBIDDEN_PATTERNS = [
   /"Tag rename failed"/,
 ];
 
+const CORE_PLUGIN_TEMPLATE_WORKSPACE_FORBIDDEN_PATTERNS = [
+  /category: "Templates"/,
+  /name: "Insert template"/,
+  /"No templates found\. Set a template folder under Settings → Templates\."/,
+  /name: "Insert current date"/,
+  /name: "Insert current time"/,
+  /category: "Workspaces"/,
+  /name: "Save workspace layout…"/,
+  /prompt\("Save layout as:", ""\)/,
+  /Saved layout/,
+  /name: "Load workspace layout…"/,
+  /"No saved layouts\."/,
+  /Load which layout\?/,
+  /Loaded layout/,
+  /Could not load layout/,
+  /name: "Delete workspace layout…"/,
+  /Delete which layout\?/,
+  /Deleted layout/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1745,6 +1765,41 @@ describe("UI string externalization audit", () => {
       "plugin.tagRename.noOccurrences",
       "plugin.tagRename.renamed",
       "plugin.tagRename.error.rename",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Templates and Workspaces plugin labels and prompts routed through i18n keys", () => {
+    const sources = [
+      readFileSync(`${process.cwd()}/src/core/plugins-core/templates.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/workspaces.ts`, "utf8"),
+    ];
+    const source = sources.join("\n");
+    const violations = CORE_PLUGIN_TEMPLATE_WORKSPACE_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+
+    for (const requiredKey of [
+      "plugin.templates.category",
+      "plugin.templates.insert",
+      "plugin.templates.empty",
+      "plugin.templates.insertDate",
+      "plugin.templates.insertTime",
+      "plugin.workspaces.category",
+      "plugin.workspaces.save",
+      "plugin.workspaces.prompt.save",
+      "plugin.workspaces.saved",
+      "plugin.workspaces.load",
+      "plugin.workspaces.empty",
+      "plugin.workspaces.prompt.load",
+      "plugin.workspaces.loaded",
+      "plugin.workspaces.error.load",
+      "plugin.workspaces.delete",
+      "plugin.workspaces.prompt.delete",
+      "plugin.workspaces.deleted",
     ]) {
       expect(source).toContain(requiredKey);
     }

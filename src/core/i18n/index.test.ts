@@ -148,5 +148,9 @@ describe("i18n", () => {
         fileLabel: t("plugin.tagRename.file"),
       }),
     ).toBe("שם התגית #old שונה ל-#new (1 מופע ב-1 קובץ).");
+    expect(t("plugin.templates.empty")).toBe(
+      "לא נמצאו תבניות. הגדירו תיקיית תבניות תחת הגדרות ← תבניות.",
+    );
+    expect(t("plugin.workspaces.loaded", { name: "Writing" })).toBe('הפריסה "Writing" נטענה');
   });
 });

@@ -1,6 +1,7 @@
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
-import { workspaceStore } from "@core/workspace/store";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
 import type { LeafState, WorkspaceState } from "@core/workspace/types";
 
 const STORAGE_KEY = "granite.workspaces.v1";
@@ -104,62 +105,68 @@ export function registerWorkspacesPlugin(): () => void {
 
   register({
     id: "workspaces:save",
-    category: "Workspaces",
-    name: "Save workspace layout…",
+    category: t("plugin.workspaces.category"),
+    name: t("plugin.workspaces.save"),
     callback: () => {
-      const name = prompt("Save layout as:", "");
+      const name = prompt(t("plugin.workspaces.prompt.save"), "");
       if (!name) return;
       const data = load();
       data.layouts[name] = serialize(workspaceStore.getState());
       save(data);
-      noticeManager.show(`Saved layout "${name}"`, { kind: "success" });
+      noticeManager.show(t("plugin.workspaces.saved", { name }), { kind: "success" });
     },
   });
 
   register({
     id: "workspaces:load",
-    category: "Workspaces",
-    name: "Load workspace layout…",
+    category: t("plugin.workspaces.category"),
+    name: t("plugin.workspaces.load"),
     callback: () => {
       const data = load();
       const names = Object.keys(data.layouts);
       if (names.length === 0) {
-        noticeManager.show("No saved layouts.", { kind: "warning" });
+        noticeManager.show(t("plugin.workspaces.empty"), { kind: "warning" });
         return;
       }
       const labels = names.map((n, i) => `${i + 1}. ${n}`).join("\n");
-      const pick = prompt(`Load which layout?\n${labels}\n\nEnter number:`);
-      const n = pick ? parseInt(pick, 10) - 1 : -1;
+      const pick = prompt(t("plugin.workspaces.prompt.load", { labels }));
+      const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
       const chosenName = names[n];
       if (!chosenName) return;
       const layout = data.layouts[chosenName];
       if (layout && applyLayout(layout)) {
-        noticeManager.show(`Loaded layout "${chosenName}"`, { kind: "success" });
+        noticeManager.show(t("plugin.workspaces.loaded", { name: chosenName }), {
+          kind: "success",
+        });
       } else {
-        noticeManager.show(`Could not load layout "${chosenName}"`, { kind: "error" });
+        noticeManager.show(t("plugin.workspaces.error.load", { name: chosenName }), {
+          kind: "error",
+        });
       }
     },
   });
 
   register({
     id: "workspaces:delete",
-    category: "Workspaces",
-    name: "Delete workspace layout…",
+    category: t("plugin.workspaces.category"),
+    name: t("plugin.workspaces.delete"),
     callback: () => {
       const data = load();
       const names = Object.keys(data.layouts);
       if (names.length === 0) {
-        noticeManager.show("No saved layouts.", { kind: "warning" });
+        noticeManager.show(t("plugin.workspaces.empty"), { kind: "warning" });
         return;
       }
       const labels = names.map((n, i) => `${i + 1}. ${n}`).join("\n");
-      const pick = prompt(`Delete which layout?\n${labels}\n\nEnter number:`);
-      const n = pick ? parseInt(pick, 10) - 1 : -1;
+      const pick = prompt(t("plugin.workspaces.prompt.delete", { labels }));
+      const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
       const chosenName = names[n];
       if (!chosenName) return;
       delete data.layouts[chosenName];
       save(data);
-      noticeManager.show(`Deleted layout "${chosenName}"`, { kind: "success" });
+      noticeManager.show(t("plugin.workspaces.deleted", { name: chosenName }), {
+        kind: "success",
+      });
     },
   });
 

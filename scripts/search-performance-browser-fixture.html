@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Search Performance Browser Fixture</title>
+  </head>
+  <body>
+    <script type="module">
+      import { createFuzzyIndex, rankFuzzyIndex } from "../src/core/search/fuzzy.ts";
+      import { fileMatchesQuery, parseQuery } from "../src/core/search/query.ts";
+
+      const QUICK_SWITCHER_BUDGET_MS = 16;
+      const REGEX_SEARCH_BUDGET_MS = 500;
+      const NOTE_COUNT = 10_000;
+
+      const emptyMeta = {
+        frontmatter: {},
+        aliases: [],
+        cssClasses: [],
+        headings: [],
+        links: [],
+        tags: [],
+        blocks: [],
+        footnotes: [],
+        isEmpty: false,
+      };
+
+      function assert(condition, message, detail = {}) {
+        if (!condition) throw new Error(`${message}: ${JSON.stringify(detail)}`);
+      }
+
+      function buildSwitcherItems() {
+        const items = [];
+        for (let i = 0; i < NOTE_COUNT; i += 1) {
+          const padded = i.toString().padStart(5, "0");
+          const group = i % 2 === 0 ? "Project" : "Area";
+          items.push({ kind: "file", displayName: `Note ${padded} ${group}`, path: `Notes/Note ${padded}.md` });
+          items.push({
+            kind: "alias",
+            displayName: `${group} Alias ${padded}`,
+            path: `Notes/Note ${padded}.md`,
+          });
+        }
+        return items;
+      }
+
+      function buildSearchContexts() {
+        return Array.from({ length: NOTE_COUNT }, (_, i) => {
+          const padded = i.toString().padStart(5, "0");
+          const status = i % 3 === 0 ? "active" : i % 3 === 1 ? "waiting" : "done";
+          return {
+            file: {
+              type: "file",
+              path: `Notes/Note ${padded}.md`,
+              name: `Note ${padded}.md`,
+              size: 128,
+              mtimeMs: i,
+              ctimeMs: i,
+              extension: "md",
+            },
+            content:
+              i % 250 === 0
+                ? `---\nstatus: ${status}\n---\n# Note ${padded}\nThis line contains target-${i} for the browser regex scan.\n#project`
+                : `---\nstatus: ${status}\n---\n# Note ${padded}\nThis note has ordinary searchable body text.\n#project`,
+            metadata: {
+              ...emptyMeta,
+              frontmatter: { status },
+              tags: [{ name: "project", line: 5 }],
+            },
+          };
+        });
+      }
+
+      function runQuickSwitcherPerf() {
+        const items = buildSwitcherItems();
+        const index = createFuzzyIndex(items, (item) => item.displayName);
+        const queries = ["n", "no", "not", "note", "note 9", "project 99"];
+        const timings = queries.map((query) => {
+          const start = performance.now();
+          const result = rankFuzzyIndex(index, query);
+          const elapsedMs = performance.now() - start;
+          assert(result.length > 0, "quick switcher returned no results", { query });
+          assert(elapsedMs < QUICK_SWITCHER_BUDGET_MS, "quick switcher keystroke exceeded budget", {
+            query,
+            elapsedMs,
+            budgetMs: QUICK_SWITCHER_BUDGET_MS,
+          });
+          return { query, elapsedMs, results: result.length };
+        });
+        return { entries: items.length, timings };
+      }
+
+      function runRegexSearchPerf() {
+        const contexts = buildSearchContexts();
+        const query = parseQuery("/target-[0-9]+/ [status:active]");
+        const warm = contexts[0];
+        assert(warm, "missing search warmup context");
+        fileMatchesQuery(query, warm);
+
+        const start = performance.now();
+        const matches = contexts.filter((ctx) => fileMatchesQuery(query, ctx));
+        const elapsedMs = performance.now() - start;
+        assert(matches.length === 14, "regex/property browser search match count changed", {
+          matches: matches.length,
+        });
+        assert(elapsedMs < REGEX_SEARCH_BUDGET_MS, "regex browser search exceeded budget", {
+          elapsedMs,
+          budgetMs: REGEX_SEARCH_BUDGET_MS,
+        });
+        return { notes: contexts.length, matches: matches.length, elapsedMs };
+      }
+
+      function run() {
+        const quickSwitcher = runQuickSwitcherPerf();
+        const regexSearch = runRegexSearchPerf();
+        return { ok: true, quickSwitcher, regexSearch };
+      }
+
+      window.__graniteSearchPerformanceResult = Promise.resolve()
+        .then(run)
+        .catch((error) => ({
+          ok: false,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        }));
+    </script>
+  </body>
+</html>

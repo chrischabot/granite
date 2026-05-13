@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-05-13 — Browser search performance verifier
+
+- **Root cause** — the search and quick-switcher performance gates had unit
+  coverage for query parsing and fuzzy ranking, but the §24.19 browser budget
+  still relied on manual Performance-panel checks for quick-switcher keystrokes
+  and 10k-note regex searches.
+- **Browser path** — added a Vite-served Chromium fixture that builds 20,000
+  quick-switcher candidates (10,000 files plus aliases), measures progressive
+  fuzzy-query updates against the same shared fuzzy index used by `Prompt`, and
+  fails any keystroke over 16 ms.
+- **Search gate** — the same fixture builds 10,000 Markdown search contexts and
+  runs a structured `/target-[0-9]+/ [status:active]` query through
+  `parseQuery()` and `fileMatchesQuery()`, failing if the browser scan exceeds
+  the 500 ms regex-search budget or returns the wrong match count.
+- **Result** — Chromium measured all switcher query updates under 3 ms and the
+  10k regex/property search at 3.20 ms.
+
+### Tests
+- `bun run verify:search-performance-browser`
+
+---
+
 ## 2026-05-13 — Runtime i18n browser verifier and RTL status-bar fix
 
 - **Root cause** — source-level i18n audits proved broad string routing, but

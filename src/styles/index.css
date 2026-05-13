@@ -1,5 +1,8 @@
 @import "./tokens.css";
 @import "./base.css";
+@import "./buttons.css";
+@import "./inputs.css";
+@import "./checkbox.css";
 @import "./shell.css";
 @import "./tabs.css";
 @import "./overlays.css";

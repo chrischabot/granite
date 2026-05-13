@@ -1,0 +1,184 @@
+/* SPEC: specs/renderer/buttons.md */
+
+button:not(.clickable-icon):not(.titlebar-button):not(.modal-close-button):not(
+    .workspace-drawer-vault-switcher
+  ) {
+  --text-color: var(--text-normal);
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-color);
+  font-size: var(--font-ui-small);
+  border-radius: var(--button-radius);
+  border: 0;
+  padding: var(--size-4-1) var(--size-4-3);
+  height: var(--input-height);
+  font-weight: var(--input-font-weight);
+  cursor: var(--cursor);
+  font-family: inherit;
+  outline: none;
+  user-select: none;
+  white-space: nowrap;
+  background-color: var(--interactive-normal);
+  box-shadow: var(--input-shadow);
+}
+
+@media (hover: hover) {
+  button:not(.clickable-icon):not(.titlebar-button):not(.modal-close-button):not(
+      .workspace-drawer-vault-switcher
+    ):hover {
+    background-color: var(--interactive-hover);
+    box-shadow: var(--input-shadow-hover);
+  }
+}
+
+button:focus-visible:not(.clickable-icon):not(.titlebar-button):not(.modal-close-button):not(
+    .workspace-drawer-vault-switcher
+  ) {
+  box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
+}
+
+button[disabled],
+button[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+button.mod-loading {
+  color: transparent;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+button.mod-loading::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  inset: 0;
+  margin: auto;
+  border: 2px solid transparent;
+  border-top-color: var(--text-color);
+  border-radius: 50%;
+  animation: spin 1s ease infinite;
+}
+
+button.mod-cta {
+  background-color: var(--interactive-accent);
+  --text-color: var(--text-on-accent);
+  color: var(--text-on-accent);
+}
+
+@media (hover: hover) {
+  button.mod-cta:hover {
+    background-color: var(--interactive-accent-hover);
+  }
+}
+
+button.mod-warning {
+  background-color: var(--background-modifier-error);
+  --text-color: var(--text-on-accent);
+  color: var(--text-on-accent);
+}
+
+@media (hover: hover) {
+  button.mod-warning:hover {
+    background-color: var(--background-modifier-error-hover);
+  }
+}
+
+button.mod-destructive {
+  --text-color: var(--text-error);
+  color: var(--text-error);
+}
+
+.clickable-icon {
+  -webkit-app-region: no-drag;
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--size-2-2) var(--size-2-3);
+  cursor: var(--cursor);
+  border-radius: var(--clickable-icon-radius);
+  color: var(--icon-color);
+  height: auto;
+  border: 0;
+  font-family: inherit;
+  user-select: none;
+}
+
+.clickable-icon svg {
+  opacity: var(--icon-opacity);
+  transition: opacity var(--anim-duration-fast) ease-in-out;
+  width: var(--icon-size);
+  height: var(--icon-size);
+  stroke-width: var(--icon-stroke);
+}
+
+@media (hover: hover) {
+  .clickable-icon:hover {
+    box-shadow: none;
+    color: var(--icon-color-hover);
+    background-color: var(--background-modifier-hover);
+  }
+
+  .clickable-icon:hover svg,
+  .clickable-icon.has-active-menu svg,
+  .clickable-icon:active svg {
+    opacity: var(--icon-opacity-hover);
+  }
+
+  .clickable-icon.has-active-menu,
+  .clickable-icon:active {
+    color: var(--icon-color-focused);
+    background-color: var(--background-modifier-hover);
+  }
+}
+
+.clickable-icon.is-active {
+  color: var(--icon-color-active);
+  background-color: var(--background-modifier-active-hover);
+}
+
+.clickable-icon.is-active svg {
+  opacity: var(--icon-opacity-active);
+}
+
+@media (hover: hover) {
+  .clickable-icon.is-active:hover {
+    background-color: var(--background-modifier-active-hover);
+  }
+}
+
+.clickable-icon[aria-disabled="true"] {
+  background-color: unset;
+  color: var(--text-muted);
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.clickable-icon.mod-warning {
+  color: var(--text-error);
+}
+
+.clickable-icon.mod-filled svg {
+  fill: var(--icon-color);
+}
+
+.clickable-icon.side-dock-ribbon-action svg {
+  width: var(--icon-l);
+  height: var(--icon-l);
+  stroke-width: var(--icon-l-stroke-width);
+}
+
+.text-icon-button {
+  gap: var(--size-4-1);
+}
+
+.input-button {
+  border-radius: var(--input-radius);
+}

@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-13 — Renderer controls CSS module extraction
+
+- **Dedicated modules** — extracted button/icon-button, text input/textarea, and
+  checkbox/radio styling into `src/styles/buttons.css`,
+  `src/styles/inputs.css`, and `src/styles/checkbox.css`, each linked to its
+  renderer spec.
+- **Regression audit** — added a style module test to prove the new modules are
+  imported, spec-linked, and not left buried in shell/overlay styles.
+
+### Tests
+- Added `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Plugin loader invariant i18n ratchet
 
 - **Plugin loader invariant** — routed the no-active-vault plugin API failure

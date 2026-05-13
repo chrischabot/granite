@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-13 — Lighthouse accessibility audit
+
+- **Root cause fix** — Lighthouse flagged the workspace tab headers as
+  `role="tab"` elements without a required `tablist` parent and the app shell
+  as missing a main landmark.
+- **Workspace semantics** — promoted the central workspace shell to
+  `<main className="workspace">` and labeled each tab strip as a localized
+  `role="tablist"` while keeping tab drag wrappers presentational.
+- **I18n guard** — added `workspace.tab.list` in English and Hebrew and
+  extended the workspace chrome externalization ratchet for the new label.
+- **Audit closure** — reran Lighthouse against the local Vite app and reached
+  accessibility score `1` with zero failed audits.
+
+### Tests
+- `bunx biome check --write src/ui/shell/Workspace.tsx src/ui/workspace/TabStrip.tsx src/core/i18n/index.ts src/core/i18n/externalization.test.ts`
+- `bun run audit:a11y`
+- `bun run test src/core/i18n/externalization.test.ts`
+- `bunx lighthouse http://127.0.0.1:8081 --only-categories=accessibility --chrome-flags="--headless=new --no-sandbox" --output=json --output-path=/tmp/granite-lighthouse-a11y-after.json --quiet`
+
+---
+
 ## 2026-05-13 — Renderer Bases CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/view-bases.css` for the

@@ -59,12 +59,18 @@ export function TabStrip({ leaves, activeLeafId, groupId, canCloseGroup, stacked
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
-      <div ref={innerRef} className="workspace-tab-header-container-inner">
+      <div
+        ref={innerRef}
+        className="workspace-tab-header-container-inner"
+        role="tablist"
+        aria-label={t("workspace.tab.list")}
+      >
         {leaves.map((leaf) => (
           <div
             key={leaf.id}
             data-leaf-id={leaf.id}
             className={insertBefore === leaf.id ? "workspace-tab-header-drop-before" : undefined}
+            role="presentation"
           >
             <Tab leaf={leaf} active={leaf.id === activeLeafId} />
           </div>

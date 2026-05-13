@@ -1,21 +1,26 @@
-import { useWorkspace } from "@core/workspace/useWorkspace";
 import { workspaceStore } from "@core/workspace/store";
+import type { Leaf } from "@core/workspace/types";
+import { useWorkspace } from "@core/workspace/useWorkspace";
 import { LeafBody } from "../workspace/Leaf";
 import { TabStrip } from "../workspace/TabStrip";
-import type { Leaf } from "@core/workspace/types";
 
 export function Workspace() {
   const { columns, groups, leaves, activeGroupId } = useWorkspace();
   const totalGroups = columns.reduce((s, c) => s + c.length, 0);
 
   return (
-    <div className="workspace">
+    <main className="workspace">
       <div className="workspace-split mod-root mod-vertical">
         {columns.map((column, colIdx) => (
           <div
-            key={`col-${colIdx}`}
+            key={column.join("|")}
             className="workspace-split mod-horizontal"
-            style={{ position: "relative", flex: "1 1 0", display: "flex", flexDirection: "column" }}
+            style={{
+              position: "relative",
+              flex: "1 1 0",
+              display: "flex",
+              flexDirection: "column",
+            }}
           >
             {colIdx > 0 && (
               <div
@@ -44,7 +49,15 @@ export function Workspace() {
                   {rowIdx > 0 && (
                     <div
                       className="workspace-leaf-resize-handle"
-                      style={{ position: "absolute", left: 0, right: 0, top: 0, width: "100%", height: 3, cursor: "row-resize" }}
+                      style={{
+                        position: "absolute",
+                        left: 0,
+                        right: 0,
+                        top: 0,
+                        width: "100%",
+                        height: 3,
+                        cursor: "row-resize",
+                      }}
                     />
                   )}
                   <TabStrip
@@ -65,6 +78,6 @@ export function Workspace() {
           </div>
         ))}
       </div>
-    </div>
+    </main>
   );
 }

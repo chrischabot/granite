@@ -1439,6 +1439,7 @@ describe("UI string externalization audit", () => {
     for (const requiredKey of [
       "titlebar.navigateBack",
       "titlebar.navigateForward",
+      "workspace.tab.list",
       "workspace.tab.new",
       "workspace.tab.stack",
       "workspace.tab.closeGroup",

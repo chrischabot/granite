@@ -126,7 +126,7 @@ fidelity audits.
 ## Cross-cutting
 
 - [x] Sentry-style error boundary integrated with Effect's error channel ← _shipped 2026-05-12 shared error reporter_
-- [ ] Lighthouse a11y audit
+- [x] Lighthouse a11y audit ← _shipped 2026-05-13 landmark/tablist sweep_
 - [x] Public docs site (vault format + plugin API) ← _shipped 2026-05-12 static docs + docs check_
 
 ---

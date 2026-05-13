@@ -136,6 +136,17 @@ const MODULES = [
       ".workspace-fake-target-overlay > *",
     ],
   },
+  {
+    file: "splash.css",
+    spec: "specs/renderer/splash.md",
+    selectors: [
+      ".starter-screen-inner",
+      ".splash-brand-logo-text",
+      ".splash-brand-version",
+      ".help-options-container",
+      ".help-options-container .setting-item-description",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {

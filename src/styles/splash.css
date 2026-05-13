@@ -1,0 +1,47 @@
+/* SPEC: specs/renderer/splash.md */
+
+.starter-screen-inner {
+  display: flex;
+  flex-grow: 1;
+  height: calc(100% - 24px);
+}
+
+.splash {
+  align-items: center;
+  background-color: var(--background-primary);
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  padding: 36px 0 0;
+  text-align: center;
+}
+
+.splash-brand {
+  flex: 0 0 content;
+  padding: 20px 0;
+}
+
+.splash-brand-logo-text {
+  color: white;
+  margin-top: 20px;
+}
+
+.splash-brand-version {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  margin-top: var(--size-4-2);
+}
+
+.help-options-container {
+  flex: 1 0 0;
+  max-width: 82%;
+  overflow: auto;
+  padding: var(--size-4-6) 0 0;
+  text-align: start;
+  width: 100%;
+}
+
+.help-options-container .setting-item-description {
+  max-width: 30em;
+}

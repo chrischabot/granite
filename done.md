@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Renderer splash CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/splash.css` for the
+  starter screen wrapper, splash layout, brand/version text, and help-options
+  container.
+- **Regression audit** — extended the renderer module test so splash styles
+  stay imported and spec-linked.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer drag-and-drop CSS module
 
 - **Dedicated module** — extracted drag body state, drag ghosts, reorder ghosts,

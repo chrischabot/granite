@@ -65,11 +65,6 @@ body.is-grabbing iframe:not(.is-controlled) {
 /* node-inserted sentinel — JS listens for animationstart on the document root
    to detect newly-inserted DOM with class .node-insert-event. Do NOT change
    the duration; JS expects the event to fire-and-end immediately. */
-@keyframes node-inserted {
-  from { outline-color: #fff; }
-  to   { outline-color: #000; }
-}
-
 .node-insert-event {
   animation-duration: 0.01s;
   animation-name: node-inserted;
@@ -95,19 +90,6 @@ body.is-grabbing iframe:not(.is-controlled) {
 /* Iframe color-scheme — embeds keep their own appearance */
 iframe {
   color-scheme: normal;
-}
-
-/* Generic spin keyframe used by every loading spinner */
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-/* Indeterminate progress bar (.is-loading::before) */
-@keyframes progress-bar {
-  0%, 5%   { width: 0;    left: 0;  }
-  50%      { width: 100%; right: 0; }
-  95%, 100%{ width: 0;    right: 0; }
 }
 
 .is-loading {

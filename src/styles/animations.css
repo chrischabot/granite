@@ -1,0 +1,153 @@
+/* SPEC: specs/renderer/animations.md */
+
+@keyframes node-inserted {
+  from {
+    outline-color: #fff;
+  }
+  to {
+    outline-color: #000;
+  }
+}
+
+@keyframes blink {
+  50% {
+    background-color: transparent;
+  }
+}
+
+@keyframes sk-cubeGridScaleDelay {
+  0%,
+  70%,
+  100% {
+    transform: scale3D(1, 1, 1);
+  }
+  35% {
+    transform: scale3D(0, 0, 1);
+  }
+}
+
+@keyframes multi-select-highlight {
+  from {
+    color: var(--text-warning);
+    --link-color: var(--text-warning);
+  }
+}
+
+@keyframes increase {
+  from {
+    transform: translateX(-5%) scaleX(0.05);
+  }
+  to {
+    transform: translateX(130%) scaleX(1);
+  }
+}
+
+@keyframes decrease {
+  from {
+    transform: translateX(-80%) scaleX(0.8);
+  }
+  to {
+    transform: translateX(110%) scaleX(0.1);
+  }
+}
+
+@keyframes pop-down {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1);
+  }
+  20% {
+    opacity: 0.7;
+    transform: translateX(-50%) scale(1.02);
+  }
+  40% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+@keyframes pop-right {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1);
+  }
+  20% {
+    opacity: 0.7;
+    transform: translateY(-50%) scale(1.02);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
+}
+
+@keyframes rotation {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes hmd-file-uploading-ani {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes progress-bar {
+  0%,
+  5% {
+    width: 0;
+    left: 0;
+  }
+  50% {
+    width: 100%;
+    right: 0;
+  }
+  95%,
+  100% {
+    width: 0;
+    right: 0;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+    transform-origin: bottom;
+  }
+  70% {
+    opacity: 1;
+    transform: scaleY(1.02);
+    transform-origin: bottom;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    transform-origin: bottom;
+  }
+}

@@ -5,6 +5,25 @@ const STYLE_DIR = `${process.cwd()}/src/styles`;
 
 const MODULES = [
   {
+    file: "animations.css",
+    spec: "specs/renderer/animations.md",
+    selectors: [
+      "@keyframes node-inserted",
+      "@keyframes blink",
+      "@keyframes sk-cubeGridScaleDelay",
+      "@keyframes multi-select-highlight",
+      "@keyframes increase",
+      "@keyframes decrease",
+      "@keyframes pop-down",
+      "@keyframes pop-right",
+      "@keyframes rotation",
+      "@keyframes hmd-file-uploading-ani",
+      "@keyframes progress-bar",
+      "@keyframes spin",
+      "@keyframes slideIn",
+    ],
+  },
+  {
     file: "buttons.css",
     spec: "specs/renderer/buttons.md",
     selectors: ["button.mod-loading::after", ".clickable-icon.is-active", ".text-icon-button"],

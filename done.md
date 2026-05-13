@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Renderer animation CSS module
+
+- **Dedicated module** — moved shared keyframes out of `base.css` into
+  spec-linked `src/styles/animations.css` and added the remaining renderer
+  animation names from `specs/renderer/animations.md`.
+- **Regression audit** — extended the renderer module test to require the
+  animation module and all renderer keyframe names.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer slider and flair CSS modules
 
 - **Dedicated modules** — added spec-linked `src/styles/slider.css` and

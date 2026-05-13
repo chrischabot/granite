@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Tags browser verifier
+
+- **Root cause** — nested tag behavior had model and metadata tests, but the
+  severe-test list still relied on manual browser checks for the live Tags
+  sidebar toggle, persisted nested/flat state, and tag-click search routing.
+- **Search routing fix** — tag filtering now also dispatches the existing
+  `granite:set-search-query` event, so `SearchView` receives tag queries even
+  across browser module/rendering boundaries.
+- **Browser path** — added `verify:tags-browser`, which indexes a real OPFS
+  vault with `work/client`, `work/internal`, and `solo` tags, toggles Show
+  nested tags off, verifies flat slash rows, reloads to prove persistence, then
+  verifies flat and nested tag clicks both set `tag:work/client`.
+
+### Tests
+- `bun run verify:tags-browser`
+- `bun run test -- src/ui/views/sidebar/tags-model.test.ts src/core/metadata/parser.test.ts src/core/metadata/cache.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Sidebar group browser verifier
 
 - **Root cause** — sidebar group splitting had model tests, but the severe-test

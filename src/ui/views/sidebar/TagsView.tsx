@@ -10,7 +10,9 @@ import { setSearchQuery } from "./SearchView";
 import { type TagNode, buildTagsModel, sortTagNodes } from "./tags-model";
 
 function filterByTag(fullName: string): void {
-  setSearchQuery(`tag:${fullName}`);
+  const query = `tag:${fullName}`;
+  setSearchQuery(query);
+  window.dispatchEvent(new CustomEvent("granite:set-search-query", { detail: { query } }));
   window.dispatchEvent(
     new CustomEvent("granite:select-sidebar-tab", {
       detail: { side: "left", id: "search" },

@@ -23,6 +23,7 @@
     "verify:trash-settings-browser": "node scripts/verify-trash-settings-browser.mjs",
     "verify:sidebar-central-browser": "node scripts/verify-sidebar-central-browser.mjs",
     "verify:sidebar-groups-browser": "node scripts/verify-sidebar-groups-browser.mjs",
+    "verify:tags-browser": "node scripts/verify-tags-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

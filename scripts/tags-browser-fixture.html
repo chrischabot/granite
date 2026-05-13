@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Tags Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { metadataCache } from "@core/metadata/cache";
+      import { settingsStore } from "@core/settings/store";
+      import { SearchView } from "@/ui/views/sidebar/SearchView";
+      import { TagsView } from "@/ui/views/sidebar/TagsView";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "tags-browser";
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const bootingRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || bootingRef.current) return;
+          bootingRef.current = true;
+          void (async () => {
+            try {
+              if (!activeVault) await openOpfs(vaultName);
+              await run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  yield* fs.writeText(
+                    "Tagged One.md",
+                    "---\ntags:\n  - work/client\n---\n# Tagged One\n\n#work/internal\n",
+                  );
+                  yield* fs.writeText("Tagged Two.md", "# Tagged Two\n\n#work/client #solo\n");
+                }),
+              );
+              await metadataCache.indexVault();
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        window.__graniteTagsBrowserReady = ready;
+        window.__graniteTagsBrowserSetNested = (value) =>
+          settingsStore.update({ showNestedTags: Boolean(value) });
+
+        if (error) {
+          window.__graniteTagsBrowserError = error;
+          return React.createElement("pre", { role: "alert" }, error);
+        }
+        if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
+
+        return React.createElement(
+          "main",
+          {
+            style: {
+              display: "grid",
+              gridTemplateColumns: "320px 1fr",
+              gap: 24,
+              height: "100vh",
+              padding: 16,
+            },
+          },
+          React.createElement("section", { "aria-label": "Tags pane" }, React.createElement(TagsView)),
+          React.createElement("section", { "aria-label": "Search pane" }, React.createElement(SearchView)),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(ThemeProvider, null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

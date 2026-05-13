@@ -12,7 +12,6 @@ const BOLD_ITALIC_STAR_RE = /\*\*\*([^*\n]+)\*\*\*/g;
 const BOLD_ITALIC_UNDERSCORE_RE = /___([^_\n]+)___/g;
 const HIGHLIGHT_RE = /==([^=\n]+)==/g;
 const STRIKE_RE = /~~([^~\n]+)~~/g;
-const UNDERSCORE_ITALIC_RE = /(?<![A-Za-z0-9_])_([^_\n]+)_(?![A-Za-z0-9_])/g;
 const WIKILINK_RE = /(!?)\[\[([^\]\n]+)\]\]/g;
 const MARKDOWN_LINK_RE = /(!?)\[([^\]\n]+)\]\(([^)\n]+)\)/g;
 const COMMENT_RE = /%%([^%\n]+)%%/g;
@@ -111,6 +110,19 @@ function underscoreRunLengthAt(line: string, index: number): number {
 function isDoubleUnderscoreMarker(line: string, index: number): boolean {
   return (
     underscoreRunLengthAt(line, index) === 2 && line[index - 1] !== "_" && !isEscaped(line, index)
+  );
+}
+
+function isWordChar(char: string | undefined): boolean {
+  return char !== undefined && /[A-Za-z0-9_]/.test(char);
+}
+
+function isSingleUnderscoreCandidate(line: string, index: number): boolean {
+  return (
+    line[index] === "_" &&
+    line[index - 1] !== "_" &&
+    line[index + 1] !== "_" &&
+    !isEscaped(line, index)
   );
 }
 
@@ -347,16 +359,31 @@ export function computeLivePreviewRanges(
       addReplace(idx + len - 2, idx + len);
     });
 
-    // Underscore italic: _word_ — hide the single `_` markers.
-    forEachMatch(UNDERSCORE_ITALIC_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 1)) {
-        return;
+    // Underscore italic: _word_ — hide single `_` markers at word
+    // boundaries without matching underscores inside identifiers. A delimiter
+    // scan preserves nested bold such as `_em __strong__ text_`.
+    for (let start = 0; start < line.length; start++) {
+      if (
+        !isSingleUnderscoreCandidate(line, start) ||
+        isWordChar(line[start - 1]) ||
+        overlapsCode(start, start + 1)
+      ) {
+        continue;
       }
-      addReplace(idx, idx + 1);
-      addReplace(idx + len - 1, idx + len);
-    });
+      for (let end = start + 1; end < line.length; end++) {
+        if (
+          !isSingleUnderscoreCandidate(line, end) ||
+          isWordChar(line[end + 1]) ||
+          overlapsCode(end, end + 1)
+        ) {
+          continue;
+        }
+        addReplace(start, start + 1);
+        addReplace(end, end + 1);
+        start = end;
+        break;
+      }
+    }
 
     // Wikilinks: hide `[[`, `]]`, and (if alias) the `Target|` prefix.
     forEachMatch(WIKILINK_RE, line, (m) => {

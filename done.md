@@ -127,6 +127,24 @@
 
 ---
 
+## 2026-05-13 — Live Preview nested underscore-bold-in-italic ratchet
+
+- **Root cause** — the single-underscore italic path still used a content
+  regex, so `_italic __bold__ text_` hid the nested bold markers but left the
+  outer italic delimiters visible.
+- **Decoration path** — replaced the single-underscore regex with a
+  boundary-aware delimiter scan. It keeps the existing identifier guard
+  (`foo_bar_baz` is not decorated), preserves punctuation-bound `_word_`, and
+  supports nested `__bold__` inside underscore italic.
+- **Tracker honesty** — kept the Live Preview TODO open because the remaining
+  browser/manual verification gate is still not closed by this source ratchet.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview nested underscore-emphasis ratchet
 
 - **Root cause** — the `__bold__` path had the same content-regex weakness as

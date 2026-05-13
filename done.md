@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Hotkeys browser verifier
+
+- **Root cause** — hotkey multi-binding and physical-key normalization had unit
+  coverage, but the severe-test list still depended on manual Settings checks
+  for visible effective bindings, add/remove/reset behavior, default override
+  suppression, and non-US physical-key capture.
+- **Browser path** — added `verify:hotkeys-browser`, which renders the real
+  Settings Hotkeys table with a registered test command, adds two bindings
+  through the UI, verifies the comma-separated display, triggers both custom
+  bindings, removes the latest binding while keeping the older one active, and
+  resets to restore the default binding.
+- **Physical-key guarantee** — the same verifier captures `KeyQ`, Backquote,
+  and ArrowDown through the Settings UI, proving US-layout physical labels are
+  displayed for letter/punctuation slots while semantic keys remain semantic.
+
+### Tests
+- `bun run verify:hotkeys-browser`
+- `node --check scripts/verify-hotkeys-browser.mjs`
+- `bun run test -- src/core/commands/hotkeys.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Canvas embed browser verifier
 
 - **Root cause** — embedded canvases had an integration test for initial mount,

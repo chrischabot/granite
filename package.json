@@ -29,6 +29,7 @@
     "verify:canvas-snap-browser": "node scripts/verify-canvas-snap-browser.mjs",
     "verify:canvas-marquee-browser": "node scripts/verify-canvas-marquee-browser.mjs",
     "verify:canvas-embed-browser": "node scripts/verify-canvas-embed-browser.mjs",
+    "verify:hotkeys-browser": "node scripts/verify-hotkeys-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

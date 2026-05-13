@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Hotkeys Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef } from "react";
+      import { createRoot } from "react-dom/client";
+      import { commandRegistry } from "@core/commands/CommandRegistry";
+      import { initHotkeyDispatcher, resetHotkeysForTests } from "@core/commands/hotkeys";
+      import { SettingsModal } from "@/ui/prompts/SettingsModal";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+
+      resetHotkeysForTests();
+      window.__graniteHotkeysBrowserCalls = [];
+
+      commandRegistry.register({
+        id: "verify:multi-hotkey",
+        name: "Verify multi hotkey",
+        category: "Verifier",
+        hotkeys: [{ modifiers: [], key: "F8" }],
+        callback: () => {
+          window.__graniteHotkeysBrowserCalls.push({
+            at: Date.now(),
+            count: window.__graniteHotkeysBrowserCalls.length + 1,
+          });
+        },
+      });
+
+      function Harness() {
+        const cleanupRef = useRef(null);
+        useEffect(() => {
+          cleanupRef.current = initHotkeyDispatcher();
+          return () => cleanupRef.current?.();
+        }, []);
+        window.__graniteHotkeysBrowserReady = true;
+        window.__graniteHotkeysBrowserCallCount = () => window.__graniteHotkeysBrowserCalls.length;
+        window.__graniteHotkeysBrowserResetCalls = () => {
+          window.__graniteHotkeysBrowserCalls = [];
+        };
+        return React.createElement(SettingsModal, { open: true, onClose: () => {} });
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(ThemeProvider, null, React.createElement(Harness)),
+      );
+    </script>
+  </body>
+</html>

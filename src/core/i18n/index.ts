@@ -424,6 +424,7 @@ const EN_LOCALE: LocaleMap = {
   "settings.files.attachmentsFolder": "Attachments folder",
   "settings.files.attachmentsFolderDesc":
     "Folder where pasted / dropped files are saved. Empty means the vault root.",
+  "settings.files.attachmentsPlaceholder": "attachments",
   "settings.files.confirmDelete": "Confirm file deletion",
   "settings.files.confirmDeleteDesc": "Ask before deleting files from the file explorer.",
   "settings.files.deletedFiles": "Deleted files",
@@ -438,6 +439,7 @@ const EN_LOCALE: LocaleMap = {
   "settings.files.excludedFiles": "Excluded files",
   "settings.files.excludedFilesDesc":
     "One pattern per line. A bare name (e.g. `archive`) matches any segment; `**` crosses directories. Comment lines start with `#`. Excluded files don't appear in the file explorer, switcher, search, or metadata cache.",
+  "settings.files.excludedFilesPlaceholder": "archive\n*.tmp\nprivate/**",
   "settings.hotkeys.desc.beforeEdit": "Click",
   "settings.hotkeys.edit": "Edit",
   "settings.hotkeys.desc.afterEdit":
@@ -461,6 +463,7 @@ const EN_LOCALE: LocaleMap = {
   "settings.dailyNotes.dateFormat": "Date format",
   "settings.dailyNotes.dateFormatDesc":
     "Moment-style tokens: YYYY YY MM DD HH mm. Slashes create subfolders.",
+  "settings.dailyNotes.dateFormatPlaceholder": "YYYY-MM-DD",
   "settings.dailyNotes.newFileLocation": "New file location",
   "settings.dailyNotes.newFileLocationDesc": "Folder for daily notes. Empty = vault root.",
   "settings.templates.folderLocation": "Template folder location",
@@ -468,8 +471,10 @@ const EN_LOCALE: LocaleMap = {
   "settings.templates.noFolderPlaceholder": "(no folder set)",
   "settings.templates.dateFormat": "Date format",
   "settings.templates.dateFormatDesc": "Used by the {{date}} template token.",
+  "settings.templates.dateFormatPlaceholder": "YYYY-MM-DD",
   "settings.templates.timeFormat": "Time format",
   "settings.templates.timeFormatDesc": "Used by the {{time}} template token.",
+  "settings.templates.timeFormatPlaceholder": "HH:mm",
   "settings.pluginTab.renderError": "Error rendering tab: {message}",
   "search.placeholder": "Search… (tag: path: file: line: -exclude)",
   "search.empty.short": "Keep typing… (need at least 2 characters)",
@@ -816,6 +821,7 @@ const EN_LOCALE: LocaleMap = {
   "installPlugin.searchPlaceholder": "Search community plugins",
   "installPlugin.registry.loading": "Loading community registry…",
   "installPlugin.manualUrl": "Manual manifest URL",
+  "installPlugin.manualUrlPlaceholder": "https://raw.githubusercontent.com/.../manifest.json",
   "installPlugin.fetching": "Fetching…",
   "installPlugin.fetch": "Fetch",
   "installPlugin.byAuthor": "by {author}",
@@ -1241,6 +1247,7 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "settings.files.attachmentsFolder": "תיקיית קבצים מצורפים",
     "settings.files.attachmentsFolderDesc":
       "תיקייה שבה נשמרים קבצים שמודבקים או נגררים. ריק פירושו שורש הכספת.",
+    "settings.files.attachmentsPlaceholder": "attachments",
     "settings.files.confirmDelete": "אישור מחיקת קבצים",
     "settings.files.confirmDeleteDesc": "בקשת אישור לפני מחיקת קבצים מסייר הקבצים.",
     "settings.files.deletedFiles": "קבצים שנמחקו",
@@ -1254,6 +1261,7 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "settings.files.excludedFiles": "קבצים מוחרגים",
     "settings.files.excludedFilesDesc":
       "תבנית אחת בכל שורה. שם פשוט (למשל `archive`) מתאים לכל מקטע; `**` חוצה תיקיות. שורות הערה מתחילות ב-`#`. קבצים מוחרגים לא מופיעים בסייר הקבצים, במחליף, בחיפוש או במטמון המטא-דאטה.",
+    "settings.files.excludedFilesPlaceholder": "archive\n*.tmp\nprivate/**",
     "settings.hotkeys.desc.beforeEdit": "לחצו על",
     "settings.hotkeys.edit": "עריכה",
     "settings.hotkeys.desc.afterEdit":
@@ -1277,6 +1285,7 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "settings.dailyNotes.dateFormat": "פורמט תאריך",
     "settings.dailyNotes.dateFormatDesc":
       "אסימונים בסגנון Moment: YYYY YY MM DD HH mm. לוכסנים יוצרים תיקיות משנה.",
+    "settings.dailyNotes.dateFormatPlaceholder": "YYYY-MM-DD",
     "settings.dailyNotes.newFileLocation": "מיקום קובץ חדש",
     "settings.dailyNotes.newFileLocationDesc": "תיקייה להערות יומיות. ריק = שורש הכספת.",
     "settings.templates.folderLocation": "מיקום תיקיית תבניות",
@@ -1284,8 +1293,10 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "settings.templates.noFolderPlaceholder": "(לא הוגדרה תיקייה)",
     "settings.templates.dateFormat": "פורמט תאריך",
     "settings.templates.dateFormatDesc": "משמש את אסימון התבנית {{date}}.",
+    "settings.templates.dateFormatPlaceholder": "YYYY-MM-DD",
     "settings.templates.timeFormat": "פורמט שעה",
     "settings.templates.timeFormatDesc": "משמש את אסימון התבנית {{time}}.",
+    "settings.templates.timeFormatPlaceholder": "HH:mm",
     "settings.pluginTab.renderError": "שגיאה ברינדור הלשונית: {message}",
     "search.placeholder": "חיפוש… (tag: path: file: line: -exclude)",
     "search.empty.short": "להמשיך להקליד… (צריך לפחות 2 תווים)",
@@ -1628,6 +1639,7 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "installPlugin.searchPlaceholder": "חיפוש תוספים קהילתיים",
     "installPlugin.registry.loading": "טוען רישום קהילתי…",
     "installPlugin.manualUrl": "כתובת מניפסט ידנית",
+    "installPlugin.manualUrlPlaceholder": "https://raw.githubusercontent.com/.../manifest.json",
     "installPlugin.fetching": "טוען…",
     "installPlugin.fetch": "טעינה",
     "installPlugin.byAuthor": "מאת {author}",

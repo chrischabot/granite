@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Settings/install placeholder i18n ratchet
+
+- **Settings placeholders** — routed attachments folder, excluded-file samples,
+  daily-note date format, and template date/time format placeholders through
+  locale keys.
+- **Install Plugin placeholder** — routed the manual manifest URL example
+  through i18n while preserving the URL sample as data.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if these Settings or Install Plugin placeholders return as hard-coded
+  JSX literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Graph placeholder i18n ratchet
 
 - **Graph placeholders** — routed graph filter and group-query placeholder

@@ -380,7 +380,7 @@ export function InstallPluginModal({ open, onClose }: InstallPluginModalProps) {
         <div style={{ display: "flex", gap: "var(--size-4-2)", marginTop: "var(--size-4-3)" }}>
           <input
             type="text"
-            placeholder="https://raw.githubusercontent.com/.../manifest.json"
+            placeholder={t("installPlugin.manualUrlPlaceholder")}
             value={url}
             onChange={(e) => setUrl(e.currentTarget.value)}
             style={{ flex: "1 1 auto" }}

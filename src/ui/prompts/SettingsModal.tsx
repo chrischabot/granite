@@ -417,7 +417,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   control={
                     <input
                       type="text"
-                      placeholder="attachments"
+                      placeholder={t("settings.files.attachmentsPlaceholder")}
                       value={settings.attachmentsFolder}
                       onChange={(e) =>
                         settingsStore.update({ attachmentsFolder: e.currentTarget.value })
@@ -474,7 +474,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                       onChange={(e) =>
                         settingsStore.update({ excludedFiles: e.currentTarget.value })
                       }
-                      placeholder={"archive\n*.tmp\nprivate/**"}
+                      placeholder={t("settings.files.excludedFilesPlaceholder")}
                       style={{
                         width: 280,
                         fontFamily: "var(--font-monospace)",
@@ -566,7 +566,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   control={
                     <input
                       type="text"
-                      placeholder="YYYY-MM-DD"
+                      placeholder={t("settings.dailyNotes.dateFormatPlaceholder")}
                       value={dailyNotes.format}
                       onChange={(e) => updateDaily({ format: e.currentTarget.value })}
                     />
@@ -607,7 +607,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   control={
                     <input
                       type="text"
-                      placeholder="YYYY-MM-DD"
+                      placeholder={t("settings.templates.dateFormatPlaceholder")}
                       value={templates.dateFormat}
                       onChange={(e) => updateTemplates({ dateFormat: e.currentTarget.value })}
                     />
@@ -619,7 +619,7 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   control={
                     <input
                       type="text"
-                      placeholder="HH:mm"
+                      placeholder={t("settings.templates.timeFormatPlaceholder")}
                       value={templates.timeFormat}
                       onChange={(e) => updateTemplates({ timeFormat: e.currentTarget.value })}
                     />

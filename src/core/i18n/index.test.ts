@@ -74,8 +74,15 @@ describe("i18n", () => {
     expect(t("graph.groups.queryPlaceholder")).toBe("tag:work");
     expect(t("fileRecovery.title")).toBe("שחזור קבצים");
     expect(t("installPlugin.title")).toBe("התקנת תוסף קהילתי");
+    expect(t("installPlugin.manualUrlPlaceholder")).toBe(
+      "https://raw.githubusercontent.com/.../manifest.json",
+    );
     expect(t("settings.searchPlaceholder")).toBe("חיפוש בהגדרות");
     expect(t("settings.appearance.baseScheme")).toBe("ערכת צבע בסיסית");
+    expect(t("settings.files.attachmentsPlaceholder")).toBe("attachments");
+    expect(t("settings.files.excludedFilesPlaceholder")).toBe("archive\n*.tmp\nprivate/**");
+    expect(t("settings.dailyNotes.dateFormatPlaceholder")).toBe("YYYY-MM-DD");
+    expect(t("settings.templates.timeFormatPlaceholder")).toBe("HH:mm");
     expect(t("settings.hotkeys.pressKey")).toBe("לחצו על מקש…");
     expect(t("settings.plugins.installFromUrl")).toBe("התקנת תוסף מכתובת URL…");
     expect(t("titlebar.navigateBack")).toBe("ניווט אחורה");

@@ -47,7 +47,7 @@ describe("type registry", () => {
     const snap = listAllOverrides();
     expect(snap).toEqual({ a: "date", b: "number" });
     // Snapshot is detached — mutating it shouldn't affect future reads.
-    snap["a"] = "text";
+    Reflect.set(snap, "a", "text");
     expect(getTypeOverride("a")).toBe("date");
   });
 

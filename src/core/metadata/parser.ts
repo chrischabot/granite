@@ -97,9 +97,14 @@ export function parseMetadata(src: string): ParsedMetadata {
     }
   }
 
-  const aliases = asStringArray(frontmatter["aliases"]);
-  const cssClasses = asStringArray(frontmatter["cssclasses"]);
-  const yamlTags = asStringArray(frontmatter["tags"]);
+  const knownFrontmatter = frontmatter as Record<string, unknown> & {
+    aliases?: unknown;
+    cssclasses?: unknown;
+    tags?: unknown;
+  };
+  const aliases = asStringArray(knownFrontmatter.aliases);
+  const cssClasses = asStringArray(knownFrontmatter.cssclasses);
+  const yamlTags = asStringArray(knownFrontmatter.tags);
 
   const headings: HeadingInfo[] = [];
   const links: InternalLinkInfo[] = [];
@@ -125,7 +130,7 @@ export function parseMetadata(src: string): ParsedMetadata {
     if (fenceMatch) {
       if (!inFence) {
         inFence = true;
-        fenceMarker = fenceMatch[1]!;
+        fenceMarker = fenceMatch[1] ?? "";
       } else if (line.startsWith(fenceMarker)) {
         inFence = false;
         fenceMarker = "";
@@ -141,9 +146,12 @@ export function parseMetadata(src: string): ParsedMetadata {
     // Heading.
     const hm = line.match(HEADING_RE);
     if (hm) {
+      const marker = hm[1];
+      const text = hm[2];
+      if (!marker || !text) continue;
       headings.push({
-        level: hm[1]!.length,
-        text: hm[2]!,
+        level: marker.length,
+        text,
         line: lineIndex,
         offset,
       });
@@ -151,8 +159,9 @@ export function parseMetadata(src: string): ParsedMetadata {
 
     // Block ID at end of line.
     const bm = line.match(BLOCK_ID_RE);
-    if (bm) {
-      blocks.push({ id: bm[1]!, line: lineIndex });
+    const blockId = bm?.[1];
+    if (blockId) {
+      blocks.push({ id: blockId, line: lineIndex });
     }
 
     // Footnote definition.
@@ -160,8 +169,9 @@ export function parseMetadata(src: string): ParsedMetadata {
     let isFootnoteDefLine = false;
     if (fnDef) {
       isFootnoteDefLine = true;
-      const id = fnDef[1]!.trim();
-      const body = fnDef[2]!;
+      const id = fnDef[1]?.trim();
+      const body = fnDef[2] ?? "";
+      if (!id) continue;
       const existing = footnoteMap.get(id);
       if (existing) {
         existing.definitionLine = lineIndex;
@@ -177,14 +187,16 @@ export function parseMetadata(src: string): ParsedMetadata {
 
     // Footnote references — skip the definition's own `[^id]:` token.
     if (!isFootnoteDefLine) {
-      let fm: RegExpExecArray | null;
       FOOTNOTE_REF_RE.lastIndex = 0;
-      while ((fm = FOOTNOTE_REF_RE.exec(line))) {
+      while (true) {
+        const fm = FOOTNOTE_REF_RE.exec(line);
+        if (!fm) break;
         // Skip refs inside inline code spans.
         const before = line.slice(0, fm.index);
         const ticks = (before.match(/`/g) ?? []).length;
         if (ticks % 2 === 1) continue;
-        const id = fm[1]!.trim();
+        const id = fm[1]?.trim();
+        if (!id) continue;
         const existing = footnoteMap.get(id);
         if (existing) existing.references.push(lineIndex);
         else
@@ -197,11 +209,13 @@ export function parseMetadata(src: string): ParsedMetadata {
     }
 
     // Wikilinks / embeds.
-    let lm: RegExpExecArray | null;
     WIKILINK_RE.lastIndex = 0;
-    while ((lm = WIKILINK_RE.exec(line))) {
+    while (true) {
+      const lm = WIKILINK_RE.exec(line);
+      if (!lm) break;
       const isEmbed = lm[1] === "!";
-      const inner = lm[2]!;
+      const inner = lm[2];
+      if (!inner) continue;
       // Skip if inside an inline code span. Crude: check for `…` around the match.
       // (Full markdown-it parsing is too expensive for the cache.)
       const before = line.slice(0, lm.index);
@@ -219,10 +233,12 @@ export function parseMetadata(src: string): ParsedMetadata {
     }
 
     // Tags.
-    let tm: RegExpExecArray | null;
     TAG_RE.lastIndex = 0;
-    while ((tm = TAG_RE.exec(line))) {
-      const name = tm[2]!;
+    while (true) {
+      const tm = TAG_RE.exec(line);
+      if (!tm) break;
+      const name = tm[2];
+      if (!name) continue;
       // Reject all-numeric.
       if (/^[0-9]+$/.test(name)) continue;
       tags.push({ name, line: lineIndex });

@@ -62,11 +62,23 @@ export type Expr =
 
 const MULTI_CHAR_OPS = ["==", "!=", "<=", ">=", "&&", "||"];
 
+function isDigitChar(c: string): boolean {
+  return c >= "0" && c <= "9";
+}
+
+function isIdentStart(c: string): boolean {
+  return (c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_";
+}
+
+function isIdentPart(c: string): boolean {
+  return isIdentStart(c) || isDigitChar(c);
+}
+
 function tokenize(input: string): Token[] {
   const out: Token[] = [];
   let i = 0;
   while (i < input.length) {
-    const c = input[i]!;
+    const c = input.charAt(i);
     if (c === " " || c === "\t" || c === "\n" || c === "\r") {
       i++;
       continue;
@@ -121,7 +133,7 @@ function tokenize(input: string): Token[] {
       i++;
       while (i < input.length && input[i] !== quote) {
         if (input[i] === "\\" && i + 1 < input.length) {
-          const next = input[i + 1]!;
+          const next = input.charAt(i + 1);
           if (next === "n") str += "\n";
           else if (next === "t") str += "\t";
           else if (next === "r") str += "\r";
@@ -140,11 +152,13 @@ function tokenize(input: string): Token[] {
       continue;
     }
     // Number
-    if (c >= "0" && c <= "9") {
+    if (isDigitChar(c)) {
       const start = i;
       let n = "";
-      while (i < input.length && ((input[i]! >= "0" && input[i]! <= "9") || input[i] === ".")) {
-        n += input[i];
+      while (i < input.length) {
+        const next = input.charAt(i);
+        if (!isDigitChar(next) && next !== ".") break;
+        n += next;
         i++;
       }
       const value = Number.parseFloat(n);
@@ -155,17 +169,13 @@ function tokenize(input: string): Token[] {
       continue;
     }
     // Identifier
-    if ((c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || c === "_") {
+    if (isIdentStart(c)) {
       const start = i;
       let id = "";
-      while (
-        i < input.length &&
-        ((input[i]! >= "a" && input[i]! <= "z") ||
-          (input[i]! >= "A" && input[i]! <= "Z") ||
-          (input[i]! >= "0" && input[i]! <= "9") ||
-          input[i] === "_")
-      ) {
-        id += input[i];
+      while (i < input.length) {
+        const next = input.charAt(i);
+        if (!isIdentPart(next)) break;
+        id += next;
         i++;
       }
       if (id === "true" || id === "false") {
@@ -188,8 +198,8 @@ class Parser {
 
   parse(): Expr {
     const e = this.expr();
-    if (this.pos < this.tokens.length) {
-      const t = this.tokens[this.pos]!;
+    const t = this.peek();
+    if (t) {
       throw new Error(`Unexpected token at position ${t.pos}`);
     }
     return e;
@@ -239,8 +249,9 @@ class Parser {
 
   private cmpExpr(): Expr {
     let left = this.addExpr();
-    let tok: Token | null;
-    while ((tok = this.matchOp("==", "!=", "<", "<=", ">", ">="))) {
+    while (true) {
+      const tok = this.matchOp("==", "!=", "<", "<=", ">", ">=");
+      if (!tok) break;
       const right = this.addExpr();
       left = { tag: "Binary", op: tok.value as string, left, right };
     }
@@ -249,8 +260,9 @@ class Parser {
 
   private addExpr(): Expr {
     let left = this.mulExpr();
-    let tok: Token | null;
-    while ((tok = this.matchOp("+", "-"))) {
+    while (true) {
+      const tok = this.matchOp("+", "-");
+      if (!tok) break;
       const right = this.mulExpr();
       left = { tag: "Binary", op: tok.value as string, left, right };
     }
@@ -259,8 +271,9 @@ class Parser {
 
   private mulExpr(): Expr {
     let left = this.unary();
-    let tok: Token | null;
-    while ((tok = this.matchOp("*", "/", "%"))) {
+    while (true) {
+      const tok = this.matchOp("*", "/", "%");
+      if (!tok) break;
       const right = this.unary();
       left = { tag: "Binary", op: tok.value as string, left, right };
     }
@@ -490,12 +503,12 @@ export function evaluateFormula(expr: Expr, bindings: Record<string, FormulaValu
     case "Null":
       return null;
     case "Var":
-      return expr.name in bindings ? bindings[expr.name]! : null;
+      return bindings[expr.name] ?? null;
     case "Field": {
       const obj = evaluateFormula(expr.target, bindings);
       if (obj === null || typeof obj !== "object" || Array.isArray(obj)) return null;
       const rec = obj as { readonly [k: string]: FormulaValue };
-      return expr.key in rec ? rec[expr.key]! : null;
+      return rec[expr.key] ?? null;
     }
     case "Index": {
       const target = evaluateFormula(expr.target, bindings);
@@ -508,7 +521,7 @@ export function evaluateFormula(expr: Expr, bindings: Record<string, FormulaValu
       if (target !== null && typeof target === "object") {
         const k = asString(key);
         const rec = target as { readonly [k: string]: FormulaValue };
-        return k in rec ? rec[k]! : null;
+        return rec[k] ?? null;
       }
       return null;
     }

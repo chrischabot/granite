@@ -1,7 +1,7 @@
-import { useEffect } from "react";
 import { metadataCache } from "@core/metadata/cache";
 import { useMetadataVersion } from "@core/metadata/useMetadata";
 import { useWorkspace } from "@core/workspace/useWorkspace";
+import { useEffect } from "react";
 
 const APPLIED_KEY = "__granite_applied_cssclasses__";
 
@@ -18,7 +18,8 @@ export function CssClassesBinder() {
     const desired = new Set<string>(meta?.cssClasses ?? []);
 
     const body = document.body;
-    const previous = (body as unknown as { [APPLIED_KEY]?: Set<string> })[APPLIED_KEY] ?? new Set<string>();
+    const previous =
+      (body as unknown as { [APPLIED_KEY]?: Set<string> })[APPLIED_KEY] ?? new Set<string>();
 
     // Remove classes that are no longer wanted.
     for (const cls of previous) {

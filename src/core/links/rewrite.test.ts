@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { rewriteWikilinksInText } from "./rewrite";
 
 describe("rewriteWikilinksInText", () => {
@@ -61,11 +61,7 @@ describe("rewriteWikilinksInText", () => {
   });
 
   it("rewrites markdown-form links with a fragment", () => {
-    const { text } = rewriteWikilinksInText(
-      "Refer to [link](Old.md#Section).",
-      "Old.md",
-      "New.md",
-    );
+    const { text } = rewriteWikilinksInText("Refer to [link](Old.md#Section).", "Old.md", "New.md");
     expect(text).toBe("Refer to [link](New.md#Section).");
   });
 

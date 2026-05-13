@@ -1,9 +1,9 @@
-import { Effect } from "effect";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
-import { settingsStore } from "@core/settings/store";
 import type { VaultPath } from "@core/fs/types";
+import { settingsStore } from "@core/settings/store";
+import { Effect } from "effect";
 
 export interface UnlinkedMatch {
   /** Zero-based line number where the mention was found. */
@@ -57,7 +57,7 @@ export function findUnlinkedMentionsInText(
     if (fenceOpen) {
       if (!inFence) {
         inFence = true;
-        fenceMarker = fenceOpen[1]!;
+        fenceMarker = fenceOpen[1] ?? "";
       } else if (line.startsWith(fenceMarker)) {
         inFence = false;
         fenceMarker = "";
@@ -79,8 +79,8 @@ export function findUnlinkedMentionsInText(
         if (idx === -1) break;
         const end = idx + search.length;
         // Word-boundary check (don't match inside larger identifiers).
-        const before = idx > 0 ? line[idx - 1] ?? "" : "";
-        const after = end < line.length ? line[end] ?? "" : "";
+        const before = idx > 0 ? (line[idx - 1] ?? "") : "";
+        const after = end < line.length ? (line[end] ?? "") : "";
         if ((before && WORD_CHAR_RE.test(before)) || (after && WORD_CHAR_RE.test(after))) {
           pos = idx + 1;
           continue;

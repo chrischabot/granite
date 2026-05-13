@@ -1,13 +1,6 @@
 import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
 
-export type PropertyType =
-  | "text"
-  | "number"
-  | "checkbox"
-  | "list"
-  | "date"
-  | "datetime"
-  | "json";
+export type PropertyType = "text" | "number" | "checkbox" | "list" | "date" | "datetime" | "json";
 
 export const PROPERTY_TYPES: ReadonlyArray<PropertyType> = [
   "text",
@@ -69,10 +62,7 @@ export function listAllOverrides(): Record<string, PropertyType> {
 
 /** Set or remove an override. Persists to disk asynchronously; failures are
  *  swallowed (the override still applies in-memory until next load). */
-export async function setTypeOverride(
-  name: string,
-  type: PropertyType | null,
-): Promise<void> {
+export async function setTypeOverride(name: string, type: PropertyType | null): Promise<void> {
   if (type === null) {
     if (!(name in state)) return;
     delete state[name];

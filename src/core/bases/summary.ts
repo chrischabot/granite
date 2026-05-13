@@ -55,7 +55,12 @@ export function computeSummary(spec: SummarySpec, values: ReadonlyArray<unknown>
     case "median": {
       const sorted = [...nums].sort((a, b) => a - b);
       const mid = Math.floor(sorted.length / 2);
-      const v = sorted.length % 2 === 1 ? sorted[mid]! : (sorted[mid - 1]! + sorted[mid]!) / 2;
+      const right = sorted[mid];
+      if (right === undefined) return { spec, label, value: null };
+      if (sorted.length % 2 === 1) return { spec, label, value: right };
+      const left = sorted[mid - 1];
+      if (left === undefined) return { spec, label, value: null };
+      const v = (left + right) / 2;
       return { spec, label, value: v };
     }
   }

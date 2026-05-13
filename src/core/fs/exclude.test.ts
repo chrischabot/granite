@@ -1,9 +1,5 @@
-import { describe, it, expect } from "vitest";
-import {
-  filterExcluded,
-  isExcluded,
-  parseExcludePatterns,
-} from "./exclude";
+import { describe, expect, it } from "vitest";
+import { filterExcluded, isExcluded, parseExcludePatterns } from "./exclude";
 
 describe("parseExcludePatterns", () => {
   it("splits on newlines and trims whitespace", () => {
@@ -11,10 +7,7 @@ describe("parseExcludePatterns", () => {
   });
 
   it("skips blank lines and # comments", () => {
-    expect(parseExcludePatterns("a\n# comment\n\nb\n#another")).toEqual([
-      "a",
-      "b",
-    ]);
+    expect(parseExcludePatterns("a\n# comment\n\nb\n#another")).toEqual(["a", "b"]);
   });
 
   it("handles null/empty input", () => {

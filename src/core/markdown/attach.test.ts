@@ -1,9 +1,5 @@
-import { describe, it, expect } from "vitest";
-import {
-  defaultExtensionFor,
-  extensionFromHint,
-  isSupportedAttachmentMime,
-} from "./attach";
+import { describe, expect, it } from "vitest";
+import { defaultExtensionFor, extensionFromHint, isSupportedAttachmentMime } from "./attach";
 
 describe("defaultExtensionFor", () => {
   it("maps image/png → png", () => {

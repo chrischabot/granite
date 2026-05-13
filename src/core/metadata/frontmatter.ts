@@ -37,29 +37,19 @@ export function parseFrontmatter(text: string): Record<string, unknown> {
   return {};
 }
 
-function rebuild(
-  fm: Record<string, unknown>,
-  body: string,
-  newline: "\n" | "\r\n",
-): string {
+function rebuild(fm: Record<string, unknown>, body: string, newline: "\n" | "\r\n"): string {
   const keys = Object.keys(fm);
   if (keys.length === 0) {
     // Drop frontmatter entirely if it's empty.
     return body.replace(/^\s+/, "");
   }
-  const dumped = yaml
-    .dump(fm, { lineWidth: 1000, noRefs: true })
-    .trimEnd();
+  const dumped = yaml.dump(fm, { lineWidth: 1000, noRefs: true }).trimEnd();
   return `---${newline}${dumped}${newline}---${newline}${body.startsWith(newline) ? body.slice(newline.length) : body}`;
 }
 
 /** Set a single frontmatter property. Returns the new file text. Creates a
  *  frontmatter block if missing. */
-export function updateFrontmatterValue(
-  text: string,
-  key: string,
-  value: unknown,
-): string {
+export function updateFrontmatterValue(text: string, key: string, value: unknown): string {
   const { body, newline } = splitFrontmatter(text);
   const fm = parseFrontmatter(text);
   fm[key] = value;
@@ -75,11 +65,7 @@ export function removeFrontmatterValue(text: string, key: string): string {
 }
 
 /** Rename a frontmatter property in place (preserves order best-effort via reassembly). */
-export function renameFrontmatterKey(
-  text: string,
-  oldKey: string,
-  newKey: string,
-): string {
+export function renameFrontmatterKey(text: string, oldKey: string, newKey: string): string {
   if (oldKey === newKey) return text;
   const { body, newline } = splitFrontmatter(text);
   const fm = parseFrontmatter(text);

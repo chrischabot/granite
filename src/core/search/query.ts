@@ -112,9 +112,10 @@ export function parseQuery(input: string): ParsedQuery {
   const props: PropertyConstraint[] = [];
   const negatedProps: PropertyConstraint[] = [];
 
-  let m: RegExpExecArray | null;
   TOKEN_RE.lastIndex = 0;
-  while ((m = TOKEN_RE.exec(input))) {
+  while (true) {
+    const m = TOKEN_RE.exec(input);
+    if (!m) break;
     let token = m[0];
     if (!token) continue;
     let negate = false;
@@ -301,9 +302,11 @@ export function fileMatchesQuery(
 function extractInlineTagsFromText(text: string): string[] {
   const out: string[] = [];
   const re = /(^|\s|\(|\[)#([\p{L}\p{N}_/-]+)/gu;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text))) {
-    const tag = m[2]!;
+  while (true) {
+    const m = re.exec(text);
+    if (!m) break;
+    const tag = m[2];
+    if (!tag) continue;
     if (!/^[0-9]+$/.test(tag)) out.push(tag);
   }
   return out;

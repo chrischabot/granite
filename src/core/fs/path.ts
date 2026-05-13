@@ -48,10 +48,10 @@ export function normalize(path: string): VaultPath {
   return segments.join("/");
 }
 
-const ILLEGAL = /[<>:"\\|?*\x00-\x1f]/;
+const ILLEGAL_CHARS = '<>:"\\|?*';
 
 /** Returns true if `name` contains characters disallowed by Windows or POSIX. */
 export function isInvalidName(name: string): boolean {
   if (!name || name === "." || name === "..") return true;
-  return ILLEGAL.test(name);
+  return [...name].some((char) => ILLEGAL_CHARS.includes(char) || char.charCodeAt(0) < 32);
 }

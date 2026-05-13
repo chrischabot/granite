@@ -65,10 +65,7 @@ body.is-focused .workspace-tab-header-container .workspace-tab-header {
 body.is-focused .workspace-tab-header-container .workspace-tab-header.is-active {
   color: var(--tab-text-color-focused-active);
 }
-body.is-focused
-  .mod-root
-  .workspace-tab-header-container
-  .workspace-tab-header.is-active {
+body.is-focused .mod-root .workspace-tab-header-container .workspace-tab-header.is-active {
   color: var(--tab-text-color-focused-active-current);
 }
 

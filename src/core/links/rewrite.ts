@@ -1,8 +1,8 @@
-import { Effect } from "effect";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { stem } from "@core/fs/path";
 import type { VaultPath } from "@core/fs/types";
+import { Effect } from "effect";
 
 export interface RewriteResult {
   readonly filesUpdated: number;
@@ -77,8 +77,7 @@ export function rewriteWikilinksInText(
   let out = text.replace(/(!?)\[\[([^\]\n]+)\]\]/g, (whole, bang: string, inner: string) => {
     const parts = parseInner(inner);
     const matchesStem = parts.beforeHash === oldStem;
-    const matchesFull =
-      parts.beforeHash === oldPath || parts.beforeHash === oldNoExt;
+    const matchesFull = parts.beforeHash === oldPath || parts.beforeHash === oldNoExt;
     if (!matchesStem && !matchesFull) return whole;
     const replacement = matchesFull ? newNoExt : newStem;
     count += 1;
@@ -87,38 +86,31 @@ export function rewriteWikilinksInText(
 
   // 2) Markdown-form links: [text](path) where path matches the renamed file.
   //    Skip protocol/absolute/anchor-only hrefs.
-  out = out.replace(
-    /(\[[^\]\n]+\])\(([^)\n]+)\)/g,
-    (whole, label: string, hrefRaw: string) => {
-      const href = hrefRaw.trim();
-      if (!href) return whole;
-      // Skip absolute/scheme/anchor-only.
-      if (
-        /^[a-z][a-z0-9+.-]*:/i.test(href) ||
-        href.startsWith("//") ||
-        href.startsWith("#")
-      ) {
-        return whole;
-      }
-      // Decode the path part (strip fragment first).
-      const hashIdx = href.indexOf("#");
-      const pathPart = hashIdx === -1 ? href : href.slice(0, hashIdx);
-      const fragment = hashIdx === -1 ? "" : href.slice(hashIdx);
-      let decoded: string;
-      try {
-        decoded = decodeURIComponent(pathPart);
-      } catch {
-        decoded = pathPart;
-      }
-      const decodedNoExt = decoded.replace(/\.md$/i, "");
-      const matchesFull = decoded === oldPath || decodedNoExt === oldNoExt;
-      const matchesStem = decoded === oldStem;
-      if (!matchesFull && !matchesStem) return whole;
-      const targetPath = matchesFull ? newPath : `${newStem}.md`;
-      count += 1;
-      return `${label}(${encodeURI(targetPath)}${fragment})`;
-    },
-  );
+  out = out.replace(/(\[[^\]\n]+\])\(([^)\n]+)\)/g, (whole, label: string, hrefRaw: string) => {
+    const href = hrefRaw.trim();
+    if (!href) return whole;
+    // Skip absolute/scheme/anchor-only.
+    if (/^[a-z][a-z0-9+.-]*:/i.test(href) || href.startsWith("//") || href.startsWith("#")) {
+      return whole;
+    }
+    // Decode the path part (strip fragment first).
+    const hashIdx = href.indexOf("#");
+    const pathPart = hashIdx === -1 ? href : href.slice(0, hashIdx);
+    const fragment = hashIdx === -1 ? "" : href.slice(hashIdx);
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(pathPart);
+    } catch {
+      decoded = pathPart;
+    }
+    const decodedNoExt = decoded.replace(/\.md$/i, "");
+    const matchesFull = decoded === oldPath || decodedNoExt === oldNoExt;
+    const matchesStem = decoded === oldStem;
+    if (!matchesFull && !matchesStem) return whole;
+    const targetPath = matchesFull ? newPath : `${newStem}.md`;
+    count += 1;
+    return `${label}(${encodeURI(targetPath)}${fragment})`;
+  });
 
   return { text: out, count };
 }

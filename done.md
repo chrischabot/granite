@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Repo-wide Biome lint gate
+
+- **Root cause** — the project completion gate required `bun run lint`, but
+  the repo still carried a pre-existing Biome baseline of formatting, import
+  ordering, non-null assertions, index-key usage, and media-caption diagnostics.
+- **Product fix** — applied Biome's mechanical formatting/import fixes, then
+  replaced the remaining assertions and assignment-in-condition loops with
+  explicit guards, stable overlay entry ids, and documented media-caption
+  exceptions for arbitrary vault audio/video files.
+- **Coverage** — `bun run lint`, `bun run typecheck`, the full Vitest suite,
+  `git diff --check`, and `bun run build` now pass together.
+
+### Tests
+- `bun run lint`
+- `bun run typecheck`
+- `bun run test`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Native trash browser host-contract verifier
 
 - **Root cause** — trash coverage proved the low-level system-trash bridge in

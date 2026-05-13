@@ -1,8 +1,8 @@
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
-import { extension } from "@core/fs/path";
 import type { NativeFileKind } from "@core/fs/file-formats";
 import { mimeForNativeExtension } from "@core/fs/file-formats";
+import { extension } from "@core/fs/path";
 import type { VaultPath } from "@core/fs/types";
 import { Effect } from "effect";
 import { useEffect, useState } from "react";
@@ -55,6 +55,7 @@ export function AssetView({ path, kind }: { path: VaultPath; kind: NativeFileKin
   if (kind === "audio") {
     return (
       <div className="asset-view mod-audio">
+        {/* biome-ignore lint/a11y/useMediaCaption: Vault audio files do not necessarily ship caption tracks. */}
         <audio src={url} controls />
       </div>
     );
@@ -62,6 +63,7 @@ export function AssetView({ path, kind }: { path: VaultPath; kind: NativeFileKin
   if (kind === "video") {
     return (
       <div className="asset-view mod-video">
+        {/* biome-ignore lint/a11y/useMediaCaption: Vault video files do not necessarily ship caption tracks. */}
         <video src={url} controls />
       </div>
     );

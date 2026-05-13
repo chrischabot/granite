@@ -1,5 +1,5 @@
-import type { VaultPath } from "@core/fs/types";
 import type { NativeFileKind } from "@core/fs/file-formats";
+import type { VaultPath } from "@core/fs/types";
 
 export type LeafId = string;
 export type TabGroupId = string;

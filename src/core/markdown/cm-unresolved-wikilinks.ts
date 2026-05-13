@@ -1,13 +1,13 @@
+import { RangeSetBuilder, StateEffect } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
-  EditorView,
+  type EditorView,
   ViewPlugin,
   type ViewUpdate,
 } from "@codemirror/view";
-import { RangeSetBuilder, StateEffect } from "@codemirror/state";
-import { metadataCache } from "@core/metadata/cache";
 import { parseWikilink } from "@core/markdown/renderer";
+import { metadataCache } from "@core/metadata/cache";
 
 /** Dispatched as a no-op transaction when the metadata cache emits so the
  *  ViewPlugin's `update` hook gets a chance to rebuild its decorations. */
@@ -21,8 +21,9 @@ function buildDecorations(view: EditorView): DecorationSet {
   const builder = new RangeSetBuilder<Decoration>();
   const text = view.state.doc.toString();
   WIKILINK_RE.lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = WIKILINK_RE.exec(text)) !== null) {
+  while (true) {
+    const m = WIKILINK_RE.exec(text);
+    if (!m) break;
     // Skip embeds (`![[image.png]]`): the metadata cache doesn't track
     // attachments, so they'd always show as unresolved otherwise.
     if (m[1] === "!") continue;
@@ -30,9 +31,7 @@ function buildDecorations(view: EditorView): DecorationSet {
     if (!inner) continue;
     const parts = parseWikilink(inner);
     if (!parts.target) continue;
-    const targetPath = parts.target.endsWith(".md")
-      ? parts.target
-      : `${parts.target}.md`;
+    const targetPath = parts.target.endsWith(".md") ? parts.target : `${parts.target}.md`;
     if (metadataCache.getMetadata(targetPath)) continue;
     const start = m.index;
     const end = start + m[0].length;

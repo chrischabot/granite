@@ -29,7 +29,7 @@ export interface SettingsTabSpec {
   readonly id: string;
   readonly pluginId: string;
   readonly name: string;
-  readonly render: (container: HTMLElement) => void | (() => void);
+  readonly render: (container: HTMLElement) => undefined | (() => void);
 }
 
 let counter = 0;
@@ -126,7 +126,7 @@ export function subscribeSettingsTabs(listener: () => void): () => void {
 
 export function addSettingsTab(
   pluginId: string,
-  spec: { name: string; render: (container: HTMLElement) => void | (() => void) },
+  spec: { name: string; render: (container: HTMLElement) => undefined | (() => void) },
 ): () => void {
   const id = `tab-${pluginId}-${(++counter).toString(36)}`;
   settingsTabs.set(id, {

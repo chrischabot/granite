@@ -1,4 +1,4 @@
-import { type ReactNode, forwardRef, type ButtonHTMLAttributes } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, forwardRef } from "react";
 
 export interface ClickableIconProps
   extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"> {
@@ -10,16 +10,8 @@ export interface ClickableIconProps
 }
 
 export const ClickableIcon = forwardRef<HTMLButtonElement, ClickableIconProps>(
-  function ClickableIcon(
-    { icon, ariaLabel, active, modifier, className, disabled, ...rest },
-    ref,
-  ) {
-    const classes = [
-      "clickable-icon",
-      modifier ?? "",
-      active ? "is-active" : "",
-      className ?? "",
-    ]
+  function ClickableIcon({ icon, ariaLabel, active, modifier, className, disabled, ...rest }, ref) {
+    const classes = ["clickable-icon", modifier ?? "", active ? "is-active" : "", className ?? ""]
       .filter(Boolean)
       .join(" ");
     return (

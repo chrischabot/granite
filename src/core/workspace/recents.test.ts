@@ -1,11 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
-import {
-  addRecent,
-  clearRecents,
-  listRecents,
-  removeRecent,
-  subscribeRecents,
-} from "./recents";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { addRecent, clearRecents, listRecents, removeRecent, subscribeRecents } from "./recents";
 
 beforeEach(() => {
   clearRecents();

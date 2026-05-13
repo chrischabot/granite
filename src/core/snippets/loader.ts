@@ -1,9 +1,9 @@
-import { Effect } from "effect";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { extension } from "@core/fs/path";
-import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
 import type { VaultPath } from "@core/fs/types";
+import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
+import { Effect } from "effect";
 
 const SNIPPETS_DIR = ".granite/snippets";
 const STORAGE_KEY = "granite.snippets.enabled.v1";

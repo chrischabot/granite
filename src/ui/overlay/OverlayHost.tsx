@@ -1,14 +1,19 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 
 type Slot = "modal" | "menu" | "notice" | "tooltip";
+interface OverlayEntry {
+  readonly id: number;
+  readonly node: ReactNode;
+}
 
-type SlotState = Record<Slot, ReactNode[]>;
+type SlotState = Record<Slot, OverlayEntry[]>;
 
 const initialSlots: SlotState = { modal: [], menu: [], notice: [], tooltip: [] };
 
 const subscribers = new Set<(state: SlotState) => void>();
 let state: SlotState = initialSlots;
+let nextOverlayId = 0;
 
 function notify(updater: (s: SlotState) => SlotState) {
   state = updater(state);
@@ -17,9 +22,10 @@ function notify(updater: (s: SlotState) => SlotState) {
 
 /** Imperatively push a node into a slot. Returns a disposer. */
 export function mountOverlay(slot: Slot, node: ReactNode): () => void {
-  notify((s) => ({ ...s, [slot]: [...s[slot], node] }));
+  const entry = { id: ++nextOverlayId, node };
+  notify((s) => ({ ...s, [slot]: [...s[slot], entry] }));
   return () => {
-    notify((s) => ({ ...s, [slot]: s[slot].filter((n) => n !== node) }));
+    notify((s) => ({ ...s, [slot]: s[slot].filter((n) => n.id !== entry.id) }));
   };
 }
 
@@ -36,27 +42,27 @@ export function OverlayHost() {
 
   return createPortal(
     <>
-      {snapshot.modal.map((n, i) => (
-        <div key={`modal-${i}`} className="overlay-slot overlay-modal">
-          {n}
+      {snapshot.modal.map((entry) => (
+        <div key={entry.id} className="overlay-slot overlay-modal">
+          {entry.node}
         </div>
       ))}
-      {snapshot.menu.map((n, i) => (
-        <div key={`menu-${i}`} className="overlay-slot overlay-menu">
-          {n}
+      {snapshot.menu.map((entry) => (
+        <div key={entry.id} className="overlay-slot overlay-menu">
+          {entry.node}
         </div>
       ))}
       {snapshot.notice.length > 0 && (
         <div className="notice-container">
-          {snapshot.notice.map((n, i) => (
-            <div key={`notice-${i}`} className="notice">
-              {n}
+          {snapshot.notice.map((entry) => (
+            <div key={entry.id} className="notice">
+              {entry.node}
             </div>
           ))}
         </div>
       )}
-      {snapshot.tooltip.map((n, i) => (
-        <div key={`tooltip-${i}`}>{n}</div>
+      {snapshot.tooltip.map((entry) => (
+        <div key={entry.id}>{entry.node}</div>
       ))}
     </>,
     document.body,

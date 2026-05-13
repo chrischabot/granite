@@ -23,7 +23,10 @@ export type VaultEntry = VaultFile | VaultDirectory;
 
 /** Filesystem errors as a tagged ADT. */
 export class FsNotFound extends Data.TaggedError("FsNotFound")<{ path: VaultPath }> {}
-export class FsAccessDenied extends Data.TaggedError("FsAccessDenied")<{ path: VaultPath; reason: string }> {}
+export class FsAccessDenied extends Data.TaggedError("FsAccessDenied")<{
+  path: VaultPath;
+  reason: string;
+}> {}
 export class FsAlreadyExists extends Data.TaggedError("FsAlreadyExists")<{ path: VaultPath }> {}
 export class FsIoError extends Data.TaggedError("FsIoError")<{ path: VaultPath; cause: unknown }> {}
 export class FsUnsupported extends Data.TaggedError("FsUnsupported")<{ feature: string }> {}

@@ -1,8 +1,8 @@
-import { Effect } from "effect";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { join, normalize } from "@core/fs/path";
 import { settingsStore } from "@core/settings/store";
+import { Effect } from "effect";
 
 const PAD2 = (n: number) => n.toString().padStart(2, "0");
 
@@ -39,7 +39,8 @@ export function defaultExtensionFor(mime: string): string {
 /** Extract the extension from a filename hint, falling back to the MIME default. */
 export function extensionFromHint(hint: string | undefined, mime: string): string {
   const m = hint?.match(/\.([a-zA-Z0-9]{1,8})$/);
-  return m ? m[1]!.toLowerCase() : defaultExtensionFor(mime);
+  const ext = m?.[1];
+  return ext ? ext.toLowerCase() : defaultExtensionFor(mime);
 }
 
 /**
@@ -88,15 +89,16 @@ export async function saveAttachment(
     const altName = `paste-${timestampPart()}-${altSuffix}-${Date.now()}.${ext}`;
     chosen = folder ? join(folder, altName) : altName;
   }
+  const targetPath = chosen;
 
   await run(
     Effect.gen(function* () {
       const fs = yield* FileSystem;
       if (folder) yield* fs.mkdir(folder);
-      yield* fs.writeBytes(chosen!, bytes);
+      yield* fs.writeBytes(targetPath, bytes);
     }),
   );
-  return chosen;
+  return targetPath;
 }
 
 /** Decide if a MIME type is supported as an inline attachment we know how to render. */

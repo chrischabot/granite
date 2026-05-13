@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 const SHOW_DELAY_MS = 500;
@@ -23,14 +23,9 @@ export function TooltipHost() {
       if (!target) return;
       // Skip targets that already have a real tooltip (e.g. native title) and
       // never tooltip on input fields or contenteditable.
-      if (
-        target.tagName === "INPUT" ||
-        target.tagName === "TEXTAREA" ||
-        target.isContentEditable
-      )
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
         return;
-      const text =
-        target.getAttribute("data-tooltip") ?? target.getAttribute("aria-label") ?? "";
+      const text = target.getAttribute("data-tooltip") ?? target.getAttribute("aria-label") ?? "";
       if (!text) return;
       // Honor the "no-tooltip" CSS variable opt-out.
       const noTip = getComputedStyle(target).getPropertyValue("--no-tooltip").trim();
@@ -42,7 +37,13 @@ export function TooltipHost() {
         if (targetRef.current !== target) return;
         const rect = target.getBoundingClientRect();
         const placement: TooltipState["placement"] =
-          rect.top < 80 ? "bottom" : rect.left < 80 ? "right" : rect.right > window.innerWidth - 80 ? "left" : "top";
+          rect.top < 80
+            ? "bottom"
+            : rect.left < 80
+              ? "right"
+              : rect.right > window.innerWidth - 80
+                ? "left"
+                : "top";
         const x =
           placement === "left"
             ? rect.left - 8
@@ -59,10 +60,7 @@ export function TooltipHost() {
       }, SHOW_DELAY_MS);
     };
     const onOut = (e: MouseEvent) => {
-      if (
-        targetRef.current &&
-        !targetRef.current.contains(e.relatedTarget as Node | null)
-      ) {
+      if (targetRef.current && !targetRef.current.contains(e.relatedTarget as Node | null)) {
         targetRef.current = null;
         if (timerRef.current) clearTimeout(timerRef.current);
         setState(null);

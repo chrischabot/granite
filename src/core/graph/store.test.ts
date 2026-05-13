@@ -51,7 +51,9 @@ describe("graph groups", () => {
     const after = getGraphConfig().groups;
     expect(after).toHaveLength(1);
     expect(after[0]?.name).toBe("Work");
-    const id = after[0]!.id;
+    const id = after[0]?.id;
+    expect(id).toBeDefined();
+    if (!id) return;
     updateGraphGroup(id, { color: "blue" });
     expect(getGraphConfig().groups[0]?.color).toBe("blue");
     removeGraphGroup(id);

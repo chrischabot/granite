@@ -13,12 +13,13 @@ export function extractHeadingSection(text: string, heading: string): string | n
   for (let i = 0; i < lines.length; i++) {
     const m = (lines[i] ?? "").match(HEADING_RE);
     if (!m) continue;
-    if (m[2]!.trim().toLowerCase() !== wanted) continue;
-    const startLevel = m[1]!.length;
+    if (m[2]?.trim().toLowerCase() !== wanted) continue;
+    const startLevel = m[1]?.length;
+    if (startLevel === undefined) continue;
     let end = lines.length;
     for (let j = i + 1; j < lines.length; j++) {
-      const mj = (lines[j] ?? "").match(HEADING_RE);
-      if (mj && mj[1]!.length <= startLevel) {
+      const nextLevel = (lines[j] ?? "").match(HEADING_RE)?.[1]?.length;
+      if (nextLevel !== undefined && nextLevel <= startLevel) {
         end = j;
         break;
       }

@@ -1,6 +1,6 @@
-import { Effect } from "effect";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
+import { Effect } from "effect";
 
 export type CanvasColor = "1" | "2" | "3" | "4" | "5" | "6" | string;
 
@@ -60,6 +60,40 @@ export interface Canvas {
 
 export const EMPTY_CANVAS: Canvas = { nodes: [], edges: [] };
 
+interface CanvasRootInput {
+  readonly nodes?: unknown;
+  readonly edges?: unknown;
+}
+
+interface CanvasNodeInput {
+  readonly id?: unknown;
+  readonly type?: unknown;
+  readonly x?: unknown;
+  readonly y?: unknown;
+  readonly width?: unknown;
+  readonly height?: unknown;
+  readonly color?: unknown;
+  readonly text?: unknown;
+  readonly file?: unknown;
+  readonly subpath?: unknown;
+  readonly url?: unknown;
+  readonly label?: unknown;
+  readonly background?: unknown;
+  readonly backgroundStyle?: unknown;
+}
+
+interface CanvasEdgeInput {
+  readonly id?: unknown;
+  readonly fromNode?: unknown;
+  readonly toNode?: unknown;
+  readonly fromSide?: unknown;
+  readonly toSide?: unknown;
+  readonly fromEnd?: unknown;
+  readonly toEnd?: unknown;
+  readonly color?: unknown;
+  readonly label?: unknown;
+}
+
 function asString(v: unknown): string | null {
   return typeof v === "string" ? v : null;
 }
@@ -84,70 +118,74 @@ export function parseCanvas(raw: string): Canvas {
     return EMPTY_CANVAS;
   }
   if (!json || typeof json !== "object") return EMPTY_CANVAS;
-  const root = json as Record<string, unknown>;
-  const nodesIn = Array.isArray(root["nodes"]) ? root["nodes"] : [];
-  const edgesIn = Array.isArray(root["edges"]) ? root["edges"] : [];
+  const root = json as CanvasRootInput;
+  const nodesIn = Array.isArray(root.nodes) ? root.nodes : [];
+  const edgesIn = Array.isArray(root.edges) ? root.edges : [];
 
   const nodes: CanvasNode[] = [];
   for (const item of nodesIn) {
     if (!item || typeof item !== "object") continue;
-    const o = item as Record<string, unknown>;
-    const id = asString(o["id"]);
-    const type = asString(o["type"]);
+    const o = item as CanvasNodeInput;
+    const id = asString(o.id);
+    const type = asString(o.type);
     if (!id || !type) continue;
     const base: BaseNode = {
       id,
-      x: asNumber(o["x"], 0),
-      y: asNumber(o["y"], 0),
-      width: asNumber(o["width"], 200),
-      height: asNumber(o["height"], 80),
-      ...(typeof o["color"] === "string" ? { color: o["color"] as string } : {}),
+      x: asNumber(o.x, 0),
+      y: asNumber(o.y, 0),
+      width: asNumber(o.width, 200),
+      height: asNumber(o.height, 80),
+      ...(typeof o.color === "string" ? { color: o.color as string } : {}),
     };
     switch (type) {
       case "text":
-        nodes.push({ ...base, type: "text", text: asString(o["text"]) ?? "" });
+        nodes.push({ ...base, type: "text", text: asString(o.text) ?? "" });
         break;
       case "file":
-        nodes.push({
-          ...base,
-          type: "file",
-          file: asString(o["file"]) ?? "",
-          ...(asString(o["subpath"]) ? { subpath: asString(o["subpath"])! } : {}),
-        });
+        {
+          const subpath = asString(o.subpath);
+          nodes.push({
+            ...base,
+            type: "file",
+            file: asString(o.file) ?? "",
+            ...(subpath ? { subpath } : {}),
+          });
+        }
         break;
       case "link":
-        nodes.push({ ...base, type: "link", url: asString(o["url"]) ?? "" });
+        nodes.push({ ...base, type: "link", url: asString(o.url) ?? "" });
         break;
-      case "group":
+      case "group": {
+        const label = asString(o.label);
+        const background = asString(o.background);
         nodes.push({
           ...base,
           type: "group",
-          ...(asString(o["label"]) ? { label: asString(o["label"])! } : {}),
-          ...(asString(o["background"])
-            ? { background: asString(o["background"])! }
-            : {}),
-          ...(o["backgroundStyle"] === "cover" ||
-          o["backgroundStyle"] === "ratio" ||
-          o["backgroundStyle"] === "repeat"
-            ? { backgroundStyle: o["backgroundStyle"] as "cover" | "ratio" | "repeat" }
+          ...(label ? { label } : {}),
+          ...(background ? { background } : {}),
+          ...(o.backgroundStyle === "cover" ||
+          o.backgroundStyle === "ratio" ||
+          o.backgroundStyle === "repeat"
+            ? { backgroundStyle: o.backgroundStyle as "cover" | "ratio" | "repeat" }
             : {}),
         });
         break;
+      }
     }
   }
 
   const edges: CanvasEdge[] = [];
   for (const item of edgesIn) {
     if (!item || typeof item !== "object") continue;
-    const o = item as Record<string, unknown>;
-    const id = asString(o["id"]);
-    const from = asString(o["fromNode"]);
-    const to = asString(o["toNode"]);
+    const o = item as CanvasEdgeInput;
+    const id = asString(o.id);
+    const from = asString(o.fromNode);
+    const to = asString(o.toNode);
     if (!id || !from || !to) continue;
-    const fromSide = asSide(o["fromSide"]);
-    const toSide = asSide(o["toSide"]);
-    const fromEnd = asEnd(o["fromEnd"]);
-    const toEnd = asEnd(o["toEnd"]);
+    const fromSide = asSide(o.fromSide);
+    const toSide = asSide(o.toSide);
+    const fromEnd = asEnd(o.fromEnd);
+    const toEnd = asEnd(o.toEnd);
     edges.push({
       id,
       fromNode: from,
@@ -156,8 +194,8 @@ export function parseCanvas(raw: string): Canvas {
       ...(toSide ? { toSide } : {}),
       ...(fromEnd ? { fromEnd } : {}),
       ...(toEnd ? { toEnd } : {}),
-      ...(typeof o["color"] === "string" ? { color: o["color"] as string } : {}),
-      ...(typeof o["label"] === "string" ? { label: o["label"] as string } : {}),
+      ...(typeof o.color === "string" ? { color: o.color as string } : {}),
+      ...(typeof o.label === "string" ? { label: o.label as string } : {}),
     });
   }
 

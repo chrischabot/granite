@@ -1,11 +1,11 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
-import { metadataCache } from "./cache";
-import { parseMetadata, type ParsedMetadata } from "./parser";
 import { useVault } from "@/ui/vault/VaultContext";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
-import { Effect } from "effect";
 import type { VaultPath } from "@core/fs/types";
+import { Effect } from "effect";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import { metadataCache } from "./cache";
+import { type ParsedMetadata, parseMetadata } from "./parser";
 
 /** Returns a counter that increments each time the cache emits. Subscribe to
  * trigger re-render; call back into the cache for the actual data. */

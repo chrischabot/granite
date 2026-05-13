@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   countTagOccurrences,
   rewriteFrontmatterTags,
@@ -8,15 +8,11 @@ import {
 
 describe("rewriteInlineTags", () => {
   it("renames a single occurrence", () => {
-    expect(rewriteInlineTags("hello #foo there", "foo", "bar")).toBe(
-      "hello #bar there",
-    );
+    expect(rewriteInlineTags("hello #foo there", "foo", "bar")).toBe("hello #bar there");
   });
 
   it("preserves hierarchy under the renamed tag", () => {
-    expect(rewriteInlineTags("#foo and #foo/sub", "foo", "bar")).toBe(
-      "#bar and #bar/sub",
-    );
+    expect(rewriteInlineTags("#foo and #foo/sub", "foo", "bar")).toBe("#bar and #bar/sub");
   });
 
   it("does not match unrelated tags or substrings", () => {
@@ -27,9 +23,7 @@ describe("rewriteInlineTags", () => {
     expect(rewriteInlineTags("#fool", "foo", "bar")).toBe("#fool");
     expect(rewriteInlineTags("#foobar", "foo", "bar")).toBe("#foobar");
     expect(rewriteInlineTags("#foo-bar", "foo", "bar")).toBe("#foo-bar");
-    expect(rewriteInlineTags("#foo #foobar #foo/sub", "foo", "bar")).toBe(
-      "#bar #foobar #bar/sub",
-    );
+    expect(rewriteInlineTags("#foo #foobar #foo/sub", "foo", "bar")).toBe("#bar #foobar #bar/sub");
   });
 
   it("respects boundary characters", () => {
@@ -45,7 +39,7 @@ describe("rewriteFrontmatterTags — inline list", () => {
   });
 
   it("preserves quoting style", () => {
-    const src = '---\ntags: ["foo", \'foo/sub\']\n---\nb';
+    const src = "---\ntags: [\"foo\", 'foo/sub']\n---\nb";
     const next = rewriteFrontmatterTags(src, "foo", "bar");
     expect(next).toContain('"bar"');
     expect(next).toContain("'bar/sub'");
@@ -108,8 +102,7 @@ describe("countTagOccurrences", () => {
   });
 
   it("does not count YAML `-` items outside a tags: block", () => {
-    const src =
-      "---\naliases:\n  - foo\n  - foo/sub\ntags:\n  - foo\n---\n";
+    const src = "---\naliases:\n  - foo\n  - foo/sub\ntags:\n  - foo\n---\n";
     expect(countTagOccurrences(src, "foo")).toBe(1);
   });
 });

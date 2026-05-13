@@ -32,11 +32,9 @@ window.addEventListener("blur", () => body.classList.remove("is-focused"));
 
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/service-worker.js")
-      .catch(() => {
-        /* offline support is optional; ignore registration errors */
-      });
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {
+      /* offline support is optional; ignore registration errors */
+    });
   });
 }
 

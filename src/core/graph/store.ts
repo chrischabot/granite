@@ -66,10 +66,7 @@ function numOrDefault(v: unknown, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-function sanitizeDisplay(
-  input: unknown,
-  defaults: GraphDisplaySettings,
-): GraphDisplaySettings {
+function sanitizeDisplay(input: unknown, defaults: GraphDisplaySettings): GraphDisplaySettings {
   const obj = (input && typeof input === "object" ? input : {}) as Partial<GraphDisplaySettings>;
   return {
     nodeSize: numOrDefault(obj.nodeSize, defaults.nodeSize),
@@ -79,10 +76,7 @@ function sanitizeDisplay(
   };
 }
 
-function sanitizeForces(
-  input: unknown,
-  defaults: GraphForceSettings,
-): GraphForceSettings {
+function sanitizeForces(input: unknown, defaults: GraphForceSettings): GraphForceSettings {
   const obj = (input && typeof input === "object" ? input : {}) as Partial<GraphForceSettings>;
   return {
     repulsion: numOrDefault(obj.repulsion, defaults.repulsion),

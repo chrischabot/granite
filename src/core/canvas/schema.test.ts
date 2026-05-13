@@ -1,11 +1,5 @@
-import { describe, it, expect } from "vitest";
-import {
-  EMPTY_CANVAS,
-  newCanvasId,
-  parseCanvas,
-  serializeCanvas,
-  type Canvas,
-} from "./schema";
+import { describe, expect, it } from "vitest";
+import { type Canvas, EMPTY_CANVAS, newCanvasId, parseCanvas, serializeCanvas } from "./schema";
 
 describe("parseCanvas", () => {
   it("returns the empty canvas on garbage input", () => {
@@ -49,7 +43,14 @@ describe("parseCanvas", () => {
         },
       ],
       edges: [
-        { id: "e1", fromNode: "t1", toNode: "f1", fromSide: "right", toSide: "left", toEnd: "arrow" },
+        {
+          id: "e1",
+          fromNode: "t1",
+          toNode: "f1",
+          fromSide: "right",
+          toSide: "left",
+          toEnd: "arrow",
+        },
       ],
     });
     const c = parseCanvas(src);
@@ -74,7 +75,9 @@ describe("parseCanvas", () => {
     });
     const c = parseCanvas(src);
     expect(c.nodes.length).toBe(1);
-    const n = c.nodes[0]!;
+    const n = c.nodes[0];
+    expect(n).toBeDefined();
+    if (!n) return;
     expect(n.width).toBeGreaterThan(0);
     expect(n.height).toBeGreaterThan(0);
   });

@@ -1,6 +1,6 @@
-import { Effect } from "effect";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
+import { Effect } from "effect";
 
 export const GRANITE_DIR = ".granite";
 
@@ -32,10 +32,7 @@ export async function writeConfigJson(name: string, data: unknown): Promise<void
     Effect.gen(function* () {
       const fs = yield* FileSystem;
       yield* fs.mkdir(GRANITE_DIR);
-      yield* fs.writeText(
-        `${GRANITE_DIR}/${name}.json`,
-        JSON.stringify(data, null, 2),
-      );
+      yield* fs.writeText(`${GRANITE_DIR}/${name}.json`, JSON.stringify(data, null, 2));
     }),
   );
 }

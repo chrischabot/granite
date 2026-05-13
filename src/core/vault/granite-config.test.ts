@@ -1,14 +1,10 @@
-import { describe, it, expect, beforeEach } from "vitest";
-import { Layer, Effect } from "effect";
+import { type AppServices, disposeRuntime, setAppLayer } from "@core/effect/runtime";
 import { FileSystem, type FileSystemImpl } from "@core/fs/FileSystem";
-import { setAppLayer, disposeRuntime, type AppServices } from "@core/effect/runtime";
-import type { FsError, VaultEntry, VaultFile, VaultPath } from "@core/fs/types";
 import { extension } from "@core/fs/path";
-import {
-  readConfigJson,
-  removeConfigJson,
-  writeConfigJson,
-} from "./granite-config";
+import type { FsError, VaultEntry, VaultFile, VaultPath } from "@core/fs/types";
+import { Effect, Layer } from "effect";
+import { beforeEach, describe, expect, it } from "vitest";
+import { readConfigJson, removeConfigJson, writeConfigJson } from "./granite-config";
 
 function makeInMemoryFs(): FileSystemImpl {
   const files = new Map<VaultPath, string>();
@@ -23,7 +19,7 @@ function makeInMemoryFs(): FileSystemImpl {
           type: "file",
           path,
           name: path.split("/").pop() ?? path,
-          size: files.get(path)!.length,
+          size: files.get(path)?.length ?? 0,
           mtimeMs: 0,
           ctimeMs: 0,
           extension: extension(path),
@@ -31,14 +27,12 @@ function makeInMemoryFs(): FileSystemImpl {
       ),
     readText: (path) => {
       const v = files.get(path);
-      if (v === undefined)
-        return Effect.fail({ _tag: "FsNotFound", path } as unknown as FsError);
+      if (v === undefined) return Effect.fail({ _tag: "FsNotFound", path } as unknown as FsError);
       return Effect.succeed(v);
     },
     readBytes: (path) => {
       const v = files.get(path);
-      if (v === undefined)
-        return Effect.fail({ _tag: "FsNotFound", path } as unknown as FsError);
+      if (v === undefined) return Effect.fail({ _tag: "FsNotFound", path } as unknown as FsError);
       return Effect.succeed(new TextEncoder().encode(v));
     },
     writeText: (path, content) => {

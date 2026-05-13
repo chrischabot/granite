@@ -26,7 +26,8 @@ export function tagColorForFile(tags: ReadonlyArray<string>): string | null {
   if (tags.length === 0) return null;
   // Sort lexicographically so the "dominant" tag is deterministic regardless
   // of source ordering.
-  const dominant = [...tags].sort((a, b) => a.localeCompare(b))[0]!;
+  const dominant = [...tags].sort((a, b) => a.localeCompare(b))[0];
+  if (!dominant) return null;
   return colorForString(dominant);
 }
 

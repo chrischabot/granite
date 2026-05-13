@@ -101,7 +101,7 @@ export interface PluginSettingsTabSpec {
    * The host also clears the container on cleanup, so plugins may ignore the
    * return value for simple imperative renders.
    */
-  readonly render: (container: HTMLElement) => void | (() => void);
+  readonly render: (container: HTMLElement) => undefined | (() => void);
 }
 
 /** API surface exposed to plugins. Stable across plugin versions. */

@@ -1,7 +1,7 @@
 import { run } from "@core/effect/runtime";
+import { Effect } from "effect";
 import { FileSystem } from "./FileSystem";
 import type { VaultFile, VaultPath } from "./types";
-import { Effect } from "effect";
 
 const ORPHAN_TEMP_RE = /(?:\.tmp~|\.granite-tmp~)$/;
 

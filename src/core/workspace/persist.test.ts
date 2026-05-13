@@ -77,9 +77,7 @@ describe("workspace persistence", () => {
     workspaceStore.reset();
     expect(restoreFor(VAULT_ID)).toBe(true);
     const restored = [...workspaceStore.getState().leaves.values()].map((leaf) => leaf.state);
-    expect(restored.some((state) => state.type === "sidebar" && state.id === "search")).toBe(
-      true,
-    );
+    expect(restored.some((state) => state.type === "sidebar" && state.id === "search")).toBe(true);
   });
 
   it("round-trips a multi-column / stacked layout via restoreFor", async () => {

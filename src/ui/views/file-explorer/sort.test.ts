@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { compareFiles, sortNodes, type SortableTreeNode } from "./sort";
-import type { VaultFile, VaultDirectory } from "@core/fs/types";
+import type { VaultDirectory, VaultFile } from "@core/fs/types";
+import { describe, expect, it } from "vitest";
+import { type SortableTreeNode, compareFiles, sortNodes } from "./sort";
 
 function file(name: string, opts: Partial<VaultFile> = {}): VaultFile {
   return {
@@ -69,19 +69,11 @@ describe("sortNodes", () => {
       { entry: folder1 },
     ];
     const sorted = sortNodes(nodes, "name-asc");
-    expect(sorted.map((n) => n.entry.name)).toEqual([
-      "alpha",
-      "beta",
-      "a.md",
-      "b.md",
-    ]);
+    expect(sorted.map((n) => n.entry.name)).toEqual(["alpha", "beta", "a.md", "b.md"]);
   });
 
   it("sorts directories alphabetically in any mode", () => {
-    const nodes: SortableTreeNode[] = [
-      { entry: folder2 },
-      { entry: folder1 },
-    ];
+    const nodes: SortableTreeNode[] = [{ entry: folder2 }, { entry: folder1 }];
     const sorted = sortNodes(nodes, "mtime-desc");
     expect(sorted.map((n) => n.entry.name)).toEqual(["alpha", "beta"]);
   });
@@ -100,7 +92,7 @@ describe("sortNodes", () => {
       },
     ];
     const sorted = sortNodes(nodes, "name-asc");
-    expect(sorted[0]!.children?.map((c) => c.entry.name)).toEqual(["a.md", "b.md"]);
+    expect(sorted[0]?.children?.map((c) => c.entry.name)).toEqual(["a.md", "b.md"]);
   });
 
   it("preserves nodes that have no children", () => {

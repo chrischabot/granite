@@ -1,12 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { findUnlinkedMentionsInText } from "./unlinked-mentions";
 
 describe("findUnlinkedMentionsInText", () => {
   it("finds a literal mention by needle", () => {
     const matches = findUnlinkedMentionsInText("See John here.", ["John"]);
     expect(matches.length).toBe(1);
-    expect(matches[0]!.line).toBe(0);
-    expect(matches[0]!.needle).toBe("John");
+    expect(matches[0]?.line).toBe(0);
+    expect(matches[0]?.needle).toBe("John");
   });
 
   it("is case-insensitive by default", () => {
@@ -15,12 +15,8 @@ describe("findUnlinkedMentionsInText", () => {
   });
 
   it("respects caseSensitive when requested", () => {
-    expect(
-      findUnlinkedMentionsInText("JOHN", ["John"], { caseSensitive: true }),
-    ).toEqual([]);
-    expect(
-      findUnlinkedMentionsInText("John", ["John"], { caseSensitive: true }).length,
-    ).toBe(1);
+    expect(findUnlinkedMentionsInText("JOHN", ["John"], { caseSensitive: true })).toEqual([]);
+    expect(findUnlinkedMentionsInText("John", ["John"], { caseSensitive: true }).length).toBe(1);
   });
 
   it("requires word boundaries on both sides", () => {
@@ -53,23 +49,21 @@ describe("findUnlinkedMentionsInText", () => {
 
   it("skips mentions inside inline code spans", () => {
     expect(findUnlinkedMentionsInText("`John` is code", ["John"])).toEqual([]);
-    expect(findUnlinkedMentionsInText("before `code John` after", ["John"])).toEqual(
-      [],
-    );
+    expect(findUnlinkedMentionsInText("before `code John` after", ["John"])).toEqual([]);
   });
 
   it("skips mentions inside fenced code blocks", () => {
     const text = "```\nJohn in code\n```\nJohn outside";
     const matches = findUnlinkedMentionsInText(text, ["John"]);
     expect(matches.length).toBe(1);
-    expect(matches[0]!.line).toBe(3);
+    expect(matches[0]?.line).toBe(3);
   });
 
   it("handles tilde-fenced code blocks", () => {
     const text = "~~~\nJohn in code\n~~~\nJohn outside";
     const matches = findUnlinkedMentionsInText(text, ["John"]);
     expect(matches.length).toBe(1);
-    expect(matches[0]!.line).toBe(3);
+    expect(matches[0]?.line).toBe(3);
   });
 
   it("returns at most maxPerFile matches", () => {
@@ -80,13 +74,13 @@ describe("findUnlinkedMentionsInText", () => {
 
   it("captures preview trimmed and capped at 200 chars", () => {
     const matches = findUnlinkedMentionsInText("  Hello John world  ", ["John"]);
-    expect(matches[0]!.preview).toBe("Hello John world");
+    expect(matches[0]?.preview).toBe("Hello John world");
   });
 
   it("matches the first needle to hit on a line", () => {
     const matches = findUnlinkedMentionsInText("alpha and beta", ["alpha", "beta"]);
     expect(matches.length).toBe(1);
-    expect(matches[0]!.needle).toBe("alpha");
+    expect(matches[0]?.needle).toBe("alpha");
   });
 
   it("returns empty for empty / whitespace needles", () => {
@@ -96,10 +90,7 @@ describe("findUnlinkedMentionsInText", () => {
   });
 
   it("handles needles with spaces (multi-word names)", () => {
-    const matches = findUnlinkedMentionsInText(
-      "Jane Doe was here.",
-      ["Jane Doe"],
-    );
+    const matches = findUnlinkedMentionsInText("Jane Doe was here.", ["Jane Doe"]);
     expect(matches.length).toBe(1);
   });
 

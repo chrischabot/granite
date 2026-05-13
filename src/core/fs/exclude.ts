@@ -23,7 +23,7 @@ export function parseExcludePatterns(raw: string | null | undefined): string[] {
 function globToRegex(glob: string): RegExp {
   let re = "^";
   for (let i = 0; i < glob.length; i++) {
-    const c = glob[i]!;
+    const c = glob.charAt(i);
     if (c === "*") {
       if (glob[i + 1] === "*") {
         re += ".*";

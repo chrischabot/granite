@@ -79,8 +79,9 @@ export function formatDebugInfo(info: DebugInfo): string {
   const pluginLines =
     info.plugins.length === 0
       ? [`  ${t("debugInfo.plugins.none")}`]
-      : info.plugins.map((plugin) =>
-          `  ${plugin.enabled ? "[x]" : "[ ]"} ${plugin.id} (${plugin.name}) ${plugin.version}`,
+      : info.plugins.map(
+          (plugin) =>
+            `  ${plugin.enabled ? "[x]" : "[ ]"} ${plugin.id} (${plugin.name}) ${plugin.version}`,
         );
   return [
     t("debugInfo.title"),
@@ -119,10 +120,9 @@ export function registerDebugInfoPlugin(): () => void {
         await globalThis.navigator?.clipboard?.writeText(text).catch(() => undefined);
         noticeManager.show(text, { kind: "info", timeoutMs: 0 });
       } catch (err) {
-        noticeManager.show(
-          err instanceof Error ? err.message : t("debugInfo.error.collect"),
-          { kind: "error" },
-        );
+        noticeManager.show(err instanceof Error ? err.message : t("debugInfo.error.collect"), {
+          kind: "error",
+        });
       }
     },
   });

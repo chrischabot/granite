@@ -12,20 +12,20 @@ tags: [a, b]
 ---
 Body`;
     const m = parseMetadata(src);
-    expect(m.frontmatter["title"]).toBe("Hello");
+    expect((m.frontmatter as { title?: unknown }).title).toBe("Hello");
     expect(m.aliases).toEqual(["Hi", "Hey"]);
     expect(m.tags.map((t) => t.name).sort()).toEqual(["a", "b"]);
   });
 
   it("captures headings with line numbers", () => {
-    const src = `# Top\n\nbody\n\n## Sub\n\n### Sub-sub\n`;
+    const src = "# Top\n\nbody\n\n## Sub\n\n### Sub-sub\n";
     const m = parseMetadata(src);
     expect(m.headings.map((h) => h.text)).toEqual(["Top", "Sub", "Sub-sub"]);
     expect(m.headings.map((h) => h.level)).toEqual([1, 2, 3]);
   });
 
   it("captures wikilinks and embeds", () => {
-    const src = `See [[Note A]] and ![[Image.png]] and [[Note B|Display]] and [[Note C#Heading]]\n`;
+    const src = "See [[Note A]] and ![[Image.png]] and [[Note B|Display]] and [[Note C#Heading]]\n";
     const m = parseMetadata(src);
     const targets = m.links.map((l) => l.target);
     expect(targets).toEqual(["Note A", "Image.png", "Note B", "Note C"]);
@@ -35,7 +35,7 @@ Body`;
   });
 
   it("extracts inline tags but skips numeric-only", () => {
-    const src = `body #project/work and #y2024 but not #1234\n`;
+    const src = "body #project/work and #y2024 but not #1234\n";
     const m = parseMetadata(src);
     const names = m.tags.map((t) => t.name);
     expect(names).toContain("project/work");
@@ -54,7 +54,7 @@ body #Work and #home`;
   });
 
   it("captures block IDs", () => {
-    const src = `Some paragraph. ^abc-123\n`;
+    const src = "Some paragraph. ^abc-123\n";
     const m = parseMetadata(src);
     expect(m.blocks.map((b) => b.id)).toEqual(["abc-123"]);
   });
@@ -83,16 +83,22 @@ body #Work and #home`;
     expect(ids).toContain("orphan");
     expect(ids).toContain("unused");
 
-    const one = m.footnotes.find((f) => f.id === "one")!;
+    const one = m.footnotes.find((f) => f.id === "one");
+    expect(one).toBeDefined();
+    if (!one) return;
     expect(one.definitionLine).not.toBeNull();
     expect(one.references.length).toBe(1);
     expect(one.definitionBody).toContain("First definition");
 
-    const orphan = m.footnotes.find((f) => f.id === "orphan")!;
+    const orphan = m.footnotes.find((f) => f.id === "orphan");
+    expect(orphan).toBeDefined();
+    if (!orphan) return;
     expect(orphan.definitionLine).toBeNull();
     expect(orphan.references.length).toBe(1);
 
-    const unused = m.footnotes.find((f) => f.id === "unused")!;
+    const unused = m.footnotes.find((f) => f.id === "unused");
+    expect(unused).toBeDefined();
+    if (!unused) return;
     expect(unused.definitionLine).not.toBeNull();
     expect(unused.references.length).toBe(0);
   });

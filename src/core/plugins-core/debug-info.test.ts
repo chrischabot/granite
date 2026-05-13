@@ -98,9 +98,7 @@ describe("debug info core plugin", () => {
       workspaceGroups: 1,
       workspaceLeaves: 2,
       commands: 3,
-      plugins: [
-        { id: "sample", name: "Sample Plugin", version: "1.2.3", enabled: true },
-      ],
+      plugins: [{ id: "sample", name: "Sample Plugin", version: "1.2.3", enabled: true }],
       tagCount: 4,
       propertyCount: 5,
     });

@@ -1,9 +1,9 @@
 import { disposeRuntime, setAppLayer } from "@core/effect/runtime";
-import { FileSystem, type FileSystemImpl } from "./FileSystem";
-import type { VaultFile, VaultPath } from "./types";
 import { Effect, Layer } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { FileSystem, type FileSystemImpl } from "./FileSystem";
 import { findOrphanAtomicWriteTemps, scanOrphanAtomicWriteTemps } from "./orphan-temp";
+import type { VaultFile, VaultPath } from "./types";
 
 function file(path: string): VaultFile {
   return {
@@ -42,11 +42,7 @@ describe("orphan atomic write temp scan", () => {
       rootName: "vault",
       list: () => Effect.succeed([]),
       listAll: () =>
-        Effect.succeed([
-          file("Inbox.md"),
-          file("Inbox.md.granite-tmp~"),
-          file("Draft.md.tmp~"),
-        ]),
+        Effect.succeed([file("Inbox.md"), file("Inbox.md.granite-tmp~"), file("Draft.md.tmp~")]),
       readText: () => Effect.succeed(""),
       readBytes: () => Effect.succeed(new Uint8Array()),
       writeText: () => Effect.void,

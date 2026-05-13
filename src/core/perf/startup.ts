@@ -38,7 +38,9 @@ export function collectStartupTiming(): StartupTimingReport {
 }
 
 function formatMs(value: number | null): string {
-  return value === null ? t("startupTiming.unavailable") : `${Math.round(value).toLocaleString()} ms`;
+  return value === null
+    ? t("startupTiming.unavailable")
+    : `${Math.round(value).toLocaleString()} ms`;
 }
 
 export function formatStartupTiming(report: StartupTimingReport): string {

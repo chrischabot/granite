@@ -13,6 +13,7 @@
     "verify:graph-pan-browser": "node scripts/verify-graph-pan-browser.mjs",
     "verify:live-preview-browser": "node scripts/verify-live-preview-browser.mjs",
     "verify:save-roundtrip-browser": "node scripts/verify-save-roundtrip-browser.mjs",
+    "verify:startup-browser": "node scripts/verify-startup-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

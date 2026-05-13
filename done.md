@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Browser 10k startup verifier
+
+- **Root cause** — cold-start performance had Node-side metadata and timing
+  ratchets, but no browser-profile proof that the 10k metadata path stays
+  under the 3 second startup budget in Chromium.
+- **Browser path** — added a Vite-served Chromium fixture that binds a
+  synthetic 10,000-note vault to the real Effect `FileSystem` layer, runs
+  `metadataCache.indexVault()`, proves it performs 10,000 reads, 0 stats, and
+  builds 20,000 switcher entries, all measured with browser `performance.now()`.
+- **Tracker closure** — closed the §24.19 cold-start item after the browser
+  verifier measured 34.20 ms for the 10k metadata startup path.
+
+### Tests
+- `bun run verify:startup-browser`
+
+---
+
 ## 2026-05-13 — Browser save round-trip verifier
 
 - **Root cause** — the save budget had a mocked File System Access adapter

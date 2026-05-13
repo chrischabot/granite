@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite 10k Startup Browser Fixture</title>
+  </head>
+  <body>
+    <script type="module">
+      import { setAppLayer, disposeRuntime } from "../src/core/effect/runtime.ts";
+      import { FileSystem } from "../src/core/fs/FileSystem.ts";
+      import { metadataCache } from "../src/core/metadata/cache.ts";
+      import {
+        STARTUP_EXPECTED_MS,
+        collectStartupTiming,
+      } from "../src/core/perf/startup.ts";
+      import { Effect, Layer } from "effect";
+
+      const FILE_COUNT = 10_000;
+      const files = Array.from({ length: FILE_COUNT }, (_, i) => ({
+        type: "file",
+        path: `Note ${i}.md`,
+        name: `Note ${i}.md`,
+        size: 64,
+        mtimeMs: i,
+        ctimeMs: i,
+        extension: "md",
+      }));
+
+      async function run() {
+        let statCalls = 0;
+        let readCalls = 0;
+        metadataCache.reset();
+        await disposeRuntime();
+
+        const fs = {
+          rootName: "browser-startup-vault",
+          list: () => Effect.succeed([]),
+          listAll: () => Effect.succeed(files),
+          readText: (path) =>
+            Effect.sync(() => {
+              readCalls += 1;
+              return `---\naliases: [Alias ${path}]\n---\n# ${path}\n#tag`;
+            }),
+          readBytes: () => Effect.succeed(new Uint8Array()),
+          writeText: () => Effect.void,
+          writeBytes: () => Effect.void,
+          mkdir: () => Effect.void,
+          rename: () => Effect.void,
+          remove: () => Effect.void,
+          stat: () =>
+            Effect.sync(() => {
+              statCalls += 1;
+              return null;
+            }),
+          watch: () => () => {},
+        };
+        setAppLayer(() => Layer.succeed(FileSystem, fs));
+
+        const navigation = collectStartupTiming();
+        const start = performance.now();
+        await metadataCache.indexVault();
+        const elapsedMs = performance.now() - start;
+        const switcherEntries = metadataCache.getAllSwitcherEntries().length;
+
+        metadataCache.reset();
+        await disposeRuntime();
+
+        if (statCalls !== 0) throw new Error(`Cold-start indexing re-statted ${statCalls} files`);
+        if (readCalls !== FILE_COUNT) {
+          throw new Error(`Cold-start indexing read ${readCalls} files, expected ${FILE_COUNT}`);
+        }
+        if (switcherEntries !== FILE_COUNT * 2) {
+          throw new Error(`Switcher index has ${switcherEntries} entries, expected ${FILE_COUNT * 2}`);
+        }
+        if (elapsedMs >= STARTUP_EXPECTED_MS) {
+          throw new Error(
+            `Browser 10k metadata startup ${elapsedMs.toFixed(2)} ms exceeded ${STARTUP_EXPECTED_MS} ms`,
+          );
+        }
+
+        return {
+          ok: true,
+          fileCount: FILE_COUNT,
+          readCalls,
+          statCalls,
+          switcherEntries,
+          elapsedMs,
+          navigation,
+        };
+      }
+
+      window.__graniteStartupResult = run().catch((error) => ({
+        ok: false,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }));
+    </script>
+  </body>
+</html>

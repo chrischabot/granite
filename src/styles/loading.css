@@ -1,0 +1,123 @@
+/* SPEC: specs/renderer/loading-states.md */
+
+.is-loading {
+  position: relative;
+}
+
+.is-loading::before {
+  content: " ";
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 3px;
+  background-color: var(--interactive-accent);
+  animation: 1000ms ease-in-out 300ms infinite progress-bar;
+}
+
+.loader-spinner {
+  --icon-size: var(--icon-xl);
+  --icon-stroke: var(--icon-l-stroke-width);
+  color: var(--interactive-accent);
+  height: var(--size-4-8);
+  margin: 100px auto;
+  width: var(--size-4-8);
+}
+
+.loader-spinner svg {
+  animation: spin 1s ease infinite;
+}
+
+.app-container.mod-loading .view-header .loader-spinner {
+  --icon-size: var(--icon-l);
+}
+
+.app-container.mod-loading .view-header .loader-spinner svg {
+  animation-duration: 0.9s;
+}
+
+.loader-cube {
+  height: 40px;
+  margin: 100px auto;
+  width: 40px;
+}
+
+.loader-cube .sk-cube {
+  animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out;
+  background-color: var(--interactive-accent);
+  float: inline-start;
+  height: 33%;
+  width: 33%;
+}
+
+.loader-cube .sk-cube1 {
+  animation-delay: 0.2s;
+}
+
+.loader-cube .sk-cube2 {
+  animation-delay: 0.3s;
+}
+
+.loader-cube .sk-cube3 {
+  animation-delay: 0.4s;
+}
+
+.loader-cube .sk-cube4 {
+  animation-delay: 0.1s;
+}
+
+.loader-cube .sk-cube5 {
+  animation-delay: 0.2s;
+}
+
+.loader-cube .sk-cube6 {
+  animation-delay: 0.3s;
+}
+
+.loader-cube .sk-cube7 {
+  animation-delay: 0s;
+}
+
+.loader-cube .sk-cube8 {
+  animation-delay: 0.1s;
+}
+
+.loader-cube .sk-cube9 {
+  animation-delay: 0.2s;
+}
+
+button.mod-loading {
+  color: transparent;
+  position: relative;
+  white-space: nowrap;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+button.mod-loading::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  inset: 0;
+  margin: auto;
+  border: 2px solid transparent;
+  border-top-color: var(--text-color);
+  border-radius: 50%;
+  animation: spin 1s ease infinite;
+}
+
+.is-flashing {
+  transition: color 0.25s ease, background-color 0.25s ease;
+  background-color: var(--text-highlight-bg) !important;
+  color: var(--text-normal);
+  mix-blend-mode: var(--highlight-mix-blend-mode);
+  border-radius: var(--radius-s);
+}
+
+.is-mobile .clickable-icon {
+  transition: opacity 0.1s ease-in-out;
+}
+
+.clickable-icon.mobile-tap svg {
+  opacity: var(--icon-opacity-hover);
+}

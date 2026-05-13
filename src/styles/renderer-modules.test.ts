@@ -26,7 +26,34 @@ const MODULES = [
   {
     file: "buttons.css",
     spec: "specs/renderer/buttons.md",
-    selectors: ["button.mod-loading::after", ".clickable-icon.is-active", ".text-icon-button"],
+    selectors: [".clickable-icon.is-active", ".text-icon-button"],
+  },
+  {
+    file: "loading.css",
+    spec: "specs/renderer/loading-states.md",
+    selectors: [
+      ".is-loading::before",
+      ".loader-spinner svg",
+      ".loader-cube .sk-cube",
+      ".loader-cube .sk-cube9",
+      "button.mod-loading::after",
+      ".is-flashing",
+      ".clickable-icon.mobile-tap svg",
+    ],
+  },
+  {
+    file: "progress.css",
+    spec: "specs/renderer/progress-bar.md",
+    selectors: [
+      ".progress-bar-container",
+      ".progress-bar-context",
+      ".progress-bar-button-container",
+      ".progress-bar-indicator",
+      ".progress-bar-line",
+      ".progress-bar-subline.mod-increase",
+      ".progress-bar-subline.mod-decrease",
+      ".progress-bar .progress-bar-subline",
+    ],
   },
   {
     file: "inputs.css",
@@ -215,6 +242,11 @@ describe("renderer CSS module coverage", () => {
 
     const base = readFileSync(`${STYLE_DIR}/base.css`, "utf8");
     expect(base).not.toContain("body.is-grabbing");
+    expect(base).not.toContain(".is-loading {");
+    expect(base).not.toContain(".is-flashing {");
+
+    const buttons = readFileSync(`${STYLE_DIR}/buttons.css`, "utf8");
+    expect(buttons).not.toContain("button.mod-loading");
 
     expect(shell).not.toContain("Drag overlays (drop preview + fake target)");
     expect(shell).not.toContain(".workspace-drop-overlay");

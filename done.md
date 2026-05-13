@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-13 — Renderer loading and progress CSS modules
+
+- **Dedicated modules** — added spec-linked `src/styles/loading.css` for thin
+  loading bars, spinners, button loading state, flashing highlights, and mobile
+  icon tap feedback, plus `src/styles/progress.css` for the full-screen vault
+  progress overlay.
+- **Regression audit** — extended the renderer module test so loading/progress
+  styles stay imported, spec-linked, and out of broad base/button styles.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer card CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/card.css` for selectable

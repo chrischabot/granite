@@ -1,5 +1,7 @@
 @import "./tokens.css";
 @import "./animations.css";
+@import "./loading.css";
+@import "./progress.css";
 @import "./base.css";
 @import "./buttons.css";
 @import "./inputs.css";

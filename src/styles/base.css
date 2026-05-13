@@ -61,15 +61,6 @@ body [contenteditable=""] {
   animation-name: node-inserted;
 }
 
-/* Block-link / search-jump highlight flash (250ms ease) */
-.is-flashing {
-  transition: color 0.25s ease, background-color 0.25s ease;
-  background-color: var(--text-highlight-bg) !important;
-  color: var(--text-normal);
-  mix-blend-mode: var(--highlight-mix-blend-mode);
-  border-radius: var(--radius-s);
-}
-
 /* Privacy mode — every descendant uses Flow Circular (when shipped) */
 .is-text-garbled * {
   font-family: "Flow Circular", sans-serif !important;
@@ -79,20 +70,6 @@ body [contenteditable=""] {
 /* Iframe color-scheme — embeds keep their own appearance */
 iframe {
   color-scheme: normal;
-}
-
-.is-loading {
-  position: relative;
-}
-
-.is-loading::before {
-  content: " ";
-  position: absolute;
-  top: 0;
-  width: 0;
-  height: 3px;
-  background-color: var(--interactive-accent);
-  animation: 1000ms ease-in-out 300ms infinite progress-bar;
 }
 
 /* Pop-out window: hide sidebars / ribbon / titlebar / status bar so only the

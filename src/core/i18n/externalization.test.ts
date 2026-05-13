@@ -622,6 +622,21 @@ const CORE_PLUGIN_MORE_FORBIDDEN_PATTERNS = [
   /plugins have new versions available/,
 ];
 
+const FORMAT_CONVERTER_FORBIDDEN_PATTERNS = [
+  /category: "Format"/,
+  /name: "Convert wikilinks to markdown links \(active note\)"/,
+  /"No wikilinks to convert\."/,
+  /Converted \$\{count\} wikilink/,
+  /"Could not convert wikilinks"/,
+  /name: "Migrate legacy property keys across vault"/,
+  /"No legacy property keys found\."/,
+  /Migrated \$\{result\.keysMigrated\} legacy propert/,
+  /"Could not migrate legacy properties"/,
+  /name: "Copy current note as HTML"/,
+  /"Rendered HTML copied to clipboard\."/,
+  /"Could not copy HTML"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1526,6 +1541,35 @@ describe("UI string externalization audit", () => {
       "plugin.update.noRemoteManifests",
       "plugin.update.oneAvailable",
       "plugin.update.manyAvailable",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Format Converter command labels and notices routed through i18n keys", () => {
+    const source = readFileSync(
+      `${process.cwd()}/src/core/plugins-core/format-converter.ts`,
+      "utf8",
+    );
+    const violations = FORMAT_CONVERTER_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+
+    for (const requiredKey of [
+      "plugin.format.category",
+      "plugin.format.wikilinksToMarkdown",
+      "plugin.format.noWikilinks",
+      "plugin.format.converted",
+      "plugin.format.error.convert",
+      "plugin.format.migrateLegacyProperties",
+      "plugin.format.noLegacyProperties",
+      "plugin.format.migratedProperties",
+      "plugin.format.error.migrate",
+      "plugin.format.copyAsHtml",
+      "plugin.format.copiedHtml",
+      "plugin.format.error.copyHtml",
     ]) {
       expect(source).toContain(requiredKey);
     }

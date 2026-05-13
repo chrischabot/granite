@@ -1,6 +1,7 @@
 import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
+import { t } from "@core/i18n";
 import { renderMarkdown } from "@core/markdown/renderer";
 import {
   parseFrontmatter,
@@ -90,8 +91,8 @@ export function registerFormatConverterPlugin(): () => void {
 
   register({
     id: "format:wikilinks-to-markdown",
-    category: "Format",
-    name: "Convert wikilinks to markdown links (active note)",
+    category: t("plugin.format.category"),
+    name: t("plugin.format.wikilinksToMarkdown"),
     checkCallback: () => activeMarkdownPath() !== null,
     callback: async () => {
       const path = activeMarkdownPath();
@@ -105,7 +106,7 @@ export function registerFormatConverterPlugin(): () => void {
         );
         const { text: next, count } = convertWikilinksToMarkdown(text);
         if (count === 0) {
-          noticeManager.show("No wikilinks to convert.", { kind: "info" });
+          noticeManager.show(t("plugin.format.noWikilinks"), { kind: "info" });
           return;
         }
         await run(
@@ -115,11 +116,14 @@ export function registerFormatConverterPlugin(): () => void {
           }),
         );
         noticeManager.show(
-          `Converted ${count} wikilink${count === 1 ? "" : "s"} to markdown links.`,
+          t("plugin.format.converted", {
+            count: String(count),
+            wikilinkLabel: t(count === 1 ? "plugin.format.wikilink" : "plugin.format.wikilinks"),
+          }),
           { kind: "success" },
         );
       } catch (err) {
-        noticeManager.show(err instanceof Error ? err.message : "Could not convert wikilinks", {
+        noticeManager.show(err instanceof Error ? err.message : t("plugin.format.error.convert"), {
           kind: "error",
         });
       }
@@ -128,8 +132,8 @@ export function registerFormatConverterPlugin(): () => void {
 
   register({
     id: "format:migrate-legacy-properties",
-    category: "Format",
-    name: "Migrate legacy property keys across vault",
+    category: t("plugin.format.category"),
+    name: t("plugin.format.migrateLegacyProperties"),
     callback: async () => {
       try {
         const result = await run(
@@ -150,26 +154,32 @@ export function registerFormatConverterPlugin(): () => void {
           }),
         );
         if (result.keysMigrated === 0) {
-          noticeManager.show("No legacy property keys found.", { kind: "info" });
+          noticeManager.show(t("plugin.format.noLegacyProperties"), { kind: "info" });
           return;
         }
         noticeManager.show(
-          `Migrated ${result.keysMigrated} legacy propert${result.keysMigrated === 1 ? "y" : "ies"} in ${result.notesUpdated} note${result.notesUpdated === 1 ? "" : "s"}.`,
+          t("plugin.format.migratedProperties", {
+            keys: String(result.keysMigrated),
+            propertyLabel: t(
+              result.keysMigrated === 1 ? "plugin.format.property" : "plugin.format.properties",
+            ),
+            notes: String(result.notesUpdated),
+            noteLabel: t(result.notesUpdated === 1 ? "plugin.format.note" : "plugin.format.notes"),
+          }),
           { kind: "success" },
         );
       } catch (err) {
-        noticeManager.show(
-          err instanceof Error ? err.message : "Could not migrate legacy properties",
-          { kind: "error" },
-        );
+        noticeManager.show(err instanceof Error ? err.message : t("plugin.format.error.migrate"), {
+          kind: "error",
+        });
       }
     },
   });
 
   register({
     id: "format:copy-as-html",
-    category: "Format",
-    name: "Copy current note as HTML",
+    category: t("plugin.format.category"),
+    name: t("plugin.format.copyAsHtml"),
     checkCallback: () => activeMarkdownPath() !== null,
     callback: async () => {
       const path = activeMarkdownPath();
@@ -183,9 +193,9 @@ export function registerFormatConverterPlugin(): () => void {
         );
         const html = renderMarkdown(text);
         await navigator.clipboard.writeText(html);
-        noticeManager.show("Rendered HTML copied to clipboard.", { kind: "success" });
+        noticeManager.show(t("plugin.format.copiedHtml"), { kind: "success" });
       } catch (err) {
-        noticeManager.show(err instanceof Error ? err.message : "Could not copy HTML", {
+        noticeManager.show(err instanceof Error ? err.message : t("plugin.format.error.copyHtml"), {
           kind: "error",
         });
       }

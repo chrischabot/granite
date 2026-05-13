@@ -106,5 +106,14 @@ describe("i18n", () => {
     ).toBe("נטענו מחדש 2 תוספים.");
     expect(t("plugin.tour.open")).toBe("פתיחת הסיור בגרניט");
     expect(t("plugin.update.allUpToDate")).toBe("כל התוספים מעודכנים.");
+    expect(t("plugin.format.noWikilinks")).toBe("אין קישורי ויקי להמרה.");
+    expect(
+      t("plugin.format.migratedProperties", {
+        keys: "2",
+        propertyLabel: t("plugin.format.properties"),
+        notes: "1",
+        noteLabel: t("plugin.format.note"),
+      }),
+    ).toBe("הועברו 2 מאפיינים ישנים ב-1 הערה.");
   });
 });

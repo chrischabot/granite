@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Format Converter i18n ratchet
+
+- **Format Converter labels** — routed wikilink conversion, legacy-property
+  migration, and copy-as-HTML command names/categories through locale keys.
+- **Conversion notices** — routed no-op, success, and fallback error notices for
+  wikilink conversion, property migration, and HTML copy through i18n.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if Format Converter's command labels or notices return as hard-coded
+  English literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n/Format Converter tests, full
+  `bun run test`, `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Link/reload/tour/update plugin i18n ratchet
 
 - **Plugin labels and notices** — routed Copy Link, Plugin Reload, Tour, and

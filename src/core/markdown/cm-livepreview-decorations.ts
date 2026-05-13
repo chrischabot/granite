@@ -7,6 +7,7 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { parseWikilink } from "@core/markdown/renderer";
+import yaml from "js-yaml";
 
 const BOLD_ITALIC_STAR_RE = /\*\*\*([^*\n]+)\*\*\*/g;
 const BOLD_ITALIC_UNDERSCORE_RE = /___([^_\n]+)___/g;
@@ -167,6 +168,21 @@ function htmlElementRanges(line: string): Array<[number, number]> {
   return ranges;
 }
 
+function frontmatterEndLineIndex(lines: ReadonlyArray<string>): number | null {
+  if ((lines[0] ?? "").trim() !== "---") return null;
+  for (let i = 1; i < lines.length; i++) {
+    if ((lines[i] ?? "").trim() !== "---") continue;
+    try {
+      const parsed = yaml.load(lines.slice(1, i).join("\n"));
+      if (parsed === undefined || (typeof parsed === "object" && !Array.isArray(parsed))) return i;
+    } catch {
+      return null;
+    }
+    return null;
+  }
+  return null;
+}
+
 /**
  * Compute which character ranges should be hidden on each non-cursor line.
  * Exported pure function for test coverage. Positions are 0-based document
@@ -178,6 +194,7 @@ export function computeLivePreviewRanges(
 ): Array<{ from: number; to: number }> {
   const ranges: Array<{ from: number; to: number }> = [];
   const lines = text.split("\n");
+  const frontmatterEnd = frontmatterEndLineIndex(lines);
   let offset = 0;
   let inFence = false;
   let fenceMarker = "";
@@ -191,6 +208,13 @@ export function computeLivePreviewRanges(
     const addReplace = (start: number, end: number) => {
       ranges.push({ from: lineStart + start, to: lineStart + end });
     };
+
+    // Top-of-file frontmatter is metadata, not Markdown body. Keep it raw
+    // until a dedicated properties widget owns the inactive rendering.
+    if (frontmatterEnd !== null && lineIdx <= frontmatterEnd) {
+      offset = lineStart + line.length + 1;
+      continue;
+    }
 
     // Track fenced code blocks. Lines starting with ``` or ~~~ flip the state.
     const fenceOpen = line.match(/^(\s{0,3})(```+|~~~+)/);

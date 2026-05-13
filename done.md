@@ -127,6 +127,24 @@
 
 ---
 
+## 2026-05-13 — Live Preview frontmatter no-parse ratchet
+
+- **Root cause** — top-of-file YAML frontmatter was being scanned by the
+  Live Preview marker hider as Markdown body, so `---` fences could be treated
+  as horizontal rules and YAML values containing Markdown-looking text could
+  be visually rewritten.
+- **Decoration path** — valid frontmatter blocks at the start of a document now
+  stay raw in Live Preview decoration computation until a dedicated properties
+  widget owns inactive-line rendering.
+- **Tracker honesty** — this closes a source-level frontmatter no-parse hole;
+  the broader Live Preview browser/manual verification remains open.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview fenced-code marker ratchet
 
 - **Root cause** — Live Preview skipped inline formatting inside fenced code

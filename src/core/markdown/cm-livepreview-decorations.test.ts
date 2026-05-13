@@ -112,6 +112,16 @@ describe("computeLivePreviewRanges", () => {
     expect(hiddenSlices(text, -1)).toEqual(["~~~mermaid", "~~~"]);
   });
 
+  it("keeps top-of-file frontmatter raw instead of decorating it as markdown", () => {
+    const text = '---\ntitle: "**not bold**"\naliases:\n  - "[[literal]]"\n---\nBody **bold**';
+    expect(hiddenSlices(text, -1)).toEqual(["**", "**"]);
+  });
+
+  it("does not mistake a top horizontal rule and later rule for frontmatter", () => {
+    const text = "---\nBody **bold**\n---";
+    expect(hiddenSlices(text, -1)).toEqual(["---", "**", "**", "---"]);
+  });
+
   it("skips formatting inside inline-code spans", () => {
     const text = "`**not bold**`";
     expect(hiddenSlices(text, -1)).toEqual([]);

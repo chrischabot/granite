@@ -737,6 +737,11 @@ const CORE_PLUGIN_FILE_RECOVERY_FORBIDDEN_PATTERNS = [
   /name: "Take a snapshot of the current file now"/,
 ];
 
+const PLUGIN_LOADER_FORBIDDEN_PATTERNS = [
+  /Plugin "\$\{entry\.manifest\.name\}": could not read/,
+  /Plugin "\$\{entry\.manifest\.name\}" failed to load/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1838,6 +1843,17 @@ describe("UI string externalization audit", () => {
       "plugin.fileRecovery.error.restore",
       "plugin.fileRecovery.snapshotNow",
     ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps plugin loader failure notices routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/core/plugins/loader.ts`, "utf8");
+    const violations = PLUGIN_LOADER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
+
+    for (const requiredKey of ["plugin.loader.error.readMain", "plugin.loader.error.load"]) {
       expect(source).toContain(requiredKey);
     }
 

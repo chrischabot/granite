@@ -153,5 +153,8 @@ describe("i18n", () => {
     );
     expect(t("plugin.workspaces.loaded", { name: "Writing" })).toBe('הפריסה "Writing" נטענה');
     expect(t("plugin.fileRecovery.noSnapshots")).toBe("אין עדיין צילומים לקובץ הזה.");
+    expect(t("plugin.loader.error.load", { name: "Demo", message: "boom" })).toBe(
+      'טעינת התוסף "Demo" נכשלה: boom',
+    );
   });
 });

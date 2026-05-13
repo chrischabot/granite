@@ -2,6 +2,7 @@ import { commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import type { VaultPath } from "@core/fs/types";
+import { t } from "@core/i18n";
 import { metadataCache } from "@core/metadata/cache";
 import { noticeManager } from "@core/notices/notice";
 import { activeThemePath } from "@core/themes/loader";
@@ -37,7 +38,7 @@ interface PluginEntry {
   manifest: PluginManifest;
   enabled: boolean;
   loaded: boolean;
-  cleanup?: () => void | Promise<void>;
+  cleanup?: (() => void | Promise<void>) | undefined;
 }
 
 const entries = new Map<string, PluginEntry>();
@@ -197,7 +198,7 @@ async function loadPlugin(entry: PluginEntry): Promise<void> {
       }),
     );
   } catch {
-    noticeManager.show(`Plugin "${entry.manifest.name}": could not read ${main}`, {
+    noticeManager.show(t("plugin.loader.error.readMain", { name: entry.manifest.name, main }), {
       kind: "error",
     });
     return;
@@ -217,7 +218,10 @@ async function loadPlugin(entry: PluginEntry): Promise<void> {
     }
   } catch (err) {
     noticeManager.show(
-      `Plugin "${entry.manifest.name}" failed to load: ${err instanceof Error ? err.message : String(err)}`,
+      t("plugin.loader.error.load", {
+        name: entry.manifest.name,
+        message: err instanceof Error ? err.message : String(err),
+      }),
       { kind: "error" },
     );
   }
@@ -233,7 +237,7 @@ async function unloadPlugin(entry: PluginEntry): Promise<void> {
       // eslint-disable-next-line no-console
       console.error(`[granite] Plugin "${entry.manifest.id}" onUnload threw:`, err);
     }
-    delete entry.cleanup;
+    entry.cleanup = undefined;
   }
   // Safety net: blast any residual host registry entries / event listeners
   // even if the plugin forgot to call the disposers we returned to it.

@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Plugin Loader i18n ratchet
+
+- **Loader failure notices** — routed plugin main-file read failures and
+  plugin load failures through locale keys while preserving plugin names,
+  filenames, and thrown messages as data.
+- **Loader cleanup** — replaced the touched loader's `delete entry.cleanup`
+  with an explicit undefined assignment to satisfy the repo lint gate.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if plugin loader failure notices return as hard-coded English literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — File Recovery plugin i18n ratchet
 
 - **File Recovery labels** — routed command names/categories for viewing

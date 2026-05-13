@@ -1,0 +1,220 @@
+/* SPEC: specs/renderer/typography.md */
+
+body {
+  text-rendering: optimizeLegibility;
+  font-family: var(--font-interface);
+  line-height: var(--line-height-tight);
+  font-size: var(--font-ui-medium);
+}
+
+.markdown-preview-view {
+  font-size: var(--font-text-size);
+  font-family: var(--font-text);
+  line-height: var(--line-height-normal);
+}
+
+.cm-host .cm-line {
+  font-family: var(--font-text);
+}
+
+.markdown-rendered h1,
+.markdown-rendered h2,
+.markdown-rendered h3,
+.markdown-rendered h4,
+.markdown-rendered h5,
+.markdown-rendered h6 {
+  margin-block-start: var(--p-spacing);
+  margin-block-end: var(--p-spacing);
+  font-weight: var(--font-weight);
+  font-style: normal;
+  font-variant: normal;
+}
+
+.markdown-rendered h1,
+.cm-host .cm-header-1 {
+  font-size: 1.618em;
+  line-height: 1.2;
+  letter-spacing: -0.015em;
+  --font-weight: var(--h1-weight);
+  font-weight: var(--h1-weight);
+}
+
+.markdown-rendered h2,
+.cm-host .cm-header-2 {
+  font-size: 1.462em;
+  line-height: 1.2;
+  letter-spacing: -0.011em;
+  --font-weight: var(--h2-weight);
+  font-weight: var(--h2-weight);
+}
+
+.markdown-rendered h3,
+.cm-host .cm-header-3 {
+  font-size: 1.318em;
+  line-height: 1.3;
+  letter-spacing: -0.008em;
+  --font-weight: var(--h3-weight);
+  font-weight: var(--h3-weight);
+}
+
+.markdown-rendered h4,
+.cm-host .cm-header-4 {
+  font-size: 1.188em;
+  line-height: 1.4;
+  letter-spacing: -0.005em;
+  --font-weight: var(--h4-weight);
+  font-weight: var(--h4-weight);
+}
+
+.markdown-rendered h5,
+.cm-host .cm-header-5 {
+  font-size: 1.076em;
+  line-height: var(--line-height-normal);
+  letter-spacing: -0.002em;
+  --font-weight: var(--h5-weight);
+  font-weight: var(--h5-weight);
+}
+
+.markdown-rendered h6,
+.cm-host .cm-header-6 {
+  font-size: 1em;
+  line-height: var(--line-height-normal);
+  letter-spacing: 0;
+  --font-weight: var(--h6-weight);
+  font-weight: var(--h6-weight);
+}
+
+.markdown-rendered h1 a,
+.markdown-rendered h2 a,
+.markdown-rendered h3 a,
+.markdown-rendered h4 a,
+.markdown-rendered h5 a,
+.markdown-rendered h6 a {
+  --link-weight: var(--font-weight);
+}
+
+.cm-host .cm-formatting,
+.cm-host .cm-formatting-header {
+  color: var(--text-faint);
+}
+
+.cm-host .cm-formatting-header {
+  font-weight: normal;
+}
+
+.markdown-rendered p {
+  margin-block-start: var(--p-spacing);
+  margin-block-end: var(--p-spacing);
+  unicode-bidi: plaintext;
+}
+
+.markdown-rendered strong,
+.cm-host .cm-strong,
+.cm-host .cm-strong.cm-em {
+  font-weight: var(--bold-weight);
+  --link-weight: var(--bold-weight);
+  color: var(--bold-color);
+}
+
+.markdown-rendered em,
+.cm-host .cm-em {
+  font-style: italic;
+  color: var(--italic-color);
+  font-weight: var(--italic-weight);
+}
+
+.markdown-rendered mark {
+  background-color: var(--text-highlight-bg);
+  color: var(--text-normal);
+}
+
+.markdown-rendered del,
+.cm-host .cm-strikethrough {
+  text-decoration: line-through;
+}
+
+.markdown-rendered a {
+  color: var(--link-color);
+  text-decoration: var(--link-decoration);
+  text-decoration-thickness: var(--link-decoration-thickness);
+  cursor: var(--cursor-link);
+  font-weight: var(--link-weight);
+}
+
+.markdown-rendered a:hover {
+  color: var(--link-color-hover);
+  text-decoration: var(--link-decoration-hover);
+}
+
+.markdown-rendered a.internal-link.is-unresolved {
+  color: var(--link-unresolved-color);
+  opacity: var(--link-unresolved-opacity);
+  text-decoration-style: var(--link-unresolved-decoration-style);
+  text-decoration-color: var(--link-unresolved-decoration-color);
+}
+
+.markdown-rendered a.external-link {
+  color: var(--link-external-color);
+  text-decoration: var(--link-external-decoration);
+  filter: var(--link-external-filter);
+}
+
+.markdown-rendered a.external-link:hover {
+  color: var(--link-external-color-hover);
+  text-decoration: var(--link-external-decoration-hover);
+}
+
+kbd {
+  color: var(--code-normal);
+  font-family: var(--font-monospace);
+  background-color: var(--code-background);
+  border-radius: var(--radius-s);
+  font-size: var(--code-size);
+  padding: 0.1em 0.25em;
+}
+
+.inline-title {
+  color: var(--inline-title-color, var(--text-normal));
+  font-family: var(--inline-title-font, var(--font-text));
+  font-weight: var(--inline-title-weight, var(--h1-weight));
+  white-space: pre-wrap;
+  margin-block-end: var(--inline-title-margin-bottom, 0.5em);
+  letter-spacing: -0.015em;
+  line-height: var(--inline-title-line-height, 1.2);
+  font-size: var(--inline-title-size, 1.618em);
+  font-style: var(--inline-title-style, normal);
+  font-variant: var(--inline-title-variant, normal);
+}
+
+.inline-title h1,
+.inline-title h2,
+.inline-title h3,
+.inline-title h4,
+.inline-title h5,
+.inline-title h6 {
+  margin-block-start: 0;
+  margin-block-end: 0;
+}
+
+.hover-popover .inline-title,
+.inline-embed .inline-title {
+  display: none;
+}
+
+.hover-popover.bases-new-item-popover .inline-title,
+.hover-popover .markdown-embed[data-type="heading"] .inline-title {
+  display: block;
+}
+
+body:not(.show-inline-title) .inline-title:not([data-level]) {
+  display: none;
+}
+
+body:not(.show-inline-title) .bases-new-item-popover .inline-title {
+  display: block;
+}
+
+.is-text-garbled * {
+  font-family: "Flow Circular", sans-serif !important;
+  line-height: 1.45em !important;
+}

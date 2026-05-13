@@ -56,6 +56,26 @@ const MODULES = [
     ],
   },
   {
+    file: "typography.css",
+    spec: "specs/renderer/typography.md",
+    selectors: [
+      "body",
+      ".markdown-preview-view",
+      ".markdown-rendered h1",
+      ".cm-host .cm-header-1",
+      ".cm-host .cm-formatting-header",
+      ".markdown-rendered p",
+      ".markdown-rendered strong",
+      ".cm-host .cm-strong.cm-em",
+      ".markdown-rendered a.internal-link.is-unresolved",
+      ".markdown-rendered a.external-link:hover",
+      "kbd",
+      ".inline-title h1",
+      "body:not(.show-inline-title) .inline-title:not([data-level])",
+      ".is-text-garbled *",
+    ],
+  },
+  {
     file: "buttons.css",
     spec: "specs/renderer/buttons.md",
     selectors: [".clickable-icon.is-active", ".text-icon-button"],
@@ -297,6 +317,8 @@ describe("renderer CSS module coverage", () => {
     expect(base).not.toContain("body.is-grabbing");
     expect(base).not.toContain(".is-loading {");
     expect(base).not.toContain(".is-flashing {");
+    expect(base).not.toContain("text-rendering: optimizeLegibility");
+    expect(base).not.toContain(".is-text-garbled *");
 
     const tokens = readFileSync(`${STYLE_DIR}/tokens.css`, "utf8");
     expect(tokens).not.toContain(".mod-macos {");
@@ -305,6 +327,13 @@ describe("renderer CSS module coverage", () => {
     const markdown = readFileSync(`${STYLE_DIR}/markdown.css`, "utf8");
     expect(markdown).not.toContain(".markdown-rendered.rtl");
     expect(markdown).not.toContain(".markdown-source-view.rtl");
+    expect(markdown).not.toContain(".markdown-rendered h1 {");
+    expect(markdown).not.toContain(".markdown-rendered strong");
+    expect(markdown).not.toContain(".inline-title {");
+
+    const cmLivePreview = readFileSync(`${STYLE_DIR}/cm-livepreview.css`, "utf8");
+    expect(cmLivePreview).not.toContain(".cm-host .cm-header-1");
+    expect(cmLivePreview).not.toContain(".cm-host .cm-strong");
 
     const buttons = readFileSync(`${STYLE_DIR}/buttons.css`, "utf8");
     expect(buttons).not.toContain("button.mod-loading");

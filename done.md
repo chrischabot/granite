@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-13 — Renderer typography CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/typography.css` for body
+  text baseline, markdown/source-mode heading scale, paragraph spacing,
+  emphasis, links, keyboard labels, inline title behavior, and garbled privacy
+  text.
+- **Regression audit** — extended the renderer module test so typography rules
+  stay imported, spec-linked, and out of broad base/markdown/source-mode files.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer suggestion and prompt CSS module
 
 - **Dedicated module** — added spec-linked

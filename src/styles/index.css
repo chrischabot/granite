@@ -1,6 +1,7 @@
 @import "./tokens.css";
 @import "./os-modifiers.css";
 @import "./rtl.css";
+@import "./typography.css";
 @import "./animations.css";
 @import "./loading.css";
 @import "./progress.css";

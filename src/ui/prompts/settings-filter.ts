@@ -1,6 +1,7 @@
 import type { SettingsTabSpec } from "@core/plugins/host-registries";
 
 export type BuiltinSettingsSection =
+  | "general"
   | "appearance"
   | "editor"
   | "files"
@@ -21,6 +22,13 @@ export interface SettingsSectionInfo {
 }
 
 export const BUILTIN_SETTINGS_SECTIONS: ReadonlyArray<SettingsSectionInfo> = [
+  {
+    id: "general",
+    titleKey: "settings.general",
+    group: "options",
+    searchText:
+      "general version updates language help account advanced startup time profiling performance diagnostics",
+  },
   {
     id: "appearance",
     titleKey: "settings.appearance",

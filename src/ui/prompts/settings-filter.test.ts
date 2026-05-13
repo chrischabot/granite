@@ -4,6 +4,7 @@ import { getVisibleSettingsSections } from "./settings-filter";
 describe("getVisibleSettingsSections", () => {
   it("returns every built-in and plugin settings section for an empty query", () => {
     const sections = getVisibleSettingsSections("", [{ id: "demo", name: "Demo plugin" }]);
+    expect(sections.map((s) => s.id)).toContain("general");
     expect(sections.map((s) => s.id)).toContain("appearance");
     expect(sections.map((s) => s.id)).toContain("templates");
     expect(sections.map((s) => s.id)).toContain("plugin:demo");
@@ -12,6 +13,9 @@ describe("getVisibleSettingsSections", () => {
   it("filters built-in sections by visible title and searchable setting text", () => {
     expect(getVisibleSettingsSections("vim", []).map((s) => s.id)).toEqual(["editor"]);
     expect(getVisibleSettingsSections("css snippets", []).map((s) => s.id)).toEqual(["appearance"]);
+    expect(getVisibleSettingsSections("startup profiling", []).map((s) => s.id)).toEqual([
+      "general",
+    ]);
   });
 
   it("matches all query terms instead of any single term", () => {

@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Startup timing profiling hook
+
+- **Root cause** — the settings spec calls for General → Advanced → Check
+  startup time, but the settings modal had no General section and no startup
+  timing report path.
+- **Profiler** — added a Performance API collector/formatter for elapsed,
+  navigation, DOMContentLoaded, load, first-paint, and first-contentful-paint
+  timings, with explicit unavailable markers.
+- **Settings path** — added the General settings section and wired Check
+  startup time to show a sticky local report notice.
+- **Regression ratchet** — added `src/core/perf/startup.test.ts` and extended
+  `src/ui/prompts/settings-filter.test.ts`.
+
+### Tests
+- `bun run test -- src/core/perf/startup.test.ts src/ui/prompts/settings-filter.test.ts src/core/i18n/index.test.ts`
+
+---
+
 ## 2026-05-13 — Orphan atomic-write temp scan
 
 - **Root cause** — the File System Access adapter writes through

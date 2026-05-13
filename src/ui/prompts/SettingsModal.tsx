@@ -17,6 +17,7 @@ import {
   subscribeSettingsTabs,
 } from "@core/plugins/host-registries";
 import { listPlugins, setPluginEnabled, subscribe as subscribePlugins } from "@core/plugins/loader";
+import { showStartupTimingReport } from "@core/perf/startup";
 import { settingsStore } from "@core/settings/store";
 import { useSettings } from "@core/settings/useSettings";
 import { listSnippets, setEnabled, subscribe as subscribeSnippets } from "@core/snippets/loader";
@@ -43,7 +44,7 @@ export interface SettingsModalProps {
 
 export function SettingsModal({ open, onClose }: SettingsModalProps) {
   const t = useI18n();
-  const [section, setSection] = useState<SettingsSectionId>("appearance");
+  const [section, setSection] = useState<SettingsSectionId>("general");
   const [settingsFilter, setSettingsFilter] = useState("");
   const settings = useSettings();
   const theme = useTheme();
@@ -154,6 +155,21 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
           <div className="vertical-tab-content">
             {visibleSections.length === 0 && (
               <div style={{ color: "var(--text-faint)" }}>{t("settings.empty.noMatch")}</div>
+            )}
+            {visibleSectionIds.has(section) && section === "general" && (
+              <>
+                <h2>{t("settings.general")}</h2>
+                <h3>{t("settings.general.advanced")}</h3>
+                <SettingItem
+                  name={t("settings.general.checkStartupTime")}
+                  desc={t("settings.general.checkStartupTimeDesc")}
+                  control={
+                    <button type="button" onClick={() => showStartupTimingReport()}>
+                      {t("settings.general.checkStartupTime")}
+                    </button>
+                  }
+                />
+              </>
             )}
             {visibleSectionIds.has(section) && section === "appearance" && (
               <>

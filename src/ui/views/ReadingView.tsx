@@ -114,6 +114,7 @@ export function ReadingView({ path }: ReadingViewProps) {
     return Object.entries(fileMeta.frontmatter);
   }, [fileMeta]);
   const noteDirection = noteDirectionFromFrontmatter(fileMeta?.frontmatter);
+  const renderedDirection = noteDirection ?? "ltr";
 
   // Click-to-navigate on internal links / embeds. Heading/block suffixes are
   // resolved within the rendered DOM when the link points to the same file,
@@ -839,8 +840,8 @@ export function ReadingView({ path }: ReadingViewProps) {
                   <PropertiesStrip path={path} entries={frontmatterEntries} />
                 )}
                 <div
-                  className={`markdown-rendered${noteDirection ? ` ${noteDirection}` : ""}`}
-                  dir={noteDirection ?? undefined}
+                  className={`markdown-rendered ${renderedDirection}`}
+                  dir={renderedDirection}
                   // biome-ignore lint/security/noDangerouslySetInnerHtml: Markdown is rendered with html disabled and then post-processed for trusted app embeds.
                   dangerouslySetInnerHTML={{ __html: html }}
                 />

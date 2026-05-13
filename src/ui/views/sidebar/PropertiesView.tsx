@@ -24,6 +24,7 @@ const ISO_DATETIME_RE =
 function inferType(v: unknown): ValueType {
   if (typeof v === "boolean") return "checkbox";
   if (typeof v === "number") return "number";
+  if (v instanceof Date) return isDateOnly(v) ? "date" : "datetime";
   if (Array.isArray(v)) return "list";
   if (typeof v === "string") {
     if (ISO_DATETIME_RE.test(v)) return "datetime";
@@ -42,6 +43,25 @@ function effectiveType(key: string, value: unknown): ValueType {
 function toDatetimeLocal(value: string): string {
   const m = value.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
   return m?.[1] ?? "";
+}
+
+function isDateOnly(value: Date): boolean {
+  return (
+    value.getUTCHours() === 0 &&
+    value.getUTCMinutes() === 0 &&
+    value.getUTCSeconds() === 0 &&
+    value.getUTCMilliseconds() === 0
+  );
+}
+
+function toDateInputValue(value: unknown, draft: string): string {
+  if (value instanceof Date) return value.toISOString().slice(0, 10);
+  return ISO_DATE_RE.test(draft) ? draft : "";
+}
+
+function toDatetimeInputValue(value: unknown, draft: string): string {
+  if (value instanceof Date) return value.toISOString().slice(0, 16);
+  return toDatetimeLocal(draft);
 }
 
 async function persist(path: string, mutate: (text: string) => string): Promise<void> {
@@ -264,7 +284,7 @@ function PropertyRow({
           <input
             type="date"
             lang={locale}
-            value={ISO_DATE_RE.test(draft) ? draft : ""}
+            value={toDateInputValue(value, draft)}
             onChange={(e) => commit(e.currentTarget.value)}
             style={{ width: "100%" }}
           />
@@ -272,7 +292,7 @@ function PropertyRow({
           <input
             type="datetime-local"
             lang={locale}
-            value={toDatetimeLocal(draft)}
+            value={toDatetimeInputValue(value, draft)}
             onChange={(e) => commit(e.currentTarget.value)}
             style={{ width: "100%" }}
           />
@@ -304,6 +324,7 @@ function PropertyRow({
 
 function stringify(v: unknown): string {
   if (v === null || v === undefined) return "";
+  if (v instanceof Date) return v.toISOString();
   if (Array.isArray(v)) return v.map((x) => String(x)).join(", ");
   if (typeof v === "object") return JSON.stringify(v);
   return String(v);

@@ -158,4 +158,18 @@ describe("ReadingView canvas embeds", () => {
     expect(rendered?.classList.contains("rtl")).toBe(true);
     expect(rendered?.dir).toBe("rtl");
   });
+
+  it("keeps notes without frontmatter direction LTR under RTL chrome", async () => {
+    document.documentElement.dir = "rtl";
+    files.set("Host.md", "# Hello");
+
+    await act(async () => root.render(<ReadingView path="Host.md" />));
+    await settle();
+    await settle();
+
+    const rendered = host.querySelector<HTMLElement>(".markdown-rendered");
+    expect(rendered?.classList.contains("ltr")).toBe(true);
+    expect(rendered?.classList.contains("rtl")).toBe(false);
+    expect(rendered?.dir).toBe("ltr");
+  });
 });

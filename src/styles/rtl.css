@@ -16,7 +16,8 @@ body.is-rtl,
 }
 
 .mod-rtl .community-modal-readme,
-.mod-rtl .canvas-wrapper {
+.mod-rtl .canvas-wrapper,
+.mod-rtl .canvas-view {
   direction: ltr;
 }
 

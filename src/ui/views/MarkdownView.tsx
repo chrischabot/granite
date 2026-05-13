@@ -134,6 +134,7 @@ export function MarkdownView({
   const initialFoldsRef = useRef(folds);
   const fileMeta = useFileMetadata(path);
   const noteDirection = noteDirectionFromFrontmatter(fileMeta?.frontmatter);
+  const renderedDirection = noteDirection ?? "ltr";
 
   useEffect(() => {
     initialFoldsRef.current = folds;
@@ -856,8 +857,8 @@ export function MarkdownView({
         </div>
         <div
           ref={containerRef}
-          className={`cm-host markdown-source-view mod-cm6${livePreview ? " is-live-preview" : ""}${noteDirection ? ` ${noteDirection}` : ""}`}
-          dir={noteDirection ?? undefined}
+          className={`cm-host markdown-source-view mod-cm6${livePreview ? " is-live-preview" : ""} ${renderedDirection}`}
+          dir={renderedDirection}
           style={{
             display: loadState === "loaded" || loadState === "missing" ? "block" : "none",
             flex: "1 1 auto",

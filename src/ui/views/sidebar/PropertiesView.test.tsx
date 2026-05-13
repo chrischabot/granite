@@ -9,6 +9,8 @@ vi.mock("@core/metadata/useMetadata", () => ({
     frontmatter: {
       due: "2026-05-13",
       starts: "2026-05-13T09:30:00Z",
+      parsedDue: new Date(Date.UTC(2026, 4, 14)),
+      parsedStarts: new Date(Date.UTC(2026, 4, 14, 9, 30)),
     },
   }),
 }));
@@ -44,10 +46,15 @@ describe("PropertiesView date inputs", () => {
   it("passes the active locale to native date and datetime pickers", async () => {
     await act(async () => root.render(<PropertiesView />));
 
-    const date = host.querySelector<HTMLInputElement>("input[type='date']");
-    const datetime = host.querySelector<HTMLInputElement>("input[type='datetime-local']");
+    const dates = host.querySelectorAll<HTMLInputElement>("input[type='date']");
+    const datetimes = host.querySelectorAll<HTMLInputElement>("input[type='datetime-local']");
 
-    expect(date?.lang).toBe("he");
-    expect(datetime?.lang).toBe("he");
+    expect([...dates].map((input) => input.lang)).toEqual(["he", "he"]);
+    expect([...datetimes].map((input) => input.lang)).toEqual(["he", "he"]);
+    expect([...dates].map((input) => input.value)).toEqual(["2026-05-13", "2026-05-14"]);
+    expect([...datetimes].map((input) => input.value)).toEqual([
+      "2026-05-13T09:30",
+      "2026-05-14T09:30",
+    ]);
   });
 });

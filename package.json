@@ -33,6 +33,7 @@
     "verify:settings-persistence-browser": "node scripts/verify-settings-persistence-browser.mjs",
     "verify:gfm-browser": "node scripts/verify-gfm-browser.mjs",
     "verify:commonmark-browser": "node scripts/verify-commonmark-browser.mjs",
+    "verify:rtl-browser": "node scripts/verify-rtl-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

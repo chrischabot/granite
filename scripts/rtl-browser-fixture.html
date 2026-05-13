@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite RTL Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { setLocale } from "@core/i18n";
+      import { LocaleDirectionBinder } from "@/ui/LocaleDirectionBinder";
+      import { metadataCache } from "@core/metadata/cache";
+      import { workspaceStore } from "@core/workspace/store";
+      import { serializeCanvas } from "@core/canvas/schema";
+      import { SettingsModal } from "@/ui/prompts/SettingsModal";
+      import { MenuHost, openMenu } from "@/ui/overlay/Menu";
+      import { StatusBar } from "@/ui/shell/StatusBar";
+      import { CanvasView } from "@/ui/views/CanvasView";
+      import { MarkdownView } from "@/ui/views/MarkdownView";
+      import { ReadingView } from "@/ui/views/ReadingView";
+      import { PropertiesView } from "@/ui/views/sidebar/PropertiesView";
+      import { Tab } from "@/ui/workspace/Tab";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+      import { useWorkspace } from "@core/workspace/useWorkspace";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "rtl-browser";
+
+      function ActiveTab() {
+        const state = useWorkspace();
+        const group = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
+        const leaf = group?.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
+        return leaf
+          ? React.createElement("div", { className: "workspace-tab-header-container" },
+              React.createElement(Tab, { leaf, active: true }),
+            )
+          : null;
+      }
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const bootingRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || bootingRef.current) return;
+          bootingRef.current = true;
+          void (async () => {
+            try {
+              if (activeVault?.entry.name !== vaultName) await openOpfs(vaultName);
+              await run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  yield* fs.writeText(
+                    "RTL.md",
+                    "---\ndir: rtl\ndue: 2026-05-13\nstarts: 2026-05-13T09:30:00Z\n---\n# שלום\n\nעברית English 123\n\nEnglish paragraph stays readable.\n",
+                  );
+                  yield* fs.writeText("LTR.md", "# Hello\n\nעברית English 123\n");
+                  yield* fs.writeText(
+                    "Board.canvas",
+                    serializeCanvas({
+                      nodes: [{ id: "rtl-node", type: "text", x: 100, y: 100, width: 120, height: 80, text: "A" }],
+                      edges: [],
+                    }),
+                  );
+                }),
+              );
+              await metadataCache.indexVault();
+              workspaceStore.reset();
+              workspaceStore.openFile("RTL.md", { mode: "reading" });
+              setLocale("he");
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        window.__graniteRtlBrowserReady = ready;
+        window.__graniteRtlBrowserError = error;
+        window.__graniteRtlBrowserWorkspace = () => {
+          const state = workspaceStore.getState();
+          const activeGroup = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
+          const activeLeaf = activeGroup?.activeLeafId ? state.leaves.get(activeGroup.activeLeafId) : null;
+          return {
+            activeGroupId: state.activeGroupId,
+            activeLeafId: activeGroup?.activeLeafId ?? null,
+            activeLeaf: activeLeaf
+              ? { id: activeLeaf.id, path: activeLeaf.path, type: activeLeaf.type, mode: activeLeaf.mode }
+              : null,
+            groupCount: state.groups.size,
+            leafCount: state.leaves.size,
+          };
+        };
+        window.__graniteRtlBrowserMetadata = () => metadataCache.getMetadata("RTL.md");
+        window.__graniteRtlBrowserOpenMenu = () =>
+          openMenu({
+            x: 24,
+            y: 24,
+            items: [{ id: "one", label: "Menu item", callback: () => {} }],
+          });
+
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(LocaleDirectionBinder),
+          React.createElement(MenuHost),
+          React.createElement(SettingsModal, { open: true, onClose: () => {} }),
+          React.createElement(
+            "div",
+            { className: "status-shell", style: { position: "fixed", left: 0, right: 0, bottom: 0 } },
+            React.createElement(StatusBar),
+          ),
+          React.createElement(ActiveTab),
+          React.createElement(
+            "main",
+            {
+              style: {
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: 16,
+                height: "720px",
+                padding: "96px 16px 48px",
+              },
+            },
+            React.createElement("section", { "aria-label": "RTL reading" }, React.createElement(ReadingView, { path: "RTL.md" })),
+            React.createElement("section", { "aria-label": "LTR reading" }, React.createElement(ReadingView, { path: "LTR.md" })),
+            React.createElement("section", { "aria-label": "RTL source" }, React.createElement(MarkdownView, { path: "RTL.md" })),
+            React.createElement("section", { "aria-label": "LTR source" }, React.createElement(MarkdownView, { path: "LTR.md" })),
+            React.createElement("section", { "aria-label": "Properties" }, React.createElement(PropertiesView)),
+            React.createElement("section", { "aria-label": "Canvas", style: { minHeight: 240 } }, React.createElement(CanvasView, { path: "Board.canvas" })),
+          ),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

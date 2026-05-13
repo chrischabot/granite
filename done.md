@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — RTL browser verifier
+
+- **Root cause** — RTL behavior had unit coverage for locale direction and
+  per-note frontmatter, but the severe-test list still relied on manual browser
+  checks for chrome direction, canvas direction, localized date controls, and
+  Reading/Source note isolation.
+- **Browser path** — added `verify:rtl-browser`, which switches a real fixture
+  to Hebrew, verifies modal/menu/status/tab chrome is RTL, verifies canvas stays
+  spatially LTR, checks Properties date and datetime inputs receive `lang="he"`,
+  and proves only notes with `dir: rtl` flip in Reading and Source modes.
+- **Product fixes** — kept `.canvas-view` LTR under RTL chrome, made
+  Reading/Source user-content surfaces default to explicit LTR unless the note
+  frontmatter opts into a direction, and taught Properties date controls to
+  recognize YAML-parsed `Date` values instead of rendering them as JSON.
+
+### Tests
+- `bun run verify:rtl-browser`
+- `node --check scripts/verify-rtl-browser.mjs`
+- `bun run test -- src/core/i18n/direction.test.ts src/core/i18n/index.test.ts src/ui/LocaleDirectionBinder.test.tsx src/ui/views/ReadingView.test.tsx src/ui/views/sidebar/PropertiesView.test.tsx`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Markdown parser browser verifiers
 
 - **Root cause** — GFM and CommonMark parser behavior had unit and fixture

@@ -8,6 +8,7 @@ import {
   opfsSupported,
   pickDirectoryFSA,
 } from "@core/fs/handle-adapter";
+import { scanOrphanAtomicWriteTemps } from "@core/fs/orphan-temp";
 import { t } from "@core/i18n";
 import { bindTypeRegistry, unbindTypeRegistry } from "@core/metadata/type-registry";
 import { noticeManager } from "@core/notices/notice";
@@ -201,6 +202,20 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       (window as unknown as { __graniteActiveVaultId?: string }).__graniteActiveVaultId = entry.id;
       await persistVault({ ...entry, lastOpenedMs: Date.now() }, handle);
       await refreshList();
+      void scanOrphanAtomicWriteTemps()
+        .then((paths) => {
+          if (paths.length === 0) return;
+          noticeManager.show(
+            t("vaultContext.warning.orphanTemps", {
+              count: paths.length.toLocaleString(),
+              paths: paths.slice(0, 5).join("\n"),
+            }),
+            { kind: "warning", timeoutMs: 0 },
+          );
+        })
+        .catch(() => {
+          /* startup warning stays best-effort */
+        });
       await bindSettings();
       workspaceStore.reset();
       // Disk-first restore; falls back to localStorage and migrates on hit.

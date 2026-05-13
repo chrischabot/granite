@@ -772,6 +772,8 @@ That's the tour — happy linking!
   "vaultContext.error.opfsUnavailable":
     "In-browser vault storage is not available in this browser.",
   "vaultContext.error.permissionDenied": "Read/write permission was denied for this folder",
+  "vaultContext.warning.orphanTemps":
+    "Found {count} leftover atomic-write temp file(s). Granite will leave them untouched so you can inspect them:\n{paths}",
   "help.title": "Granite cheat-sheet",
   "help.keys.commandPalette": "⌘P / Ctrl P",
   "help.keys.quickSwitcher": "⌘O / Ctrl O",
@@ -1700,6 +1702,8 @@ Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github
     "vaultContext.error.lostHandle": "חיבור התיקייה אבד; בחרו את התיקייה מחדש",
     "vaultContext.error.opfsUnavailable": "אחסון כספת בדפדפן אינו זמין בדפדפן הזה.",
     "vaultContext.error.permissionDenied": "הרשאת קריאה/כתיבה נדחתה לתיקייה זו",
+    "vaultContext.warning.orphanTemps":
+      "נמצאו {count} קובצי זמני כתיבה אטומית שנותרו. Granite ישאיר אותם ללא שינוי כדי שתוכלו לבדוק אותם:\n{paths}",
     "help.title": "דף עזר לגרניט",
     "help.keys.commandPalette": "⌘P / Ctrl P",
     "help.keys.quickSwitcher": "⌘O / Ctrl O",

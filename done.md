@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Orphan atomic-write temp scan
+
+- **Root cause** — the File System Access adapter writes through
+  `.granite-tmp~` siblings for atomic saves, but vault startup did not scan for
+  abandoned temp files after an interrupted write.
+- **Startup warning** — added a filesystem scanner for legacy `.tmp~` and
+  current `.granite-tmp~` leftovers, and wired vault activation to show a
+  sticky warning with up to five paths while leaving the files untouched for
+  inspection.
+- **Regression ratchet** — added `src/core/fs/orphan-temp.test.ts` to prove the
+  matcher and active `FileSystem` scan path.
+
+### Tests
+- `bun run test -- src/core/fs/orphan-temp.test.ts src/core/i18n/index.test.ts`
+
+---
+
 ## 2026-05-13 — Locale-bound property date pickers
 
 - **Root cause** — Properties sidebar date and datetime inputs used native

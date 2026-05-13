@@ -70,6 +70,8 @@ describe("i18n", () => {
     expect(t("help.section.workspace")).toBe("סביבת עבודה");
     expect(t("bookmarks.defaultGroup")).toBe("סימניות");
     expect(t("graph.controls.title")).toBe("פקדי גרף");
+    expect(t("graph.filterPlaceholder")).toBe("tag:project -draft");
+    expect(t("graph.groups.queryPlaceholder")).toBe("tag:work");
     expect(t("fileRecovery.title")).toBe("שחזור קבצים");
     expect(t("installPlugin.title")).toBe("התקנת תוסף קהילתי");
     expect(t("settings.searchPlaceholder")).toBe("חיפוש בהגדרות");

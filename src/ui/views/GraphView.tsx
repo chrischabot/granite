@@ -614,7 +614,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
       <ControlBlock title={t("graph.controls.filter")}>
         <input
           type="text"
-          placeholder="tag:project -draft"
+          placeholder={t("graph.filterPlaceholder")}
           value={config.filter}
           onChange={(e) => updateGraphConfig({ filter: e.currentTarget.value })}
           style={{ width: "100%" }}
@@ -697,7 +697,7 @@ function GraphControlsPanel({ onClose }: { onClose: () => void }) {
                   type="text"
                   value={g.query}
                   onChange={(e) => updateGraphGroup(g.id, { query: e.currentTarget.value })}
-                  placeholder="tag:work"
+                  placeholder={t("graph.groups.queryPlaceholder")}
                   style={{ width: "100%", minWidth: 0, fontFamily: "var(--font-monospace)" }}
                 />
                 <input

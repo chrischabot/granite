@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-13 — Graph placeholder i18n ratchet
+
+- **Graph placeholders** — routed graph filter and group-query placeholder
+  examples through locale keys.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if those Graph View placeholder examples return as hard-coded English
+  JSX literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Vault Context i18n ratchet
 
 - **Vault lifecycle notices** — routed pop-out bootstrap failure, reopen-grant

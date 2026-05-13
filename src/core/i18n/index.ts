@@ -122,6 +122,7 @@ const EN_LOCALE: LocaleMap = {
   "bases.matchCount": "{count} {matchLabel}",
   "bases.groupedBy": "grouped by {group}",
   "bases.loading": "Loading base…",
+  "bases.error.exists": 'A file named "{path}" already exists',
   "bases.embed.loading": "Loading…",
   "bases.empty.noMatchingFiles": "No matching files.",
   "bases.column.name": "Name",
@@ -135,6 +136,7 @@ const EN_LOCALE: LocaleMap = {
   "bases.map.coordinatesFrom": "Map coordinates from",
   "bases.map.empty": "No rows have valid latitude and longitude values.",
   "inlineTitle.error.invalidName": "That name contains invalid characters.",
+  "inlineTitle.error.exists": 'A file named "{path}" already exists',
   "inlineTitle.error.rename": "Could not rename file",
   "inlineTitle.notice.renamedAndRewritten":
     "Renamed and updated {links} {linkLabel} in {files} {fileLabel}.",
@@ -1002,6 +1004,7 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "bases.matchCount": "{count} {matchLabel}",
     "bases.groupedBy": "מקובץ לפי {group}",
     "bases.loading": "טוען בסיס…",
+    "bases.error.exists": 'כבר קיים קובץ בשם "{path}"',
     "bases.embed.loading": "טוען…",
     "bases.empty.noMatchingFiles": "אין קבצים תואמים.",
     "bases.column.name": "שם",
@@ -1015,6 +1018,7 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "bases.map.coordinatesFrom": "קואורדינטות מפה מתוך",
     "bases.map.empty": "אין שורות עם ערכי קו רוחב וקו אורך תקינים.",
     "inlineTitle.error.invalidName": "השם מכיל תווים לא תקינים.",
+    "inlineTitle.error.exists": 'כבר קיים קובץ בשם "{path}"',
     "inlineTitle.error.rename": "לא ניתן לשנות את שם הקובץ",
     "inlineTitle.notice.renamedAndRewritten":
       "השם שונה ועודכנו {links} {linkLabel} ב-{files} {fileLabel}.",

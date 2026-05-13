@@ -51,7 +51,7 @@ export function InlineTitle({ path }: InlineTitleProps) {
         Effect.gen(function* () {
           const fs = yield* FileSystem;
           const existing = yield* fs.stat(newPath);
-          if (existing) throw new Error(`A file named "${newPath}" already exists`);
+          if (existing) throw new Error(t("inlineTitle.error.exists", { path: newPath }));
           yield* fs.rename(path, newPath);
         }),
       );

@@ -555,11 +555,13 @@ const BASES_VIEW_FORBIDDEN_PATTERNS = [
   /"no filter"/,
   /match\{filtered\.length === 1 \? "" : "es"\}/,
   /grouped by \{config\.groupBy\}/,
+  /`A file named "\$\{path\}" already exists`/,
 ];
 
 const INLINE_AND_OVERLAY_FORBIDDEN_PATTERNS = [
   /"That name contains invalid characters\."/,
   /"Could not rename file"/,
+  /`A file named "\$\{newPath\}" already exists`/,
   /Renamed and updated \$\{linksRewritten\}/,
   /Renamed, but could not update outgoing wikilinks/,
   /title="Double-click to rename"/,
@@ -1561,6 +1563,7 @@ describe("UI string externalization audit", () => {
       "bases.matchCount",
       "bases.groupedBy",
       "bases.loading",
+      "bases.error.exists",
       "bases.embed.loading",
       "bases.empty.noMatchingFiles",
       "bases.column.name",
@@ -1588,6 +1591,7 @@ describe("UI string externalization audit", () => {
 
     for (const requiredKey of [
       "inlineTitle.error.invalidName",
+      "inlineTitle.error.exists",
       "inlineTitle.error.rename",
       "inlineTitle.notice.renamedAndRewritten",
       "inlineTitle.notice.renameRewriteFailed",

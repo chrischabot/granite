@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — File-exists error i18n ratchet
+
+- **Bases scaffold errors** — routed existing-file failures from `.base`
+  scaffold creation through locale keys.
+- **Inline title errors** — routed rename destination collisions through
+  locale keys before surfacing them as notices.
+- **Regression audit** — extended Bases and Inline Title externalization tests
+  to fail if the hard-coded file-exists messages return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Bases column-label cleanup
 
 - **Removed stale helper** — deleted the unused core Bases `columnLabel` helper

@@ -10,6 +10,7 @@ import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
 import type { VaultFile, VaultPath } from "@core/fs/types";
+import { t as translate } from "@core/i18n";
 import { metadataCache } from "@core/metadata/cache";
 import { useMetadataVersion } from "@core/metadata/useMetadata";
 import { fileMatchesQuery, parseQuery } from "@core/search/query";
@@ -341,7 +342,7 @@ mapLongitude: ${cfg.mapLongitude}
       const fs = yield* FileSystem;
       const existing = yield* fs.stat(path);
       if (existing) {
-        throw new Error(`A file named "${path}" already exists`);
+        throw new Error(translate("bases.error.exists", { path }));
       }
       yield* fs.writeText(path, yamlText);
     }),

@@ -101,8 +101,10 @@ describe("i18n", () => {
     );
     expect(t("bases.title")).toBe("בסיסים");
     expect(t("bases.empty.noMatchingFiles")).toBe("אין קבצים תואמים.");
+    expect(t("bases.error.exists", { path: "Tasks.base" })).toBe('כבר קיים קובץ בשם "Tasks.base"');
     expect(t("bases.map.open", { name: "London" })).toBe("פתיחת London");
     expect(t("inlineTitle.renameTitle")).toBe("לחיצה כפולה לשינוי שם");
+    expect(t("inlineTitle.error.exists", { path: "Note.md" })).toBe('כבר קיים קובץ בשם "Note.md"');
     expect(t("errorBoundary.reload")).toBe("טעינת גרניט מחדש");
     expect(t("hoverPopover.fileNotFound")).toBe("הקובץ לא נמצא בכספת.");
     expect(t("notice.dismiss")).toBe("סגירה");

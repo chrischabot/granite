@@ -27,6 +27,20 @@ const MODULES = [
       'input[type="radio"]:checked::after',
     ],
   },
+  {
+    file: "slider.css",
+    spec: "specs/renderer/slider.md",
+    selectors: [
+      'input[type="range"]',
+      'input[type="range"]::-webkit-slider-thumb',
+      'body:not(.is-mobile) input[type="range"]:focus-visible::-webkit-slider-thumb',
+    ],
+  },
+  {
+    file: "flair-and-pill.css",
+    spec: "specs/renderer/flair-and-pill.md",
+    selectors: [".flair.mod-pop", ".suggestion-flair", ".tree-item-flair", ".multi-select-pill"],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {

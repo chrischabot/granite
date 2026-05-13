@@ -646,6 +646,25 @@ body {
   --search-icon-size: 18px;
   --search-result-background: var(--background-primary);
 
+  /* Flair / pills */
+  --flair-background: var(--interactive-normal);
+  --flair-color: var(--text-normal);
+  --pill-color: var(--text-muted);
+  --pill-color-hover: var(--text-normal);
+  --pill-color-remove: var(--text-faint);
+  --pill-color-remove-hover: var(--text-accent);
+  --pill-decoration: none;
+  --pill-decoration-hover: none;
+  --pill-background: transparent;
+  --pill-background-hover: transparent;
+  --pill-border-color: var(--background-modifier-border);
+  --pill-border-color-hover: var(--background-modifier-border-hover);
+  --pill-border-width: var(--border-width);
+  --pill-padding-x: 0.65em;
+  --pill-padding-y: 0.25em;
+  --pill-radius: 2em;
+  --pill-weight: inherit;
+
   /* Toggles (Linux/Win defaults) */
   --toggle-border-width: 2px;
   --toggle-width: 40px;

@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Renderer slider and flair CSS modules
+
+- **Dedicated modules** — added spec-linked `src/styles/slider.css` and
+  `src/styles/flair-and-pill.css` for range inputs, suggestion flairs,
+  tree-item flairs, and pill primitives.
+- **Regression audit** — extended the renderer module test so these modules must
+  stay imported and spec-linked.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer controls CSS module extraction
 
 - **Dedicated modules** — extracted button/icon-button, text input/textarea, and

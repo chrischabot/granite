@@ -78,6 +78,40 @@ function isTableRow(lines: ReadonlyArray<string>, lineIndex: number): boolean {
   );
 }
 
+function isEscaped(line: string, index: number): boolean {
+  let slashCount = 0;
+  for (let i = index - 1; i >= 0 && line[i] === "\\"; i--) slashCount += 1;
+  return slashCount % 2 === 1;
+}
+
+function codeSpanRanges(line: string): Array<[number, number]> {
+  const ranges: Array<[number, number]> = [];
+  let i = 0;
+  while (i < line.length) {
+    if (line[i] !== "`") {
+      i += 1;
+      continue;
+    }
+    const start = i;
+    while (i < line.length && line[i] === "`") i += 1;
+    const tickCount = i - start;
+    let j = i;
+    while (j < line.length) {
+      const close = line.indexOf("`", j);
+      if (close === -1) return ranges;
+      let closeEnd = close;
+      while (closeEnd < line.length && line[closeEnd] === "`") closeEnd += 1;
+      if (closeEnd - close === tickCount) {
+        ranges.push([start, closeEnd]);
+        i = closeEnd;
+        break;
+      }
+      j = closeEnd;
+    }
+  }
+  return ranges;
+}
+
 /**
  * Compute which character ranges should be hidden on each non-cursor line.
  * Exported pure function for test coverage. Positions are 0-based document
@@ -155,18 +189,7 @@ export function computeLivePreviewRanges(
 
     // Inline-code spans on this line — record their (start, end) pairs so we
     // can skip formatting inside them.
-    const codeSpans: Array<[number, number]> = [];
-    {
-      let i = 0;
-      while (i < line.length) {
-        const open = line.indexOf("`", i);
-        if (open === -1) break;
-        const close = line.indexOf("`", open + 1);
-        if (close === -1) break;
-        codeSpans.push([open, close + 1]);
-        i = close + 1;
-      }
-    }
+    const codeSpans = codeSpanRanges(line);
     const overlapsCode = (start: number, end: number): boolean =>
       codeSpans.some(([s, e]) => start < e && end > s);
 
@@ -215,7 +238,9 @@ export function computeLivePreviewRanges(
     forEachMatch(BOLD_ITALIC_STAR_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 3)) {
+        return;
+      }
       addReplace(idx, idx + 3);
       addReplace(idx + len - 3, idx + len);
     });
@@ -223,7 +248,9 @@ export function computeLivePreviewRanges(
     forEachMatch(BOLD_ITALIC_UNDERSCORE_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 3)) {
+        return;
+      }
       addReplace(idx, idx + 3);
       addReplace(idx + len - 3, idx + len);
     });
@@ -232,7 +259,9 @@ export function computeLivePreviewRanges(
     forEachMatch(BOLD_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 2)) {
+        return;
+      }
       addReplace(idx, idx + 2);
       addReplace(idx + len - 2, idx + len);
     });
@@ -240,7 +269,9 @@ export function computeLivePreviewRanges(
     forEachMatch(UNDERSCORE_BOLD_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 2)) {
+        return;
+      }
       addReplace(idx, idx + 2);
       addReplace(idx + len - 2, idx + len);
     });
@@ -250,7 +281,9 @@ export function computeLivePreviewRanges(
     forEachMatch(ASTERISK_ITALIC_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 1)) {
+        return;
+      }
       addReplace(idx, idx + 1);
       addReplace(idx + len - 1, idx + len);
     });
@@ -259,7 +292,9 @@ export function computeLivePreviewRanges(
     forEachMatch(HIGHLIGHT_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 2)) {
+        return;
+      }
       addReplace(idx, idx + 2);
       addReplace(idx + len - 2, idx + len);
     });
@@ -268,7 +303,9 @@ export function computeLivePreviewRanges(
     forEachMatch(STRIKE_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 2)) {
+        return;
+      }
       addReplace(idx, idx + 2);
       addReplace(idx + len - 2, idx + len);
     });
@@ -277,7 +314,9 @@ export function computeLivePreviewRanges(
     forEachMatch(UNDERSCORE_ITALIC_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 1)) {
+        return;
+      }
       addReplace(idx, idx + 1);
       addReplace(idx + len - 1, idx + len);
     });
@@ -335,7 +374,9 @@ export function computeLivePreviewRanges(
     forEachMatch(INLINE_MATH_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 1)) {
+        return;
+      }
       addReplace(idx, idx + 1);
       addReplace(idx + len - 1, idx + len);
     });

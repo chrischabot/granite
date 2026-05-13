@@ -92,6 +92,16 @@ describe("computeLivePreviewRanges", () => {
     expect(hiddenSlices(text, -1)).toEqual([]);
   });
 
+  it("skips formatting inside matching multi-backtick inline-code spans", () => {
+    const text = "``code with ` and **not bold**`` then **bold**";
+    expect(hiddenSlices(text, -1)).toEqual(["**", "**"]);
+  });
+
+  it("does not hide escaped inline formatting markers", () => {
+    const text = String.raw`\**bold** \*italic* \==mark== \~~gone~~ \$math$ then **real**`;
+    expect(hiddenSlices(text, -1)).toEqual(["**", "**"]);
+  });
+
   it("hides [[ and ]] for a plain wikilink", () => {
     const slices = hiddenSlices("see [[Note]] here", -1);
     expect(slices).toEqual(["[[", "]]"]);
@@ -153,6 +163,10 @@ describe("computeLivePreviewRanges", () => {
 
   it("hides task checkbox markers while keeping the list marker", () => {
     expect(hiddenSlices("- [ ] open\n1. [x] done", -1)).toEqual(["[ ]", "[x]"]);
+  });
+
+  it("hides custom task checkbox markers while preserving source state semantics", () => {
+    expect(hiddenSlices("- [?] maybe\n- [-] canceled", -1)).toEqual(["[?]", "[-]"]);
   });
 
   it("hides GFM table pipes and separator rows", () => {

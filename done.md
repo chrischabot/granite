@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Live Preview escaped marker and code-span ratchet
+
+- **Root cause** — the Live Preview decoration helper skipped single-backtick
+  inline code spans, but `07_markdown_syntax.md` also documents
+  multi-backtick spans; escaped inline formatting markers could also still be
+  treated as hideable Markdown chrome.
+- **Decoration path** — added matching-backtick-run code span detection and
+  odd-backslash escape checks before replacing bold, italic, bold+italic,
+  highlight, strikethrough, and inline-math markers.
+- **Task markers** — added coverage for custom task states such as `[?]` and
+  `[-]`, preserving the source task state while still hiding inactive
+  checkbox marker chrome.
+- **Tracker honesty** — left the browser verification item open because this
+  extends the pure and CodeMirror-mounted ratchets, not a real browser audit.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Remove stale unlocalized leaf-title helper
 
 - **Root cause** — workspace UI already uses the localized

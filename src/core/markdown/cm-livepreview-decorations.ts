@@ -8,7 +8,6 @@ import {
 } from "@codemirror/view";
 import { parseWikilink } from "@core/markdown/renderer";
 
-const UNDERSCORE_BOLD_RE = /__([^_\n]+)__/g;
 const BOLD_ITALIC_STAR_RE = /\*\*\*([^*\n]+)\*\*\*/g;
 const BOLD_ITALIC_UNDERSCORE_RE = /___([^_\n]+)___/g;
 const HIGHLIGHT_RE = /==([^=\n]+)==/g;
@@ -100,6 +99,18 @@ function asteriskRunLengthAt(line: string, index: number): number {
 function isDoubleAsteriskMarker(line: string, index: number): boolean {
   return (
     asteriskRunLengthAt(line, index) === 2 && line[index - 1] !== "*" && !isEscaped(line, index)
+  );
+}
+
+function underscoreRunLengthAt(line: string, index: number): number {
+  let len = 0;
+  while (line[index + len] === "_") len += 1;
+  return len;
+}
+
+function isDoubleUnderscoreMarker(line: string, index: number): boolean {
+  return (
+    underscoreRunLengthAt(line, index) === 2 && line[index - 1] !== "_" && !isEscaped(line, index)
   );
 }
 
@@ -288,15 +299,16 @@ export function computeLivePreviewRanges(
       }
     }
 
-    forEachMatch(UNDERSCORE_BOLD_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 2)) {
-        return;
+    for (let start = 0; start < line.length; start++) {
+      if (!isDoubleUnderscoreMarker(line, start) || overlapsCode(start, start + 2)) continue;
+      for (let end = start + 2; end < line.length; end++) {
+        if (!isDoubleUnderscoreMarker(line, end) || overlapsCode(end, end + 2)) continue;
+        addReplace(start, start + 2);
+        addReplace(end, end + 2);
+        start = end + 1;
+        break;
       }
-      addReplace(idx, idx + 2);
-      addReplace(idx + len - 2, idx + len);
-    });
+    }
 
     // Asterisk italic: *word* — hide the single `*` markers without matching
     // the markers inside `**bold**`. A delimiter scan is used instead of a

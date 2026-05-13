@@ -127,6 +127,24 @@
 
 ---
 
+## 2026-05-13 — Live Preview nested underscore-emphasis ratchet
+
+- **Root cause** — the `__bold__` path had the same content-regex weakness as
+  asterisk bold: when a bold span contained nested `_italic_`, the outer
+  underscore-bold delimiters stayed visible on inactive lines.
+- **Decoration path** — replaced the underscore-bold regex with an exact
+  double-underscore delimiter scan that skips escaped markers and inline code
+  spans. The Live Preview ratchet now covers `__important _nested_ text__`
+  alongside the asterisk nested cases.
+- **Tracker honesty** — kept the Live Preview TODO open because source and CM
+  unit coverage still do not replace the remaining browser/manual audit.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview nested bold-with-asterisk-italic ratchet
 
 - **Root cause** — the Live Preview helper still used a content regex for

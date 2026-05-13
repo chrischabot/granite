@@ -249,6 +249,14 @@ const HELP_MODAL_FORBIDDEN_PATTERNS = [
   /what: "Embedded live search results"/,
   /title: "File explorer"/,
   /what: "Rename the selected file"/,
+  /keys: "Cmd \/ Ctrl click"/,
+  /keys: "Cmd \/ Ctrl Shift click"/,
+  /keys: "Drag a tab"/,
+  /keys: "Middle-click tab"/,
+  /keys: "Right-click tab"/,
+  /keys: "Cmd \/ Ctrl Delete"/,
+  /keys: "Click \+ Shift \/ Ctrl"/,
+  /keys: "Drag file onto a folder"/,
   /title="Granite cheat-sheet"/,
   /More commands live in the command palette/,
 ];
@@ -1209,6 +1217,10 @@ describe("UI string externalization audit", () => {
     }
     for (const requiredKey of [
       "help.title",
+      "help.keys.commandPalette",
+      "help.keys.tagAutocomplete",
+      "help.keys.dragTab",
+      "help.keys.move",
       "help.section.workspace",
       "help.workspace.commandPalette",
       "help.section.markdown",

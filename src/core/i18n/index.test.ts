@@ -68,6 +68,8 @@ describe("i18n", () => {
       'לפתוח מחדש את "Work"? לחצו כאן כדי לאשר גישה לתיקייה.',
     );
     expect(t("help.section.workspace")).toBe("סביבת עבודה");
+    expect(t("help.keys.tagAutocomplete")).toBe("# בתחילת שורה");
+    expect(t("help.keys.dragTab")).toBe("גרירת לשונית");
     expect(t("bookmarks.defaultGroup")).toBe("סימניות");
     expect(t("graph.controls.title")).toBe("פקדי גרף");
     expect(t("graph.filterPlaceholder")).toBe("tag:project -draft");

@@ -8,59 +8,59 @@ export interface HelpModalProps {
 
 interface Section {
   titleKey: string;
-  items: Array<{ keys: string; whatKey: string }>;
+  items: Array<{ keysKey: string; whatKey: string }>;
 }
 
 const SECTIONS: Section[] = [
   {
     titleKey: "help.section.workspace",
     items: [
-      { keys: "⌘P / Ctrl P", whatKey: "help.workspace.commandPalette" },
-      { keys: "⌘O / Ctrl O", whatKey: "help.workspace.quickSwitcher" },
-      { keys: "⌘, / Ctrl ,", whatKey: "help.workspace.settings" },
-      { keys: "⌘F / Ctrl F", whatKey: "help.workspace.find" },
-      { keys: "⌘S / Ctrl S", whatKey: "help.workspace.save" },
+      { keysKey: "help.keys.commandPalette", whatKey: "help.workspace.commandPalette" },
+      { keysKey: "help.keys.quickSwitcher", whatKey: "help.workspace.quickSwitcher" },
+      { keysKey: "help.keys.settings", whatKey: "help.workspace.settings" },
+      { keysKey: "help.keys.find", whatKey: "help.workspace.find" },
+      { keysKey: "help.keys.save", whatKey: "help.workspace.save" },
     ],
   },
   {
     titleKey: "help.section.editor",
     items: [
-      { keys: "[[", whatKey: "help.editor.wikilinkAutocomplete" },
-      { keys: "[[##", whatKey: "help.editor.headingSearch" },
-      { keys: "# at line start", whatKey: "help.editor.tagAutocomplete" },
-      { keys: "/ at line start", whatKey: "help.editor.slashCommands" },
-      { keys: "Cmd / Ctrl click", whatKey: "help.editor.openLink" },
-      { keys: "Cmd / Ctrl Shift click", whatKey: "help.editor.openLinkNewTab" },
+      { keysKey: "help.keys.wikilinkAutocomplete", whatKey: "help.editor.wikilinkAutocomplete" },
+      { keysKey: "help.keys.headingSearch", whatKey: "help.editor.headingSearch" },
+      { keysKey: "help.keys.tagAutocomplete", whatKey: "help.editor.tagAutocomplete" },
+      { keysKey: "help.keys.slashCommands", whatKey: "help.editor.slashCommands" },
+      { keysKey: "help.keys.openLink", whatKey: "help.editor.openLink" },
+      { keysKey: "help.keys.openLinkNewTab", whatKey: "help.editor.openLinkNewTab" },
     ],
   },
   {
     titleKey: "help.section.tabs",
     items: [
-      { keys: "Drag a tab", whatKey: "help.tabs.drag" },
-      { keys: "Middle-click tab", whatKey: "help.tabs.middleClick" },
-      { keys: "Right-click tab", whatKey: "help.tabs.rightClick" },
+      { keysKey: "help.keys.dragTab", whatKey: "help.tabs.drag" },
+      { keysKey: "help.keys.middleClickTab", whatKey: "help.tabs.middleClick" },
+      { keysKey: "help.keys.rightClickTab", whatKey: "help.tabs.rightClick" },
     ],
   },
   {
     titleKey: "help.section.markdown",
     items: [
-      { keys: "==text==", whatKey: "help.markdown.highlight" },
-      { keys: "[[Note#Heading]]", whatKey: "help.markdown.headingLink" },
-      { keys: "[[Note#^block-id]]", whatKey: "help.markdown.blockLink" },
-      { keys: "$x^2$ / $$…$$", whatKey: "help.markdown.math" },
-      { keys: "```mermaid", whatKey: "help.markdown.mermaid" },
-      { keys: "```query", whatKey: "help.markdown.query" },
-      { keys: "```backlinks", whatKey: "help.markdown.backlinks" },
-      { keys: "> [!info]", whatKey: "help.markdown.callout" },
+      { keysKey: "help.keys.highlight", whatKey: "help.markdown.highlight" },
+      { keysKey: "help.keys.headingLink", whatKey: "help.markdown.headingLink" },
+      { keysKey: "help.keys.blockLink", whatKey: "help.markdown.blockLink" },
+      { keysKey: "help.keys.math", whatKey: "help.markdown.math" },
+      { keysKey: "help.keys.mermaid", whatKey: "help.markdown.mermaid" },
+      { keysKey: "help.keys.query", whatKey: "help.markdown.query" },
+      { keysKey: "help.keys.backlinks", whatKey: "help.markdown.backlinks" },
+      { keysKey: "help.keys.callout", whatKey: "help.markdown.callout" },
     ],
   },
   {
     titleKey: "help.section.fileExplorer",
     items: [
-      { keys: "F2", whatKey: "help.fileExplorer.rename" },
-      { keys: "Cmd / Ctrl Delete", whatKey: "help.fileExplorer.delete" },
-      { keys: "Click + Shift / Ctrl", whatKey: "help.fileExplorer.select" },
-      { keys: "Drag file onto a folder", whatKey: "help.fileExplorer.move" },
+      { keysKey: "help.keys.rename", whatKey: "help.fileExplorer.rename" },
+      { keysKey: "help.keys.delete", whatKey: "help.fileExplorer.delete" },
+      { keysKey: "help.keys.select", whatKey: "help.fileExplorer.select" },
+      { keysKey: "help.keys.move", whatKey: "help.fileExplorer.move" },
     ],
   },
 ];
@@ -97,7 +97,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
               }}
             >
               {section.items.map((it) => (
-                <div key={it.keys} style={{ display: "contents" }}>
+                <div key={it.keysKey} style={{ display: "contents" }}>
                   <kbd
                     style={{
                       fontFamily: "var(--font-monospace)",
@@ -111,7 +111,7 @@ export function HelpModal({ open, onClose }: HelpModalProps) {
                       lineHeight: 1.6,
                     }}
                   >
-                    {it.keys}
+                    {t(it.keysKey)}
                   </kbd>
                   <span style={{ color: "var(--text-muted)", alignSelf: "center" }}>
                     {t(it.whatKey)}

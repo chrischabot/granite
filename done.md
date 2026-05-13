@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Help shortcut-key i18n ratchet
+
+- **Help shortcut column** — routed visible Help modal shortcut/action labels
+  through locale keys alongside the already-localized descriptions.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if the English shortcut labels return in the Help modal data.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Bases default-name i18n ratchet
 
 - **Default base names** — routed missing/default `.base` display names and

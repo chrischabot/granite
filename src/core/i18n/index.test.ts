@@ -168,5 +168,8 @@ describe("i18n", () => {
     expect(t("plugin.loader.error.load", { name: "Demo", message: "boom" })).toBe(
       'טעינת התוסף "Demo" נכשלה: boom',
     );
+    expect(t("plugin.communityRegistry.error.http", { status: "404" })).toBe(
+      "HTTP 404 בעת טעינת רישום התוספים הקהילתיים",
+    );
   });
 });

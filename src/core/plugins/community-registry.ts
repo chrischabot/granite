@@ -1,3 +1,5 @@
+import { t } from "@core/i18n";
+
 export const DEFAULT_COMMUNITY_PLUGIN_REGISTRY_URL =
   "https://raw.githubusercontent.com/obsidianmd/obsidian-releases/master/community-plugins.json";
 
@@ -36,10 +38,10 @@ export function parseCommunityPluginRegistry(jsonText: string): CommunityPluginR
   try {
     parsed = JSON.parse(jsonText);
   } catch {
-    throw new Error("Community plugin registry is not valid JSON");
+    throw new Error(t("plugin.communityRegistry.error.invalidJson"));
   }
   if (!Array.isArray(parsed)) {
-    throw new Error("Community plugin registry must be a JSON array");
+    throw new Error(t("plugin.communityRegistry.error.array"));
   }
 
   const entries: CommunityPluginRegistryEntry[] = [];
@@ -66,7 +68,11 @@ export async function fetchCommunityPluginRegistry(options?: {
   const url = options?.registryUrl ?? DEFAULT_COMMUNITY_PLUGIN_REGISTRY_URL;
   const response = await fetchImpl(url, { credentials: "omit" });
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status} while fetching community plugin registry`);
+    throw new Error(
+      t("plugin.communityRegistry.error.http", {
+        status: response.status,
+      }),
+    );
   }
   return parseCommunityPluginRegistry(await response.text());
 }

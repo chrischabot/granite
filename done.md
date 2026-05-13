@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Community registry error i18n ratchet
+
+- **Registry errors** — routed community-plugin registry parse and HTTP fetch
+  failures through locale keys because those messages surface in the Install
+  Plugin modal.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if community-registry surfaced errors return as hard-coded English
+  literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n/community-registry tests, full
+  `bun run test`, `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Settings/install placeholder i18n ratchet
 
 - **Settings placeholders** — routed attachments folder, excluded-file samples,

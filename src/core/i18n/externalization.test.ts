@@ -354,6 +354,12 @@ const INSTALL_PLUGIN_MODAL_FORBIDDEN_PATTERNS = [
   />\s*\{writing \? "Installing…" : "Install"\}\s*</,
 ];
 
+const COMMUNITY_PLUGIN_REGISTRY_FORBIDDEN_PATTERNS = [
+  /"Community plugin registry is not valid JSON"/,
+  /"Community plugin registry must be a JSON array"/,
+  /`HTTP \$\{response\.status\} while fetching community plugin registry`/,
+];
+
 const SETTINGS_MODAL_FORBIDDEN_PATTERNS = [
   /ariaLabel="Settings"/,
   /placeholder="Search settings"/,
@@ -1278,8 +1284,16 @@ describe("UI string externalization audit", () => {
 
   it("keeps Install Plugin modal labels and surfaced errors routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/prompts/InstallPluginModal.tsx`, "utf8");
+    const registrySource = readFileSync(
+      `${process.cwd()}/src/core/plugins/community-registry.ts`,
+      "utf8",
+    );
     const violations = INSTALL_PLUGIN_MODAL_FORBIDDEN_PATTERNS.filter((pattern) =>
       pattern.test(source),
+    ).concat(
+      COMMUNITY_PLUGIN_REGISTRY_FORBIDDEN_PATTERNS.filter((pattern) =>
+        pattern.test(registrySource),
+      ),
     );
     for (const requiredKey of [
       "installPlugin.error.invalidJson",
@@ -1308,6 +1322,13 @@ describe("UI string externalization audit", () => {
       "installPlugin.install",
     ]) {
       expect(source).toContain(requiredKey);
+    }
+    for (const requiredKey of [
+      "plugin.communityRegistry.error.invalidJson",
+      "plugin.communityRegistry.error.array",
+      "plugin.communityRegistry.error.http",
+    ]) {
+      expect(registrySource).toContain(requiredKey);
     }
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);

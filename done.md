@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-13 — External edit browser verifier
+
+- **Root cause** — external-edit detection had unit coverage for the 200 ms
+  editor debounce, but the browser FileSystem adapter still polled every
+  1500 ms by default, making the 500 ms acceptance budget impossible in a
+  browser vault.
+- **Product fix** — reduced the default browser watcher poll interval to
+  200 ms and added a regression in `handle-adapter.test.ts` so the adapter
+  cannot drift beyond the external-edit budget again.
+- **Browser path** — added `verify:external-edit-browser`, which opens a real
+  `MarkdownView`, writes an external file change through the active
+  `FileSystem`, verifies the editor updates within 500 ms, proves a later
+  external write does not overwrite unsaved local text, and verifies Granite's
+  own autosave watcher does not re-dirty or mutate the editor.
+
+### Tests
+- `bun run verify:external-edit-browser`
+- `node --check scripts/verify-external-edit-browser.mjs`
+- `bun run test -- src/core/markdown/external-edit.test.ts src/core/fs/handle-adapter.test.ts`
+- `bunx biome check src/core/fs/handle-adapter.ts src/core/fs/handle-adapter.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — File recovery browser verifier
 
 - **Root cause** — file-recovery restore behavior had IndexedDB/filesystem

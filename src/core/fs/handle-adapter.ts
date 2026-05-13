@@ -159,13 +159,14 @@ export interface HandleAdapterOptions {
 }
 
 const DEFAULT_SKIP = [".granite", ".git", "node_modules"] as const;
+export const DEFAULT_WATCH_POLL_INTERVAL_MS = 200;
 
 export function handleAdapter(
   root: FileSystemDirectoryHandle,
   opts: HandleAdapterOptions = {},
 ): FileSystemImpl {
   const skipDirs = new Set([...DEFAULT_SKIP, ...(opts.skipDirs ?? [])]);
-  const pollIntervalMs = opts.pollIntervalMs ?? 1500;
+  const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_WATCH_POLL_INTERVAL_MS;
   const systemTrash = opts.systemTrash ?? detectNativeSystemTrashBridge();
 
   const listImpl = (dir: VaultPath) =>

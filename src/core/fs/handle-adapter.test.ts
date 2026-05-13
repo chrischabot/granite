@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n";
 import {
+  DEFAULT_WATCH_POLL_INTERVAL_MS,
   FileSystemCapabilityError,
   handleAdapter,
   openOPFS,
@@ -131,6 +132,10 @@ afterEach(() => {
 });
 
 describe("handleAdapter", () => {
+  it("keeps the default browser watcher poll interval within the external-edit budget", () => {
+    expect(DEFAULT_WATCH_POLL_INTERVAL_MS).toBeLessThanOrEqual(200);
+  });
+
   it("throws coded capability errors when folder picking is unavailable", async () => {
     Object.defineProperty(window, "showDirectoryPicker", {
       configurable: true,

@@ -188,16 +188,22 @@ export function computeLivePreviewRanges(
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx] ?? "";
     const lineStart = offset;
+    const addReplace = (start: number, end: number) => {
+      ranges.push({ from: lineStart + start, to: lineStart + end });
+    };
 
     // Track fenced code blocks. Lines starting with ``` or ~~~ flip the state.
-    const fenceOpen = line.match(/^(```+|~~~+)/);
+    const fenceOpen = line.match(/^(\s{0,3})(```+|~~~+)/);
     if (fenceOpen) {
+      const prefixLen = fenceOpen[1]?.length ?? 0;
       if (!inFence) {
         inFence = true;
-        fenceMarker = fenceOpen[1] ?? fenceOpen[0] ?? "";
-      } else if (line.startsWith(fenceMarker)) {
+        fenceMarker = fenceOpen[2] ?? fenceOpen[0] ?? "";
+        if (lineIdx !== cursorLineIndex) addReplace(prefixLen, line.length);
+      } else if (line.slice(prefixLen).startsWith(fenceMarker)) {
         inFence = false;
         fenceMarker = "";
+        if (lineIdx !== cursorLineIndex) addReplace(prefixLen, line.length);
       }
       offset = lineStart + line.length + 1;
       continue;
@@ -221,10 +227,6 @@ export function computeLivePreviewRanges(
       offset = lineStart + line.length + 1;
       continue;
     }
-
-    const addReplace = (start: number, end: number) => {
-      ranges.push({ from: lineStart + start, to: lineStart + end });
-    };
 
     const trimmed = line.trim();
 

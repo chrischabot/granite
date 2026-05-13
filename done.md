@@ -127,6 +127,23 @@
 
 ---
 
+## 2026-05-13 — Live Preview fenced-code marker ratchet
+
+- **Root cause** — Live Preview skipped inline formatting inside fenced code
+  blocks, but left the opening and closing fence source lines visible on
+  inactive lines.
+- **Decoration path** — fenced-code tracking now replaces inactive opening and
+  closing fence lines for backtick and tilde fences, including optional
+  language tokens, while preserving raw display on the cursor line.
+- **Tracker honesty** — kept the Live Preview TODO open because this is a
+  source-level ratchet, not the remaining browser/manual verification.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview horizontal-rule ratchet
 
 - **Root cause** — `07_markdown_syntax.md` defines horizontal rules as block

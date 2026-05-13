@@ -102,9 +102,14 @@ describe("computeLivePreviewRanges", () => {
     expect(slices).toEqual(["_", "_"]);
   });
 
-  it("skips formatting inside fenced code blocks", () => {
-    const text = "```\n**not bold**\n```";
-    expect(hiddenSlices(text, -1)).toEqual([]);
+  it("hides fence lines and skips formatting inside fenced code blocks", () => {
+    const text = "```ts\n**not bold**\n```";
+    expect(hiddenSlices(text, -1)).toEqual(["```ts", "```"]);
+  });
+
+  it("hides tilde fence lines", () => {
+    const text = "~~~mermaid\ngraph TD\n~~~";
+    expect(hiddenSlices(text, -1)).toEqual(["~~~mermaid", "~~~"]);
   });
 
   it("skips formatting inside inline-code spans", () => {

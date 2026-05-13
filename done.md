@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Broad UI string externalization ratchet
+
+- **Root cause** — the i18n work had many targeted guardrails, but the final
+  acceptance gap was drift: a new UI/plugin source file could add visible
+  English strings outside the audited surfaces and still pass the narrow tests.
+- **Audit path** — added a broad non-test source scan across `src/ui`,
+  `src/core/plugins-core`, and the core plugin registry/update loaders for
+  hard-coded JSX text, labels, placeholders, command names/categories,
+  prompts, confirmations, notices, and direct `textContent` strings.
+- **Tracker closure** — closed §24.21 string externalization now that targeted
+  surface tests and the broad source ratchet both cover the visible UI/plugin
+  string classes, with the product name intentionally left literal.
+
+### Tests
+- `bun run test -- src/core/i18n/externalization.test.ts`
+
+---
+
 ## 2026-05-13 — Localized Bases embed filter summary
 
 - **Root cause** — fenced Bases embeds render HTML outside React, and their

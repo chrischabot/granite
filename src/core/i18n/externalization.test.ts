@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const SEARCH_VIEW_FORBIDDEN_PATTERNS = [
@@ -814,6 +815,44 @@ const PLUGIN_LOADER_FORBIDDEN_PATTERNS = [
   /Plugin "\$\{entry\.manifest\.name\}": could not read/,
   /Plugin "\$\{entry\.manifest\.name\}" failed to load/,
 ];
+
+const BROAD_AUDIT_ROOTS = [
+  "src/ui",
+  "src/core/plugins-core",
+  "src/core/plugins/loader.ts",
+  "src/core/plugins/update-check.ts",
+  "src/core/plugins/community-registry.ts",
+];
+
+const BROAD_VISIBLE_STRING_PATTERNS = [
+  /<(?!kbd\b|code\b)[^>{}]+>\s*[A-Z][A-Za-z0-9 ,.;:!?&/'`()\-…]{2,}\s*<\/[A-Za-z]/,
+  /\b(?:aria-label|ariaLabel|title|placeholder)="[A-Z][^"]+"/,
+  /\b(?:label|name|category): "[A-Z][^"]+"/,
+  /\b(?:noticeManager\.show|prompt|confirm)\("[A-Z][^"]+"/,
+  /\.textContent = "[A-Z][^"]+"/,
+];
+
+const BROAD_VISIBLE_STRING_ALLOWLIST = [/>\s*Granite\s*</];
+
+function sourceFilesUnder(root: string): Array<string> {
+  const absRoot = join(process.cwd(), root);
+  if (!statSync(absRoot).isDirectory()) return [absRoot];
+
+  const out: Array<string> = [];
+  const visit = (dir: string) => {
+    for (const entry of readdirSync(dir)) {
+      const abs = join(dir, entry);
+      const stat = statSync(abs);
+      if (stat.isDirectory()) {
+        visit(abs);
+      } else if (/\.(ts|tsx)$/.test(entry) && !/\.test\.(ts|tsx)$/.test(entry)) {
+        out.push(abs);
+      }
+    }
+  };
+  visit(absRoot);
+  return out;
+}
 
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
@@ -2033,5 +2072,24 @@ describe("UI string externalization audit", () => {
     }
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps non-test UI and core plugin sources free of broad hard-coded visible strings", () => {
+    const violations: Array<string> = [];
+
+    for (const file of BROAD_AUDIT_ROOTS.flatMap(sourceFilesUnder)) {
+      const source = readFileSync(file, "utf8");
+      const relative = file.slice(process.cwd().length + 1);
+      for (const pattern of BROAD_VISIBLE_STRING_PATTERNS) {
+        if (
+          pattern.test(source) &&
+          !BROAD_VISIBLE_STRING_ALLOWLIST.some((allowed) => allowed.test(source))
+        ) {
+          violations.push(`${relative}: ${pattern}`);
+        }
+      }
+    }
+
+    expect(violations, violations.join("\n")).toEqual([]);
   });
 });

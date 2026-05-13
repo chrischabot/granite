@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Bases default-name i18n ratchet
+
+- **Default base names** — routed missing/default `.base` display names and
+  scaffolded base-file names through locale keys instead of the schema default.
+- **Schema cleanup** — made the core default base name empty data so UI layers
+  supply the localized fallback at render/scaffold time.
+- **Regression audit** — extended the Bases externalization audit to fail if
+  the hard-coded English default or raw `config.name` rendering returns.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted Bases/i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — File-exists error i18n ratchet
 
 - **Bases scaffold errors** — routed existing-file failures from `.base`

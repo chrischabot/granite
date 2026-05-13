@@ -47,7 +47,7 @@ export async function renderBasesEmbed(
 
   // Header strip — name + filter summary on top.
   const headerHtml = `<div class="bases-fence-header">
-    <span class="bases-fence-name">${escapeHtml(config.name)}</span>
+    <span class="bases-fence-name">${escapeHtml(config.name.trim() || t("bases.defaultName"))}</span>
     ${config.filter ? ` · <code class="bases-fence-filter">${escapeHtml(config.filter)}</code>` : ""}
   </div><div class="bases-fence-body">${escapeHtml(t("bases.embed.loading"))}</div>`;
   wrap.innerHTML = headerHtml;

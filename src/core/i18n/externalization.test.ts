@@ -556,6 +556,9 @@ const BASES_VIEW_FORBIDDEN_PATTERNS = [
   /match\{filtered\.length === 1 \? "" : "es"\}/,
   /grouped by \{config\.groupBy\}/,
   /`A file named "\$\{path\}" already exists`/,
+  /name: "Untitled base"/,
+  /\{config\.name\}/,
+  /\$\{escapeHtml\(config\.name\)\}/,
 ];
 
 const INLINE_AND_OVERLAY_FORBIDDEN_PATTERNS = [
@@ -1557,6 +1560,7 @@ describe("UI string externalization audit", () => {
 
     for (const requiredKey of [
       "bases.title",
+      "bases.defaultName",
       "bases.empty.noPath",
       "bases.filterLabel",
       "bases.noFilter",

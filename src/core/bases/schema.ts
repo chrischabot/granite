@@ -37,7 +37,7 @@ export interface BaseConfig {
 }
 
 export const DEFAULT_BASE: BaseConfig = {
-  name: "Untitled base",
+  name: "",
   filter: "",
   columns: ["file.name", "file.path", "file.modified", "tags"],
   sort: "file.name",

@@ -262,7 +262,7 @@ export function BasesView({ path }: BasesViewProps) {
         }}
       >
         <div style={{ fontWeight: "var(--font-semibold)", color: "var(--text-normal)" }}>
-          {config.name}
+          {config.name.trim() || t("bases.defaultName")}
         </div>
         <div style={{ color: "var(--text-muted)" }}>
           {config.filter ? (
@@ -327,7 +327,7 @@ export async function scaffoldBaseFile(path: string): Promise<void> {
   const cfg = DEFAULT_BASE;
   const yamlText = `# Granite .base file — minimal example.
 # Filter uses the same syntax as the Search panel: tag:foo path:notes/ -draft
-name: ${cfg.name}
+name: ${translate("bases.defaultName")}
 filter: "${cfg.filter}"
 columns:
 ${cfg.columns.map((c) => `  - ${c}`).join("\n")}

@@ -100,6 +100,7 @@ describe("i18n", () => {
       "125% · 2 צמתים",
     );
     expect(t("bases.title")).toBe("בסיסים");
+    expect(t("bases.defaultName")).toBe("בסיס ללא שם");
     expect(t("bases.empty.noMatchingFiles")).toBe("אין קבצים תואמים.");
     expect(t("bases.error.exists", { path: "Tasks.base" })).toBe('כבר קיים קובץ בשם "Tasks.base"');
     expect(t("bases.map.open", { name: "London" })).toBe("פתיחת London");

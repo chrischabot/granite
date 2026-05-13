@@ -1,0 +1,48 @@
+/* SPEC: specs/renderer/view-release-notes.md */
+
+.release-notes-view {
+  padding: var(--file-margins);
+}
+
+.release-notes-view .markdown-preview-view {
+  overflow: visible;
+}
+
+.release-notes-view .is-readable-line-width {
+  max-width: var(--file-line-width);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.changelog-item {
+  margin: var(--size-4-2) 0;
+  font-size: var(--font-ui-medium);
+  line-height: var(--line-height-normal);
+}
+
+.changelog-item::before {
+  content: attr(data-label);
+  width: 50px;
+  border-radius: var(--radius-m);
+  font-size: var(--font-ui-small);
+  display: inline-block;
+  text-align: center;
+  margin-right: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  line-height: 22px;
+}
+
+.changelog-item.mod-success::before {
+  background-color: var(--background-modifier-success);
+  color: var(--text-on-accent);
+}
+
+.changelog-item.mod-failed::before {
+  background-color: var(--background-modifier-error);
+  color: var(--text-on-accent);
+}
+
+.changelog-item.mod-highlighted::before {
+  background-color: var(--interactive-accent);
+}

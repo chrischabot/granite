@@ -269,6 +269,19 @@ const MODULES = [
       ".card-container.mod-horizontal .card ul",
     ],
   },
+  {
+    file: "view-release-notes.css",
+    spec: "specs/renderer/view-release-notes.md",
+    selectors: [
+      ".release-notes-view",
+      ".release-notes-view .markdown-preview-view",
+      ".release-notes-view .is-readable-line-width",
+      ".changelog-item::before",
+      ".changelog-item.mod-success::before",
+      ".changelog-item.mod-failed::before",
+      ".changelog-item.mod-highlighted::before",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {

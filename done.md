@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Renderer release-notes CSS module
+
+- **Dedicated module** — added spec-linked
+  `src/styles/view-release-notes.css` for release-notes markdown wrapper
+  spacing, readable-line width, overflow behavior, and changelog item labels.
+- **Regression audit** — extended the renderer module test so release-notes
+  styles stay imported and spec-linked.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer typography CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/typography.css` for body

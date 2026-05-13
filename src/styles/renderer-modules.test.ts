@@ -38,6 +38,24 @@ const MODULES = [
     ],
   },
   {
+    file: "rtl.css",
+    spec: "specs/renderer/rtl.md",
+    selectors: [
+      "body.mod-rtl",
+      ".mod-rtl.is-mobile",
+      ".mod-rtl .community-modal-readme",
+      ".mod-rtl .workspace-sidedock-vault-profile",
+      ".mod-rtl .sidebar-toggle-button.mod-right",
+      ".mod-rtl .search-input-container::before",
+      '[lang="he"] svg.svg-icon:is(.lucide-help-circle, .help)',
+      ".bases-toolbar-result-count",
+      ".workspace-tab-header-inner-title",
+      "@supports selector(:has(*))",
+      ".markdown-rendered.rtl",
+      ".markdown-source-view.rtl .cm-content",
+    ],
+  },
+  {
     file: "buttons.css",
     spec: "specs/renderer/buttons.md",
     selectors: [".clickable-icon.is-active", ".text-icon-button"],
@@ -261,6 +279,11 @@ describe("renderer CSS module coverage", () => {
 
     const tokens = readFileSync(`${STYLE_DIR}/tokens.css`, "utf8");
     expect(tokens).not.toContain(".mod-macos {");
+    expect(tokens).not.toContain("body.mod-rtl");
+
+    const markdown = readFileSync(`${STYLE_DIR}/markdown.css`, "utf8");
+    expect(markdown).not.toContain(".markdown-rendered.rtl");
+    expect(markdown).not.toContain(".markdown-source-view.rtl");
 
     const buttons = readFileSync(`${STYLE_DIR}/buttons.css`, "utf8");
     expect(buttons).not.toContain("button.mod-loading");

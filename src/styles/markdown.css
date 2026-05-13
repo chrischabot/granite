@@ -40,27 +40,6 @@
  * -------------------------------------------------------------------------- */
 .markdown-rendered {
   tab-size: 4;
-  unicode-bidi: plaintext;
-}
-
-.markdown-rendered.rtl {
-  direction: rtl;
-  --direction: -1;
-}
-
-.markdown-rendered.ltr {
-  direction: ltr;
-  --direction: 1;
-}
-
-.markdown-source-view.rtl .cm-content {
-  direction: rtl;
-  unicode-bidi: plaintext;
-}
-
-.markdown-source-view.ltr .cm-content {
-  direction: ltr;
-  unicode-bidi: plaintext;
 }
 
 .markdown-rendered > :first-child {

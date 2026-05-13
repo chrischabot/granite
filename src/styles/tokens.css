@@ -426,13 +426,6 @@ body.theme-dark {
   --text-selection: hsla(var(--color-accent-hsl), 0.33);
 }
 
-body.mod-rtl,
-body.is-rtl,
-.is-rtl body {
-  --inset-end: left;
-  --direction: -1;
-}
-
 /* -------------------------------------------------------------------------- *
  * 10. COMPONENT layer — body-scoped tokens for shell components
  * -------------------------------------------------------------------------- */

@@ -1,0 +1,169 @@
+/* SPEC: specs/renderer/rtl.md */
+
+body.mod-rtl,
+body.is-rtl,
+.is-rtl body {
+  --inset-end: left;
+  --direction: -1;
+}
+
+.mod-rtl {
+  --tab-stacked-text-transform: rotate(180deg);
+}
+
+.mod-rtl.is-mobile {
+  --nav-item-padding: var(--size-2-3) var(--size-4-6) var(--size-2-3) var(--size-4-2);
+}
+
+.mod-rtl .community-modal-readme,
+.mod-rtl .canvas-wrapper {
+  direction: ltr;
+}
+
+.mod-rtl .workspace-sidedock-vault-profile,
+.mod-rtl .modal,
+.mod-rtl .notice,
+.mod-rtl .prompt,
+.mod-rtl .titlebar,
+.mod-rtl .tooltip,
+.mod-rtl .workspace-tab-container,
+.mod-rtl .workspace-tab-header-container,
+.mod-rtl .workspace-drawer,
+.mod-rtl .mobile-navbar-actions,
+.mod-rtl .status-bar,
+.mod-rtl .suggestion-container,
+.mod-rtl .menu,
+.mod-rtl .bases-toolbar-menu,
+.mod-rtl .popover {
+  direction: rtl;
+}
+
+.mod-rtl .workspace-tab-header-inner-title,
+.mod-rtl .setting-item-description,
+.mod-rtl .setting-item-name,
+.mod-rtl input {
+  text-align: right;
+}
+
+.mod-rtl .sidebar-toggle-button {
+  order: 2;
+}
+
+.mod-rtl .sidebar-toggle-button.mod-right {
+  order: -1;
+}
+
+.mod-rtl .canvas-card-menu {
+  flex-direction: row-reverse;
+}
+
+.mod-rtl .workspace .mod-root .workspace-tabs.mod-stacked .workspace-tab-container {
+  flex-direction: row-reverse;
+}
+
+.mod-rtl
+  .workspace
+  .mod-root
+  .workspace-tabs.mod-stacked
+  .workspace-tab-container
+  .workspace-tab-header-inner {
+  flex-direction: row-reverse;
+}
+
+.mod-rtl .search-input-container::before,
+.mod-rtl .checkbox-container {
+  transform: scale(-1, 1);
+}
+
+.mod-rtl
+  svg.svg-icon:not(
+    .check-small,
+    .lucide-binary,
+    .lucide-check,
+    .lucide-check-square,
+    .lucide-clock,
+    .lucide-code-2,
+    .lucide-square-function,
+    .lucide-timer,
+    .sidebar-toggle-button-icon
+  ) {
+  transform: scale(-1, 1);
+}
+
+[lang="he"] svg.svg-icon:is(.lucide-help-circle, .help) {
+  transform: scale(1, 1);
+}
+
+.bases-toolbar-result-count,
+.community-item-desc,
+.community-modal-info-desc,
+.community-modal-search-summary,
+.inline-title,
+.inline-title h1,
+.metadata-property-key-input,
+.metadata-input-longtext,
+.multi-select-pill-content,
+.nav-file-title-content,
+.nav-folder-title-content,
+.search-result-file-match,
+.setting-item-description,
+.setting-item-name,
+.suggestion-title,
+.bases-table-header-name,
+.table-cell-wrapper,
+.titlebar-text,
+.tooltip,
+.tree-item-inner,
+.view-header-breadcrumb,
+.view-header-title,
+.workspace-tab-header-inner-title {
+  unicode-bidi: plaintext;
+}
+
+@supports selector(:has(*)) {
+  .cm-callout:has(.callout .callout-title .callout-title-inner:dir(rtl)),
+  .callout:has(> .callout-title .callout-title-inner:dir(rtl)) {
+    direction: rtl;
+  }
+
+  .cm-callout:has(.callout .callout-title .callout-title-inner:dir(rtl)) > .callout-title,
+  .callout:has(> .callout-title .callout-title-inner:dir(rtl)) > .callout-title {
+    direction: rtl;
+    --direction: -1;
+  }
+
+  .cm-callout:has(.callout .callout-title .callout-title-inner:dir(rtl))
+    > .callout-title
+    .callout-icon
+    svg.svg-icon,
+  .callout:has(> .callout-title .callout-title-inner:dir(rtl))
+    > .callout-title
+    .callout-icon
+    svg.svg-icon {
+    transform: scale(-1, 1);
+  }
+}
+
+.markdown-rendered {
+  unicode-bidi: plaintext;
+}
+
+.markdown-rendered.rtl {
+  direction: rtl;
+  --direction: -1;
+}
+
+.markdown-rendered.ltr {
+  direction: ltr;
+  --direction: 1;
+}
+
+.markdown-source-view.rtl .cm-content {
+  direction: rtl;
+  unicode-bidi: plaintext;
+}
+
+.markdown-source-view.ltr .cm-content {
+  direction: ltr;
+  unicode-bidi: plaintext;
+}

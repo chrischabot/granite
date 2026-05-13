@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-13 — Renderer RTL CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/rtl.css` for RTL chrome
+  direction, stacked tab direction tokens, mobile nav padding, icon mirroring,
+  bidi plaintext user-content selectors, callout RTL detection, and markdown
+  content direction.
+- **Regression audit** — extended the renderer module test so RTL styles stay
+  imported, spec-linked, and out of broad token/markdown modules.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer OS modifier CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/os-modifiers.css` for

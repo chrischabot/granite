@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Browser save round-trip verifier
+
+- **Root cause** — the save budget had a mocked File System Access adapter
+  ratchet, but no browser proof that Chromium's real OPFS write path could
+  complete Granite's atomic temp-write/read-back cycle under 50 ms.
+- **Browser path** — added a Vite-served Chromium fixture that opens OPFS,
+  writes a 120 KB Markdown payload through `handleAdapter.writeText()`, reads
+  it back through the same adapter, checks byte-for-byte content preservation,
+  and fails if the write round-trip exceeds 50 ms.
+- **Tracker closure** — closed the §24.19 save round-trip item after the
+  browser verifier measured 1.70 ms for the OPFS atomic write path.
+
+### Tests
+- `bun run verify:save-roundtrip-browser`
+
+---
+
 ## 2026-05-13 — Graph pan browser FPS verifier
 
 - **Root cause** — the graph pan work had a source-level transform budget, but

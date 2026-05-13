@@ -92,7 +92,7 @@
 - [x] Quick-switcher keystroke update < 16 ms ← _shipped 2026-05-12 reusable fuzzy index_
 - [x] 10 k search regex < 500 ms ← _shipped 2026-05-12 in-memory regex budget test + larger scan chunks_
 - [x] 10 k graph pan ≥ 30 fps ← _shipped 2026-05-13 browser 10-second FPS verifier_
-- [ ] Save round-trip < 50 ms (adapter budget test shipped; browser/host verification remains)
+- [x] Save round-trip < 50 ms ← _shipped 2026-05-13 browser OPFS verifier_
 
 ### §24.20 Accessibility — Phase 16
 - [ ] Full keyboard-only audit (workspace tablist, shared menu, Bookmarks add-menu keyboard, clickable-icon focus-ring, tree-item row focus-ring, status-bar focus-ring, graph-node focus-ring, and Bases row focus-ring ratchets shipped; full browser flow audit remains)

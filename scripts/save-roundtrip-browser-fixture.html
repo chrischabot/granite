@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Save Round-Trip Browser Fixture</title>
+  </head>
+  <body>
+    <script type="module">
+      import { Effect } from "effect";
+      import { handleAdapter, openOPFS } from "../src/core/fs/handle-adapter.ts";
+
+      const BUDGET_MS = 50;
+      const TEST_DIR = ".granite-browser-save-check";
+      const TEST_PATH = `${TEST_DIR}/Budget.md`;
+      const payload = `${"# Browser save budget\n\n"}${"body text ".repeat(12_000)}`;
+
+      async function run() {
+        const root = await openOPFS();
+        const fs = handleAdapter(root, { systemTrash: null });
+
+        await Effect.runPromise(fs.mkdir(TEST_DIR));
+        await Effect.runPromise(fs.writeText(TEST_PATH, "warmup"));
+
+        const start = performance.now();
+        await Effect.runPromise(fs.writeText(TEST_PATH, payload));
+        const elapsedMs = performance.now() - start;
+        const saved = await Effect.runPromise(fs.readText(TEST_PATH));
+        await Effect.runPromise(fs.remove(TEST_PATH));
+
+        if (saved !== payload) {
+          throw new Error(`Saved content mismatch: expected ${payload.length}, got ${saved.length}`);
+        }
+        if (elapsedMs >= BUDGET_MS) {
+          throw new Error(`Save round-trip ${elapsedMs.toFixed(2)} ms exceeded ${BUDGET_MS} ms`);
+        }
+
+        return {
+          ok: true,
+          elapsedMs,
+          payloadBytes: new TextEncoder().encode(payload).byteLength,
+          path: TEST_PATH,
+        };
+      }
+
+      window.__graniteSaveRoundTripResult = run().catch((error) => ({
+        ok: false,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }));
+    </script>
+  </body>
+</html>

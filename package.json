@@ -31,6 +31,8 @@
     "verify:canvas-embed-browser": "node scripts/verify-canvas-embed-browser.mjs",
     "verify:hotkeys-browser": "node scripts/verify-hotkeys-browser.mjs",
     "verify:settings-persistence-browser": "node scripts/verify-settings-persistence-browser.mjs",
+    "verify:gfm-browser": "node scripts/verify-gfm-browser.mjs",
+    "verify:commonmark-browser": "node scripts/verify-commonmark-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

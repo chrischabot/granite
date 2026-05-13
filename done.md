@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-13 — Markdown parser browser verifiers
+
+- **Root cause** — GFM and CommonMark parser behavior had unit and fixture
+  coverage, but the severe-test list still relied on manual Reading-mode
+  browser checks for the rendered DOM path.
+- **GFM browser path** — added `verify:gfm-browser`, which renders a real
+  ReadingView note containing strikethrough, aligned pipe tables, bare URL and
+  email autolinks, angle autolinks next to punctuation, and custom `[?]` / `[-]`
+  task markers, then verifies the DOM matches the unit-test expectations.
+- **CommonMark browser path** — added `verify:commonmark-browser`, which runs a
+  representative set of official CommonMark 0.31.2 fixture examples through
+  `renderCommonMark()` in Chromium and verifies Granite-specific extensions
+  still render in Reading mode afterward.
+
+### Tests
+- `bun run verify:gfm-browser`
+- `bun run verify:commonmark-browser`
+- `node --check scripts/verify-gfm-browser.mjs`
+- `node --check scripts/verify-commonmark-browser.mjs`
+- `bun run test -- src/core/markdown/renderer.test.ts src/core/markdown/commonmark-conformance.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Settings persistence browser verifier
 
 - **Root cause** — settings persistence had unit coverage for `.granite`

@@ -180,6 +180,59 @@
   --graph-node-tag: var(--color-green);
   --graph-node-attachment: var(--color-yellow);
 
+  /* Bases */
+  --bases-header-height: 40px;
+  --bases-toolbar-label-display: block;
+  --bases-toolbar-badge-display: none;
+  --bases-filter-menu-width: 520px;
+  --bases-group-heading-property-size: var(--font-ui-smaller);
+  --bases-group-heading-property-weight: var(--font-normal);
+  --bases-group-heading-property-color: var(--text-muted);
+  --bases-group-heading-value-size: var(--font-smaller);
+  --bases-group-heading-value-weight: var(--font-semibold);
+  --bases-group-heading-property-display: block;
+  --bases-table-container-border-width: var(--border-width);
+  --bases-table-container-border-radius: var(--radius-s);
+  --bases-table-group-background: var(--background-primary-alt);
+  --bases-table-header-weight: var(--font-weight);
+  --bases-table-header-color: var(--text-muted);
+  --bases-table-header-icon-display: flex;
+  --bases-table-header-background: var(--background-primary);
+  --bases-table-header-background-hover: var(--background-modifier-hover);
+  --bases-table-header-sort-mask: linear-gradient(
+    to left,
+    transparent var(--size-4-6),
+    black var(--size-4-6)
+  );
+  --bases-table-summary-background: var(--background-primary);
+  --bases-table-summary-background-hover: var(--background-modifier-hover);
+  --bases-table-border-color: var(--table-border-color);
+  --bases-table-column-border-width: var(--border-width);
+  --bases-table-group-gap: 10px;
+  --bases-table-row-border-width: var(--border-width);
+  --bases-table-row-background-hover: var(--table-row-background-hover);
+  --bases-table-row-height: 30px;
+  --bases-table-font-size: var(--font-smaller);
+  --bases-table-column-max-width: 300;
+  --bases-table-column-min-width: 40;
+  --bases-table-cell-radius-active: 2px;
+  --bases-table-cell-shadow-active: 0 0 0 2px var(--background-modifier-border-focus);
+  --bases-table-cell-radius-focus: 2px;
+  --bases-table-cell-shadow-focus: 0 0 0 2px var(--interactive-accent);
+  --bases-table-cell-background-active: var(--background-primary);
+  --bases-table-cell-background-disabled: var(--background-primary-alt);
+  --bases-table-cell-background-selected: var(--table-selection);
+  --bases-cards-background: var(--background-primary);
+  --bases-cards-border-width: var(--border-width);
+  --bases-cards-container-background: transparent;
+  --bases-cards-cover-background: var(--background-primary-alt);
+  --bases-cards-font-size: var(--font-smaller);
+  --bases-cards-line-height: 24px;
+  --bases-cards-radius: var(--radius-m);
+  --bases-cards-scale: 1;
+  --bases-cards-shadow-hover: 0 0 0 1px var(--background-modifier-border-hover);
+  --bases-cards-shadow: 0 0 0 1px var(--background-modifier-border);
+
   /* Font stacks. The user's chosen UI/text/mono font goes in the *-override
      variable; theme injects into *-theme. Both default to the sentinel '??'
      family which provides no glyphs, so the cascade falls to defaults. */

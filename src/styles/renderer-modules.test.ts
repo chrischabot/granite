@@ -362,6 +362,27 @@ const MODULES = [
       ".pdfPresentationMode .pdf-toolbar",
     ],
   },
+  {
+    file: "view-bases.css",
+    spec: ["specs/renderer/view-bases.md", "specs/renderer/design-tokens.md"],
+    selectors: [
+      ".bases-view.is-being-dragged-over::after",
+      ".bases-header-count",
+      ".bases-toolbar .bases-toolbar-result-count .text-button-label",
+      ".bases-toolbar-menu.bases-toolbar-filter-menu",
+      ".bases-table-header-sort",
+      ".bases-table-active-cell:focus",
+      ".bases-table-cell.is-selected",
+      ".bases-table-summary-cell",
+      ".bases-group-heading",
+      ".bases-list-item-meta-label",
+      ".bases-cards-item",
+      ".bases-cards-property",
+      ".bases-map-plane::before",
+      ".bases-map-pin",
+      ".bases-search-row",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {

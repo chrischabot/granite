@@ -33,45 +33,17 @@ function ListRow({
       onClick={(e) => {
         openRow(row, e.metaKey || e.ctrlKey);
       }}
-      style={{
-        width: "100%",
-        padding: "var(--size-4-2) var(--size-4-3)",
-        borderBottom: "1px solid var(--background-modifier-border)",
-        borderTop: 0,
-        borderInline: 0,
-        background: "transparent",
-        cursor: "var(--cursor-link)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--size-2-2)",
-        textAlign: "left",
-      }}
+      className="bases-list-item"
     >
-      <div
-        style={{
-          fontSize: "var(--font-ui-medium)",
-          fontWeight: "var(--font-medium)",
-          color: "var(--text-normal)",
-        }}
-      >
-        {stem(row.file.path)}
-      </div>
+      <div className="bases-list-item-title">{stem(row.file.path)}</div>
       {meta.length > 0 && (
-        <div
-          style={{
-            fontSize: "var(--font-ui-smaller)",
-            color: "var(--text-muted)",
-            display: "flex",
-            gap: "var(--size-4-3)",
-            flexWrap: "wrap",
-          }}
-        >
+        <div className="bases-list-item-meta">
           {meta.map((col) => {
             const value = formatCellValue(row.cells[col], col);
             if (!value) return null;
             return (
               <span key={col}>
-                <span style={{ color: "var(--text-faint)" }}>
+                <span className="bases-list-item-meta-label">
                   {localizedColumnLabel(col, formulas, t)}:
                 </span>{" "}
                 {value}
@@ -102,36 +74,13 @@ export function BasesListView({
     ));
 
   return (
-    <div
-      style={{
-        flex: "1 1 auto",
-        overflow: "auto",
-        padding: "0 var(--size-4-3) var(--size-4-3)",
-      }}
-    >
+    <div className="bases-list-container">
       {rows.length === 0 ? (
-        <div
-          style={{
-            padding: "var(--size-4-6)",
-            textAlign: "center",
-            color: "var(--text-faint)",
-          }}
-        >
-          {t("bases.empty.noMatchingFiles")}
-        </div>
+        <div className="bases-empty">{t("bases.empty.noMatchingFiles")}</div>
       ) : grouped ? (
         [...grouped.entries()].map(([key, rs]) => (
-          <div key={key}>
-            <div
-              style={{
-                padding: "var(--size-4-3) var(--size-4-3) var(--size-4-1)",
-                color: "var(--text-muted)",
-                fontWeight: "var(--font-semibold)",
-                fontSize: "var(--font-ui-smaller)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
+          <div key={key} className="bases-list-group">
+            <div className="bases-group-heading">
               {key} · {rs.length}
             </div>
             {renderRows(rs)}
@@ -141,20 +90,10 @@ export function BasesListView({
         renderRows(rows)
       )}
       {summaries.length > 0 && (
-        <div
-          style={{
-            padding: "var(--size-4-3)",
-            borderTop: "1px solid var(--background-modifier-border)",
-            fontSize: "var(--font-ui-smaller)",
-            color: "var(--text-muted)",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "var(--size-4-4)",
-          }}
-        >
+        <div className="bases-summary-bar">
           {summaries.map((s) => (
             <span key={s.label}>
-              <strong style={{ color: "var(--text-normal)" }}>{s.label}:</strong>{" "}
+              <strong>{s.label}:</strong>{" "}
               {s.value === null ? "—" : Number.isInteger(s.value) ? s.value : s.value.toFixed(2)}
             </span>
           ))}

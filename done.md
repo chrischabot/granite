@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Renderer Bases CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/view-bases.css` for the
+  Bases shell, header, toolbar/menu hooks, table/list/cards/map views,
+  grouping, summaries, drag-over state, embedded/error/search row hooks, and
+  map pins.
+- **Token coverage** — added the `--bases-*` token family from
+  `specs/renderer/design-tokens.md`.
+- **Implementation cleanup** — moved the main Bases view, table, list, cards,
+  and map layout/style chrome out of inline JSX and into the module.
+- **Regression audit** — extended the renderer module test so Bases selectors
+  and Bases design-token links remain wired.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- `bunx biome check --write src/styles/view-bases.css src/styles/tokens.css src/styles/index.css src/styles/renderer-modules.test.ts src/ui/views/BasesView.tsx src/ui/views/bases/BasesTableView.tsx src/ui/views/bases/BasesListView.tsx src/ui/views/bases/BasesCardsView.tsx src/ui/views/bases/BasesMapView.tsx`
+- `bun run test src/styles/renderer-modules.test.ts src/styles/contrast.test.ts src/core/bases/schema.test.ts src/core/bases/formula.test.ts src/core/bases/summary.test.ts src/ui/views/bases/BasesMapView.test.ts`
+- `bun run test`
+- `bun run build`
+- `git diff --check`
+
+---
+
 ## 2026-05-13 — Renderer PDF CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/view-pdf.css` for the

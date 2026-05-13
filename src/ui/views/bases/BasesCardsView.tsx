@@ -33,49 +33,18 @@ function Card({
       onClick={(e) => {
         openRow(row, e.metaKey || e.ctrlKey);
       }}
-      style={{
-        width: "100%",
-        background: "var(--background-primary)",
-        border: "1px solid var(--background-modifier-border)",
-        borderRadius: "var(--radius-m)",
-        padding: "var(--size-4-3)",
-        cursor: "var(--cursor-link)",
-        display: "flex",
-        flexDirection: "column",
-        gap: "var(--size-2-2)",
-        textAlign: "left",
-      }}
+      className="bases-cards-item"
     >
-      <div
-        style={{
-          fontSize: "var(--font-ui-medium)",
-          fontWeight: "var(--font-semibold)",
-          color: "var(--text-normal)",
-        }}
-      >
-        {stem(row.file.path)}
-      </div>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(80px, max-content) 1fr",
-          rowGap: "var(--size-2-2)",
-          columnGap: "var(--size-4-2)",
-          fontSize: "var(--font-ui-smaller)",
-        }}
-      >
+      <div className="bases-cards-line">{stem(row.file.path)}</div>
+      <div className="bases-cards-property">
         {cols.map((col) => {
           const value = formatCellValue(row.cells[col], col);
           return (
             <div key={col} style={{ display: "contents" }}>
-              <div style={{ color: "var(--text-faint)" }}>
+              <div className="bases-cards-label">
                 {localizedColumnLabel(col, config.formulas, t)}
               </div>
-              <div
-                style={{ color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis" }}
-              >
-                {value || "—"}
-              </div>
+              <div className="bases-cards-value">{value || "—"}</div>
             </div>
           );
         })}
@@ -96,14 +65,7 @@ export function BasesCardsView({
   const kvCols = displayColumns.filter((c) => c !== "file.name");
 
   const renderGrid = (rs: ReadonlyArray<Row>) => (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
-        gap: "var(--size-4-3)",
-        padding: "var(--size-4-1) 0",
-      }}
-    >
+    <div className="bases-cards-grid">
       {rs.map((row) => (
         <Card key={row.file.path} row={row} config={config} cols={kvCols} />
       ))}
@@ -111,36 +73,13 @@ export function BasesCardsView({
   );
 
   return (
-    <div
-      style={{
-        flex: "1 1 auto",
-        overflow: "auto",
-        padding: "0 var(--size-4-3) var(--size-4-3)",
-      }}
-    >
+    <div className="bases-cards-container">
       {rows.length === 0 ? (
-        <div
-          style={{
-            padding: "var(--size-4-6)",
-            textAlign: "center",
-            color: "var(--text-faint)",
-          }}
-        >
-          {t("bases.empty.noMatchingFiles")}
-        </div>
+        <div className="bases-empty">{t("bases.empty.noMatchingFiles")}</div>
       ) : grouped ? (
         [...grouped.entries()].map(([key, rs]) => (
-          <div key={key}>
-            <div
-              style={{
-                padding: "var(--size-4-3) 0 var(--size-4-1)",
-                color: "var(--text-muted)",
-                fontWeight: "var(--font-semibold)",
-                fontSize: "var(--font-ui-smaller)",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-              }}
-            >
+          <div key={key} className="bases-cards-group">
+            <div className="bases-group-heading">
               {key} · {rs.length}
             </div>
             {renderGrid(rs)}
@@ -150,20 +89,10 @@ export function BasesCardsView({
         renderGrid(rows)
       )}
       {summaries.length > 0 && (
-        <div
-          style={{
-            padding: "var(--size-4-3)",
-            borderTop: "1px solid var(--background-modifier-border)",
-            fontSize: "var(--font-ui-smaller)",
-            color: "var(--text-muted)",
-            display: "flex",
-            flexWrap: "wrap",
-            gap: "var(--size-4-4)",
-          }}
-        >
+        <div className="bases-summary-bar">
           {summaries.map((s) => (
             <span key={s.label}>
-              <strong style={{ color: "var(--text-normal)" }}>{s.label}:</strong>{" "}
+              <strong>{s.label}:</strong>{" "}
               {s.value === null ? "—" : Number.isInteger(s.value) ? s.value : s.value.toFixed(2)}
             </span>
           ))}

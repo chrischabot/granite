@@ -243,28 +243,10 @@ export function BasesView({ path }: BasesViewProps) {
   }
 
   return (
-    <div
-      className="bases-view"
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div
-        style={{
-          padding: "var(--size-4-3) var(--size-4-4)",
-          borderBottom: "1px solid var(--background-modifier-border)",
-          display: "flex",
-          alignItems: "baseline",
-          gap: "var(--size-4-3)",
-          fontSize: "var(--font-ui-small)",
-        }}
-      >
-        <div style={{ fontWeight: "var(--font-semibold)", color: "var(--text-normal)" }}>
-          {config.name.trim() || t("bases.defaultName")}
-        </div>
-        <div style={{ color: "var(--text-muted)" }}>
+    <div className="bases-view">
+      <div className="bases-header">
+        <div className="bases-header-name">{config.name.trim() || t("bases.defaultName")}</div>
+        <div className="bases-header-filter">
           {config.filter ? (
             <>
               {t("bases.filterLabel")}: <code>{config.filter}</code>
@@ -273,7 +255,7 @@ export function BasesView({ path }: BasesViewProps) {
             t("bases.noFilter")
           )}
         </div>
-        <div style={{ color: "var(--text-faint)", marginInlineStart: "auto" }}>
+        <div className="bases-header-count">
           {t("bases.matchCount", {
             count: String(filtered.length),
             matchLabel: t(filtered.length === 1 ? "bases.match" : "bases.matches"),
@@ -284,9 +266,7 @@ export function BasesView({ path }: BasesViewProps) {
       </div>
       {error && <div className="message mod-error">{error}</div>}
       {loading ? (
-        <div style={{ padding: "var(--size-4-4)", color: "var(--text-faint)" }}>
-          {t("bases.loading")}
-        </div>
+        <div className="bases-loading">{t("bases.loading")}</div>
       ) : config.view === "list" ? (
         <BasesListView
           config={config}

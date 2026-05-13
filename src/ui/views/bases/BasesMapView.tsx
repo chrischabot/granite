@@ -50,20 +50,10 @@ export interface BasesMapViewProps {
 function SummaryBar({ summaries }: { readonly summaries: ReadonlyArray<SummaryResult> }) {
   if (summaries.length === 0) return null;
   return (
-    <div
-      style={{
-        padding: "var(--size-4-3)",
-        borderTop: "1px solid var(--background-modifier-border)",
-        fontSize: "var(--font-ui-smaller)",
-        color: "var(--text-muted)",
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "var(--size-4-4)",
-      }}
-    >
+    <div className="bases-summary-bar">
       {summaries.map((s) => (
         <span key={s.label}>
-          <strong style={{ color: "var(--text-normal)" }}>{s.label}:</strong>{" "}
+          <strong>{s.label}:</strong>{" "}
           {s.value === null ? "—" : Number.isInteger(s.value) ? s.value : s.value.toFixed(2)}
         </span>
       ))}
@@ -79,30 +69,7 @@ export function BasesMapView({ config, rows, grouped, summaries }: BasesMapViewP
     : null;
 
   const renderMap = (pts: ReadonlyArray<MapPoint>) => (
-    <div
-      className="bases-map-plane"
-      aria-label={t("bases.map.aria")}
-      style={{
-        position: "relative",
-        minHeight: 420,
-        border: "1px solid var(--background-modifier-border)",
-        borderRadius: "var(--radius-m)",
-        overflow: "hidden",
-        background:
-          "linear-gradient(var(--background-modifier-border) 1px, transparent 1px), linear-gradient(90deg, var(--background-modifier-border) 1px, transparent 1px), var(--background-secondary)",
-        backgroundSize: "10% 10%",
-      }}
-    >
-      <div
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "radial-gradient(circle at 50% 50%, transparent 0 34%, var(--background-primary-alt) 35% 36%, transparent 37%)",
-          opacity: 0.45,
-        }}
-      />
+    <div className="bases-map-plane" aria-label={t("bases.map.aria")}>
       {pts.map((point) => (
         <button
           key={point.row.file.path}
@@ -115,17 +82,8 @@ export function BasesMapView({ config, rows, grouped, summaries }: BasesMapViewP
             })
           }
           style={{
-            position: "absolute",
             left: `${point.xPct}%`,
             top: `${point.yPct}%`,
-            transform: "translate(-50%, -50%)",
-            width: 16,
-            height: 16,
-            borderRadius: 999,
-            border: "2px solid var(--background-primary)",
-            background: "var(--interactive-accent)",
-            boxShadow: "0 0 0 2px var(--text-accent)",
-            cursor: "var(--cursor-link)",
           }}
           aria-label={t("bases.map.open", { name: stem(point.row.file.path) })}
         />
@@ -134,27 +92,17 @@ export function BasesMapView({ config, rows, grouped, summaries }: BasesMapViewP
   );
 
   return (
-    <div style={{ flex: "1 1 auto", overflow: "auto", padding: "var(--size-4-3)" }}>
-      <div style={{ marginBottom: "var(--size-4-3)", color: "var(--text-muted)" }}>
+    <div className="bases-map-container">
+      <div className="bases-map-description">
         {t("bases.map.coordinatesFrom")} <code>{config.mapLatitude}</code> /{" "}
         <code>{config.mapLongitude}</code>
       </div>
       {points.length === 0 ? (
-        <div
-          style={{
-            padding: "var(--size-4-6)",
-            textAlign: "center",
-            color: "var(--text-faint)",
-            border: "1px solid var(--background-modifier-border)",
-            borderRadius: "var(--radius-m)",
-          }}
-        >
-          {t("bases.map.empty")}
-        </div>
+        <div className="bases-empty">{t("bases.map.empty")}</div>
       ) : groups ? (
         groups.map(([key, pts]) => (
-          <section key={key} style={{ marginBottom: "var(--size-4-5)" }}>
-            <h3 style={{ fontSize: "var(--font-ui-medium)" }}>
+          <section key={key} className="bases-map-group">
+            <h3 className="bases-cards-line">
               {formatCellValue(key, config.groupBy ?? "file.name")} · {pts.length}
             </h3>
             {renderMap(pts)}

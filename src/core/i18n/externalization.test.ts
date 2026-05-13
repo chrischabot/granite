@@ -482,10 +482,12 @@ const WORKSPACE_CHROME_FORBIDDEN_PATTERNS = [
 ];
 
 const WORKSPACE_LEAF_TITLE_FORBIDDEN_PATTERNS = [
+  /export function leafTitle/,
   /return "Files"/,
   /return "Settings"/,
   /return "Web viewer"/,
   /return "File"/,
+  /return "Asset"/,
   /return "Graph view"/,
   /return "Canvas"/,
   /return "Base"/,
@@ -1461,11 +1463,18 @@ describe("UI string externalization audit", () => {
       readFileSync(`${process.cwd()}/src/ui/A11yAnnouncer.tsx`, "utf8"),
     ];
     const leafTitleSource = readFileSync(`${process.cwd()}/src/ui/workspace/leaf-title.ts`, "utf8");
+    const workspaceTypesSource = readFileSync(
+      `${process.cwd()}/src/core/workspace/types.ts`,
+      "utf8",
+    );
     const chromeSource = sources.join("\n");
     const violations = WORKSPACE_CHROME_FORBIDDEN_PATTERNS.filter((pattern) =>
       pattern.test(chromeSource),
     ).concat(
       WORKSPACE_LEAF_TITLE_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(leafTitleSource)),
+      WORKSPACE_LEAF_TITLE_FORBIDDEN_PATTERNS.filter((pattern) =>
+        pattern.test(workspaceTypesSource),
+      ),
     );
 
     for (const requiredKey of [

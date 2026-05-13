@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Remove stale unlocalized leaf-title helper
+
+- **Root cause** — workspace UI already uses the localized
+  `displayLeafTitle()` helper, but `src/core/workspace/types.ts` still exported
+  an unused `leafTitle()` helper with hard-coded English fallback titles.
+- **Cleanup** — removed the dead core helper so there is only one title path
+  for workspace leaves.
+- **Regression ratchet** — extended `src/core/i18n/externalization.test.ts` to
+  scan `src/core/workspace/types.ts` and fail if a new unlocalized
+  `leafTitle()` or English fallback title is reintroduced.
+- **Tracker honesty** — recorded this as another string-externalization
+  improvement while leaving the broad UI audit open.
+
+### Tests
+- `bun run test -- src/core/i18n/externalization.test.ts`
+
+---
+
 ## 2026-05-13 — Graph pan allocation trim
 
 - **Root cause** — the 10k graph pan budget test exposed that the hot

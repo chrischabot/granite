@@ -40,6 +40,8 @@ export interface UserSettings {
    *  background goes transparent. Pairs with browser-side window styling
    *  (PWA installs / future Electron host). */
   translucent: boolean;
+  /** Show a diagnostic notice when measured startup exceeds the cold-start budget. */
+  notifySlowStartup: boolean;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -59,6 +61,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   editorKeymap: "standard",
   fileExplorerSort: "name-asc",
   translucent: false,
+  notifySlowStartup: true,
 };
 
 function loadFromStorage(): UserSettings {

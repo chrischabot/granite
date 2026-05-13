@@ -12,8 +12,9 @@ import { scanOrphanAtomicWriteTemps } from "@core/fs/orphan-temp";
 import { t } from "@core/i18n";
 import { bindTypeRegistry, unbindTypeRegistry } from "@core/metadata/type-registry";
 import { noticeManager } from "@core/notices/notice";
+import { maybeShowSlowStartupNotice } from "@core/perf/startup";
 import { bindPlugins, unbindPlugins } from "@core/plugins/loader";
-import { bindSettings, unbindSettings } from "@core/settings/store";
+import { bindSettings, settingsStore, unbindSettings } from "@core/settings/store";
 import { bindSnippets, unbindSnippets } from "@core/snippets/loader";
 import { bindThemes, unbindThemes } from "@core/themes/loader";
 import {
@@ -90,6 +91,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const [vaults, setVaults] = useState<ReadonlyArray<VaultEntry>>([]);
   const initialized = useRef(false);
   const persistUnbindRef = useRef<(() => void) | null>(null);
+  const slowStartupCheckedRef = useRef(false);
 
   const refreshList = useCallback(async () => {
     setVaults(await listVaults());
@@ -217,6 +219,12 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           /* startup warning stays best-effort */
         });
       await bindSettings();
+      if (!slowStartupCheckedRef.current) {
+        slowStartupCheckedRef.current = true;
+        maybeShowSlowStartupNotice({
+          enabled: settingsStore.getState().notifySlowStartup,
+        });
+      }
       workspaceStore.reset();
       // Disk-first restore; falls back to localStorage and migrates on hit.
       const restoredFromDisk = await restoreForAsync(entry.id).catch(() => false);

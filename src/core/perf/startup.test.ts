@@ -1,7 +1,12 @@
 import { setLocale } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { collectStartupTiming, formatStartupTiming, showStartupTimingReport } from "./startup";
+import {
+  collectStartupTiming,
+  formatStartupTiming,
+  maybeShowSlowStartupNotice,
+  showStartupTimingReport,
+} from "./startup";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -64,6 +69,43 @@ describe("startup timing profiler", () => {
     expect(message).toContain("Startup timing");
     const notice = noticeManager.list()[0];
     expect(notice?.message).toBe(message);
+    expect(notice?.timeoutMs).toBe(0);
+  });
+
+  it("warns only when enabled startup timing exceeds the expected threshold", () => {
+    const baseReport = {
+      navigationStartMs: 0,
+      domContentLoadedMs: null,
+      loadEventMs: null,
+      firstPaintMs: null,
+      firstContentfulPaintMs: null,
+    };
+
+    const fast = maybeShowSlowStartupNotice({
+      enabled: true,
+      thresholdMs: 3_000,
+      report: { ...baseReport, nowMs: 2_999 },
+    });
+    expect(fast).toBeNull();
+    expect(noticeManager.list()).toEqual([]);
+
+    const disabled = maybeShowSlowStartupNotice({
+      enabled: false,
+      thresholdMs: 3_000,
+      report: { ...baseReport, nowMs: 4_000 },
+    });
+    expect(disabled).toBeNull();
+    expect(noticeManager.list()).toEqual([]);
+
+    const slow = maybeShowSlowStartupNotice({
+      enabled: true,
+      thresholdMs: 3_000,
+      report: { ...baseReport, nowMs: 4_001 },
+    });
+
+    expect(slow).toContain("Startup took 4,001 ms");
+    const notice = noticeManager.list()[0];
+    expect(notice?.kind).toBe("warning");
     expect(notice?.timeoutMs).toBe(0);
   });
 });

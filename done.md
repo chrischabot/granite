@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Slow-startup diagnostic notice
+
+- **Root cause** — Settings → General → Advanced specified a default-on
+  "Notify if startup takes longer than expected" toggle, but only the manual
+  startup timing report button existed.
+- **Settings path** — added a persisted `notifySlowStartup` setting, surfaced
+  the toggle in General → Advanced, and runs the warning check once per app
+  startup after vault settings hydrate.
+- **Budget behavior** — anchored the warning to the documented 3,000 ms
+  cold-start budget and includes the same timing report details as the manual
+  profiler notice.
+- **Regression ratchet** — extended `src/core/perf/startup.test.ts` to prove
+  fast starts stay silent, disabled notices stay silent, and slow enabled
+  starts show a sticky warning.
+
+### Tests
+- `bun run test -- src/core/perf/startup.test.ts src/core/settings/store.test.ts src/core/i18n/index.test.ts src/core/i18n/externalization.test.ts`
+
+---
+
 ## 2026-05-13 — Startup timing profiling hook
 
 - **Root cause** — the settings spec calls for General → Advanced → Check

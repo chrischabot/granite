@@ -86,7 +86,7 @@
 - [x] External-OS-drag handling with `Ctrl/Option` modifier ← _shipped 2026-05-12 external file drop sweep_
 
 ### §24.19 Performance — Phase 14
-- [ ] 10 k-note cold start < 3 s (10k Node metadata budget ratchet and no-restat guard shipped; browser/profile verification remains)
+- [ ] 10 k-note cold start < 3 s (10k Node metadata budget ratchet, no-restat guard, startup timing report, and slow-startup diagnostic notice shipped; browser/profile verification remains)
 - [x] Quick-switcher keystroke update < 16 ms ← _shipped 2026-05-12 reusable fuzzy index_
 - [x] 10 k search regex < 500 ms ← _shipped 2026-05-12 in-memory regex budget test + larger scan chunks_
 - [ ] 10 k graph pan ≥ 30 fps (imperative transform + 10k transform budget ratchet shipped; browser FPS verification remains)

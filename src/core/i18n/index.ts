@@ -360,6 +360,8 @@ That's the tour — happy linking!
   "startupTiming.firstPaint": "First paint",
   "startupTiming.firstContentfulPaint": "First contentful paint",
   "startupTiming.unavailable": "unavailable",
+  "startupTiming.slowNotice":
+    "Startup took {elapsed}, which is longer than the expected {expected} budget.",
   "plugin.audioRecorder.category": "Audio recorder",
   "plugin.audioRecorder.toggle": "Start/stop recording",
   "plugin.audioRecorder.alreadyRecording": "Recording is already in progress.",
@@ -451,6 +453,9 @@ That's the tour — happy linking!
   "settings.group.pluginOptions": "Plugin options",
   "settings.empty.noMatch": "No settings match your search.",
   "settings.general.advanced": "Advanced",
+  "settings.general.notifySlowStartup": "Notify if startup takes longer than expected",
+  "settings.general.notifySlowStartupDesc":
+    "Show a diagnostic notice when startup exceeds the performance budget.",
   "settings.general.checkStartupTime": "Check startup time",
   "settings.general.checkStartupTimeDesc": "Runs a local startup timing profile and shows a report.",
   "settings.appearance.baseScheme": "Base color scheme",
@@ -1308,6 +1313,8 @@ Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github
     "startupTiming.firstPaint": "ציור ראשון",
     "startupTiming.firstContentfulPaint": "ציור תוכן ראשון",
     "startupTiming.unavailable": "לא זמין",
+    "startupTiming.slowNotice":
+      "ההפעלה ארכה {elapsed}, יותר מתקציב הביצועים הצפוי של {expected}.",
     "plugin.audioRecorder.category": "מקליט אודיו",
     "plugin.audioRecorder.toggle": "התחלה/עצירה של הקלטה",
     "plugin.audioRecorder.alreadyRecording": "הקלטה כבר מתבצעת.",
@@ -1397,6 +1404,8 @@ Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github
     "settings.group.pluginOptions": "אפשרויות תוספים",
     "settings.empty.noMatch": "אין הגדרות שתואמות לחיפוש.",
     "settings.general.advanced": "מתקדם",
+    "settings.general.notifySlowStartup": "התראה אם ההפעלה נמשכת יותר מהצפוי",
+    "settings.general.notifySlowStartupDesc": "הצגת התראת אבחון כשההפעלה חורגת מתקציב הביצועים.",
     "settings.general.checkStartupTime": "בדיקת זמן הפעלה",
     "settings.general.checkStartupTimeDesc": "מריץ פרופיל תזמון הפעלה מקומי ומציג דוח.",
     "settings.appearance.baseScheme": "ערכת צבע בסיסית",

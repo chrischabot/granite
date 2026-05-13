@@ -1,6 +1,8 @@
 import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 
+export const STARTUP_EXPECTED_MS = 3_000;
+
 export interface StartupTimingReport {
   readonly nowMs: number;
   readonly navigationStartMs: number;
@@ -54,5 +56,27 @@ export function formatStartupTiming(report: StartupTimingReport): string {
 export function showStartupTimingReport(): string {
   const message = formatStartupTiming(collectStartupTiming());
   noticeManager.show(message, { kind: "info", timeoutMs: 0 });
+  return message;
+}
+
+export function maybeShowSlowStartupNotice({
+  enabled,
+  thresholdMs = STARTUP_EXPECTED_MS,
+  report = collectStartupTiming(),
+}: {
+  readonly enabled: boolean;
+  readonly thresholdMs?: number;
+  readonly report?: StartupTimingReport;
+}): string | null {
+  if (!enabled || report.nowMs <= thresholdMs) return null;
+  const message = [
+    t("startupTiming.slowNotice", {
+      elapsed: `${Math.round(report.nowMs).toLocaleString()} ms`,
+      expected: `${thresholdMs.toLocaleString()} ms`,
+    }),
+    "",
+    formatStartupTiming(report),
+  ].join("\n");
+  noticeManager.show(message, { kind: "warning", timeoutMs: 0 });
   return message;
 }

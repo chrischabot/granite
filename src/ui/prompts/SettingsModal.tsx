@@ -161,6 +161,16 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                 <h2>{t("settings.general")}</h2>
                 <h3>{t("settings.general.advanced")}</h3>
                 <SettingItem
+                  name={t("settings.general.notifySlowStartup")}
+                  desc={t("settings.general.notifySlowStartupDesc")}
+                  control={
+                    <Toggle
+                      checked={settings.notifySlowStartup}
+                      onChange={(v) => settingsStore.update({ notifySlowStartup: v })}
+                    />
+                  }
+                />
+                <SettingItem
                   name={t("settings.general.checkStartupTime")}
                   desc={t("settings.general.checkStartupTimeDesc")}
                   control={

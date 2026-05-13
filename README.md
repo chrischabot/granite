@@ -1,231 +1,302 @@
-# Obsidian Renderer — UI Reproduction Specification
+# Granite
 
-> **Purpose.** This repository contains a complete, source-cited specification of the Obsidian desktop renderer's user interface. The goal is reproduction so faithful that an agent following these documents produces a **pixel-perfect, behavior-perfect carbon copy** of the running app.
->
-> **Standard.** Every value here (color, dimension, font weight, easing, duration, z-index, radius, shadow, padding, margin, opacity, blend mode) is sourced from `renderer/app.css`, `renderer/index.html`, or `renderer/app.webcrack/` — and is cited by file:line. If a value is missing, the spec is incomplete; do not invent one.
+Granite is a local-first, Markdown-native personal knowledge base. It stores
+your notes as plain files in a folder you control, gives you fast linked-note
+navigation, and keeps the app extensible through themes, snippets, and
+community-style plugins.
 
-## Scope
+The project is built as a desktop-class web UI with React, Vite, CodeMirror,
+Effect, and plain vault files. In development it runs in the browser; packaged
+or host-integrated builds can add native capabilities such as operating-system
+trash integration.
 
-**In scope.** The Obsidian renderer:
+## Why Granite Exists
 
-- `renderer/app.css` — entire stylesheet (24,005 lines).
-- `renderer/index.html` — entry point.
-- `renderer/app.webcrack/` — webcrack-deobfuscated webpack modules (195 modules + `deobfuscated.js` single-file output).
-- `renderer/i18n/`, `renderer/i18n.js` — interface strings.
-- `renderer/lib/` — vendored libraries that affect UI: CodeMirror 5 (the markdown editor), moment, i18next, pixi (graph view), prism (syntax highlighting), pdf.js, mermaid, scrypt, turndown, reveal (slides), readability, mathjax.
-- `renderer/public/fonts/`, `renderer/public/images/` — font and image assets.
-- `renderer/sim.js`, `renderer/worker.js`, `renderer/enhance.js`, `renderer/main.js` — supporting renderer scripts.
+Most note systems eventually ask you to trade ownership for convenience:
+proprietary sync, opaque databases, or a single vendor's app as the only real
+way to inspect your work. Granite takes the opposite position:
 
-**Out of scope.** The Electron main process (`main/`), sandboxed iframes (`renderer/sandbox/`), the help app (`renderer/help.html`, `renderer/help.js`), the starter / first-run experience (`renderer/starter.html`, `renderer/starter.js`), and any UI provided by community plugins.
+- Your vault is a normal folder.
+- Notes are UTF-8 Markdown.
+- Canvases and Bases use readable file formats.
+- App state is stored beside the vault under `.granite/`.
+- Existing Obsidian-style vault content can be opened without forcing a
+  migration.
 
-## Public Docs
+The goal is a capable knowledge-work environment that stays portable, fast, and
+hackable.
 
-The local public documentation site starts at [`docs/index.html`](docs/index.html).
-It links the vault format, plugin API, and contributor guide.
+## What Granite Can Do
 
-## Source-of-truth precedence
+Granite includes the core surfaces expected from a modern linked-thinking app:
 
-When multiple sources describe the same property, resolve in this order:
+- Vault picker and multi-vault window support.
+- File explorer, folders, accepted native file formats, and configurable trash
+  behavior: system trash, vault `.trash/`, or permanent deletion.
+- Markdown editor with Reading, Live Preview, and Source modes.
+- CommonMark, GitHub Flavored Markdown, wikilinks, embeds, callouts, math,
+  Mermaid, footnotes, block IDs, tags, and YAML properties.
+- Vim mode, multi-cursor editing, rectangular selection, code folding, and
+  persisted fold state.
+- Quick Switcher, Command Palette, configurable hotkeys, and keyboard-first
+  navigation.
+- Backlinks, outgoing links, outline, recents, bookmarks, tags, and properties
+  sidebars.
+- Search with operators, regex, property filters, match-case, sort controls,
+  and embedded query blocks.
+- Graph view with filters, groups, colors, display/force controls, local graph,
+  and persisted state.
+- Canvas files with text, file, link, and group cards; marquee selection,
+  duplication, snap control, and embeds inside notes.
+- Bases files with table, list, cards, and map views; formulas, summaries,
+  grouping, filtering, sorting, and embedded base blocks.
+- Themes, CSS snippets, light/dark/high-contrast modes, RTL support, and
+  localized UI strings.
+- Community plugin browser, install/enable/disable flow, plugin data
+  persistence, update checks, settings tabs, status-bar items, and lifecycle
+  cleanup.
+- File recovery snapshots, crash/restart workspace restoration, error boundary,
+  debug info, accessibility announcements, and broad browser verification.
 
-1. `renderer/app.css` — the authoritative computed style.
-2. `renderer/index.html` — DOM scaffolding (note: minimal; the DOM is built by JS).
-3. `renderer/app.webcrack/deobfuscated.js` and individual module files — DOM construction, event handlers, computed runtime values, state machines.
-4. `renderer/i18n/en.txt` — display strings (English is the source language; other locales are translations).
-5. Vendored libraries — only when the renderer delegates rendering to them (CodeMirror, pdf.js).
+## What Is Included In This Repo
 
-## Conventions used in every spec file
+```text
+src/                 Application source
+  core/              File system, vaults, metadata, parser, search, graph,
+                     plugins, settings, workspace, i18n, and data services
+  ui/                React shell, editor surfaces, prompts, sidebars, overlays
+  styles/            Renderer CSS modules and theme tokens
+scripts/             Browser and integration verifiers
+docs/                User/developer docs: vault format, plugin API, contributor guide
+examples/plugins/    Example plugin code and API definitions
+specs/               Product and renderer reference specs
+public/              Static assets used by the Vite app
+```
 
-- **Selectors.** Quoted exactly as they appear in `app.css`.
-- **Values.** Always concrete: hex codes, px/em/rem/vw, ms, cubic-beziers. No "approximately".
-- **Theme variants.** All color tokens are given for both `.theme-light` and `.theme-dark`, plus `.mod-macos`, `.mod-windows`, `.mod-linux`, `.is-mobile`, `.is-phone`, `.is-tablet`, `.is-translucent`, `.is-rtl` overrides where applicable.
-- **States.** Hover, active, focus, focus-visible, disabled, selected, highlighted, dragging, loading — each is its own block when the CSS provides distinct rules.
-- **Citations.** Every rule cites `app.css:LINE` so the value can be verified. Behavior cites `app.webcrack/deobfuscated.js:LINE` or the relevant module file.
-- **DOM trees.** Each component spec includes the exact DOM scaffold the JS builds (selector tree with attributes), reconstructed from CSS selectors that imply structure plus webcrack output.
-- **Units.** `px` is `device-independent CSS pixels`. `em` resolves against the element's own `font-size`. `rem` resolves against `html` `font-size` (default 16px unless the host changes it). `var(--token)` is always resolved transitively in the spec.
+Useful documentation:
 
-## Reading order for a fresh reproducer
+- [Vault format](docs/vault-format.md)
+- [Plugin API](docs/plugin-api.md)
+- [Contributor guide](docs/contributor-guide.md)
+- [Product specs](specs/product)
+- [Renderer specs](specs/renderer)
 
-If you are an agent or a person building this from scratch, read the specs in this order:
+## How It Is Built
 
-1. `design-tokens.md` — every CSS custom property; theme variants; the units & motion system.
-2. `typography.md` — font stacks, type scale, weights, line heights, letter-spacing.
-3. `icons-and-assets.md` — icon set, font files, image assets, SVG inventory.
-4. `app-shell.md` — root layout (`.app-container`, `.horizontal-main-container`).
-5. `titlebar.md` — window chrome.
-6. `ribbon.md` — left-edge action ribbon.
-7. `workspace-and-splits.md` — `.workspace`, `.workspace-split`, `.workspace-leaf`, `.workspace-tabs`, leaf resize handles.
-8. `tabs.md` — `.workspace-tab-header*` family + `tab-stacked` + `mobile-tab-switcher`.
-9. `sidedock.md` — `.workspace-sidedock-empty-state`, sidedock tabs.
-10. `view-header.md` — pane chrome (`.view-header`, `.view-actions`, breadcrumb).
-11. `status-bar.md`.
-12. `scrollbars.md`.
+Granite is a TypeScript application with a React UI and Effect-powered core
+services.
 
-Then control primitives:
+- **Build tool:** Vite
+- **Runtime/package manager:** Bun
+- **UI:** React 19
+- **Editor:** CodeMirror 6 plus Vim support
+- **Markdown:** markdown-it, KaTeX, Mermaid, Prism
+- **State and services:** Effect services, local stores, IndexedDB handle
+  registry, File System Access / OPFS adapters
+- **Testing:** Vitest, Playwright/Chromium browser verifiers, Lighthouse a11y
+  audit, Biome linting
 
-13. `buttons.md` — `.clickable-icon`, `.mod-cta`, `.mod-warning`, `.mod-destructive`, `button` element.
-14. `inputs.md` — text/number/date/range/color, password fields, textarea, search inputs.
-15. `dropdown-select.md`.
-16. `toggle.md`.
-17. `checkbox.md`.
-18. `slider.md`.
-19. `multi-select.md`.
-20. `progress-bar.md`.
-21. `tooltip.md`.
-22. `tree-item.md`.
-23. `flair-and-pill.md`.
-24. `card.md`.
-25. `empty-state.md`.
+In a browser/dev environment Granite can open OPFS-backed vaults and, where the
+browser allows it, user-picked folders through the File System Access API. A
+native host can provide extra bridges such as `window.graniteHost.fs`
+system-trash support.
 
-Then overlays:
+## Requirements
 
-26. `modal.md`.
-27. `suggestion-and-prompt.md` — quick-switcher, command palette, suggestion popover.
-28. `menu.md` — context menus and dropdown menus.
-29. `notice.md` — toasts.
-30. `hover-popover.md` — link hover previews.
-31. `dialog.md`.
+- Bun
+- A modern Chromium-based browser for local development and browser verifiers
+- macOS, Linux, or Windows for development
 
-Then content surfaces:
+The app is designed for desktop-class local use. Some browser APIs used by the
+development build, especially File System Access, are not uniformly available in
+all browsers.
 
-32. `editor-codemirror.md` — `.cm-s-obsidian`, gutters, cursor, selection, fold marks.
-33. `editor-markdown-rendering.md` — `.markdown-rendered` shared rules.
-34. `editor-source-mode.md` — `.markdown-source-view` + live-preview tokens.
-35. `editor-reading-mode.md` — `.markdown-preview-view`, `.markdown-reading-view`.
-36. `editor-inline-title.md`.
-37. `editor-properties.md` — `.metadata-container` and properties panel.
-38. `editor-callouts.md`.
-39. `editor-tables.md`.
-40. `editor-code-blocks.md` — fenced code, prism syntax highlight tokens.
-41. `editor-embeds.md` — `.internal-embed`, `.markdown-embed`, `.file-embed`, image/video/audio.
-42. `editor-footnotes.md`.
-43. `editor-headings-and-lists.md`.
-44. `editor-tags-and-links.md`.
-45. `editor-document-search.md` — Find & replace bar.
-46. `editor-mobile-toolbar.md`.
+## Install
 
-Then sidebar views:
+```sh
+bun install
+```
 
-47. `view-file-explorer.md`.
-48. `view-search.md`.
-49. `view-bookmarks.md`.
-50. `view-tags.md`.
-51. `view-outline.md`.
-52. `view-backlinks.md` — pane + embedded.
-53. `view-outgoing-links.md`.
-54. `view-graph.md`.
-55. `view-canvas.md`.
-56. `view-bases.md` — table, cards, list, group, toolbar.
-57. `view-pdf.md`.
-58. `view-webviewer.md`.
-59. `view-release-notes.md`.
-60. `view-history-sync.md`.
+## Run For Development
 
-Then meta-UI:
+```sh
+bun run dev
+```
 
-61. `settings-modal.md` — vertical-tabs structure, search, hotkey editor.
-62. `settings-community-plugins.md`.
-63. `settings-community-themes.md`.
-64. `settings-vertical-tabs.md` — primitive used by settings.
-65. `settings-horizontal-tabs.md`.
-66. `settings-mobile.md`.
+Vite serves the app at:
 
-Then state and motion:
+```text
+http://localhost:8080
+```
 
-67. `themes-light-dark.md` — exhaustive token diff.
-68. `os-modifiers.md` — `.mod-macos`, `.mod-windows`, `.mod-linux` overrides.
-69. `mobile.md` — `.is-mobile`, `.is-phone`, `.is-tablet`, `.is-android`, `.is-ios` overrides.
-70. `rtl.md` — `.mod-rtl`, `.is-rtl`.
-71. `animations.md` — every `@keyframes`, every `transition`.
-72. `drag-and-drop.md` — `.drag-ghost`, `.drag-reorder-ghost`, `.drop-indicator`, `.workspace-drop-overlay`.
-73. `loading-states.md` — `.is-loading`, `.loader-cube`, `.loader-spinner`.
+If port `8080` is already in use, run Vite manually with another port:
 
-## File index (alphabetical)
+```sh
+bunx vite --host 0.0.0.0 --port 8081
+```
 
-Every file below is at the repo root. Items marked **(planned)** are part of this specification but their contents will be authored as the documentation is written.
+## Build And Preview
 
-| File | Topic |
-| --- | --- |
-| [animations.md](animations.md) | All `@keyframes`, transitions, easings, durations |
-| [app-shell.md](app-shell.md) | Root layout, `.app-container`, `.horizontal-main-container` |
-| [buttons.md](buttons.md) | `button`, `.clickable-icon`, `.mod-cta`, `.mod-warning` |
-| [card.md](card.md) | `.card`, `.card-container` |
-| [checkbox.md](checkbox.md) | `[type=checkbox]`, `.task-list-item-checkbox`, `.checkbox-container` |
-| [design-tokens.md](design-tokens.md) | Every CSS custom property, both themes |
-| [dialog.md](dialog.md) | `.dialog`, confirmation modals |
-| [drag-and-drop.md](drag-and-drop.md) | Drag ghosts, drop indicators, fake-target overlay |
-| [dropdown-select.md](dropdown-select.md) | `select.dropdown`, `.combobox` |
-| [editor-callouts.md](editor-callouts.md) | `.callout` and types |
-| [editor-code-blocks.md](editor-code-blocks.md) | Fenced code blocks + Prism tokens |
-| [editor-codemirror.md](editor-codemirror.md) | `.cm-s-obsidian` editor chrome |
-| [editor-document-search.md](editor-document-search.md) | `.document-search-container` |
-| [editor-embeds.md](editor-embeds.md) | `.internal-embed`, `.markdown-embed`, `.file-embed` |
-| [editor-footnotes.md](editor-footnotes.md) | `.footnote-ref`, `.footnotes` |
-| [editor-headings-and-lists.md](editor-headings-and-lists.md) | h1-h6, ul/ol/checklists |
-| [editor-inline-title.md](editor-inline-title.md) | `.inline-title` |
-| [editor-live-preview.md](editor-live-preview.md) | Live-preview-only rules |
-| [editor-markdown-rendering.md](editor-markdown-rendering.md) | `.markdown-rendered` shared rules |
-| [editor-mobile-toolbar.md](editor-mobile-toolbar.md) | `.mobile-toolbar*` |
-| [editor-properties.md](editor-properties.md) | `.metadata-container`, `.metadata-property` |
-| [editor-reading-mode.md](editor-reading-mode.md) | `.markdown-preview-view`, `.markdown-reading-view` |
-| [editor-source-mode.md](editor-source-mode.md) | `.markdown-source-view` |
-| [editor-tables.md](editor-tables.md) | `.cm-s-obsidian table`, `.markdown-rendered table` |
-| [editor-tags-and-links.md](editor-tags-and-links.md) | `.cm-hashtag`, `.cm-link`, `.tag`, `.internal-link` |
-| [empty-state.md](empty-state.md) | `.empty-state*` family |
-| [flair-and-pill.md](flair-and-pill.md) | `.flair`, `.multi-select-pill` |
-| [hover-popover.md](hover-popover.md) | `.hover-popover`, `.popover` |
-| [icons-and-assets.md](icons-and-assets.md) | Icon set, font files, image assets |
-| [inputs.md](inputs.md) | `input` elements + textarea |
-| [loading-states.md](loading-states.md) | `.is-loading`, `.loader-spinner`, `.loader-cube` |
-| [menu.md](menu.md) | `.menu`, `.menu-item`, separators |
-| [modal.md](modal.md) | `.modal`, `.modal-bg`, `.modal-container` |
-| [mobile.md](mobile.md) | `.is-mobile`, `.is-phone`, `.is-tablet` overrides |
-| [multi-select.md](multi-select.md) | `.multi-select-container` |
-| [notice.md](notice.md) | `.notice`, `.notice-container` |
-| [os-modifiers.md](os-modifiers.md) | `.mod-macos`, `.mod-windows`, `.mod-linux` |
-| [progress-bar.md](progress-bar.md) | `.progress-bar*` |
-| [ribbon.md](ribbon.md) | `.workspace-ribbon`, `.side-dock-actions`, `.side-dock-settings` |
-| [rtl.md](rtl.md) | `.mod-rtl`, `.is-rtl` |
-| [scrollbars.md](scrollbars.md) | `::-webkit-scrollbar*` |
-| [settings-community-plugins.md](settings-community-plugins.md) | `.community-*` |
-| [settings-community-themes.md](settings-community-themes.md) | Themes manager |
-| [settings-horizontal-tabs.md](settings-horizontal-tabs.md) | `.horizontal-tab-*` |
-| [settings-modal.md](settings-modal.md) | `.modal-setting-*`, hotkey editor |
-| [settings-vertical-tabs.md](settings-vertical-tabs.md) | `.vertical-tab-*` |
-| [sidedock.md](sidedock.md) | Side dock, empty state |
-| [slider.md](slider.md) | `[type=range]` |
-| [splash.md](splash.md) | `.splash`, `.splash-brand` |
-| [status-bar.md](status-bar.md) | `.status-bar`, `.status-bar-item` |
-| [suggestion-and-prompt.md](suggestion-and-prompt.md) | `.prompt`, `.suggestion-container` |
-| [tabs.md](tabs.md) | `.workspace-tab-header*` family |
-| [themes-light-dark.md](themes-light-dark.md) | Exhaustive light vs dark token diff |
-| [titlebar.md](titlebar.md) | `.titlebar` |
-| [toggle.md](toggle.md) | `.checkbox-container.is-enabled` toggle styling |
-| [tooltip.md](tooltip.md) | `.tooltip`, `[aria-label]` |
-| [tree-item.md](tree-item.md) | `.tree-item*` family |
-| [typography.md](typography.md) | Type scale, font fallbacks, line heights |
-| [view-backlinks.md](view-backlinks.md) | `.backlink-pane`, `.embedded-backlinks` |
-| [view-bases.md](view-bases.md) | `.bases-*` (table, cards, list, toolbar) |
-| [view-bookmarks.md](view-bookmarks.md) | Bookmarks pane |
-| [view-canvas.md](view-canvas.md) | `.canvas`, `.canvas-node*`, `.canvas-edges`, controls, minimap |
-| [view-file-explorer.md](view-file-explorer.md) | `.nav-folder`, `.nav-file*`, `.file-tree*` |
-| [view-graph.md](view-graph.md) | `.graph-view`, `.graph-controls` |
-| [view-history-sync.md](view-history-sync.md) | `.sync-history-*`, `.file-recovery-*` |
-| [view-outgoing-links.md](view-outgoing-links.md) | `.outgoing-link-pane` |
-| [view-outline.md](view-outline.md) | Outline pane |
-| [view-pdf.md](view-pdf.md) | `.pdf-toolbar`, `.pdf-sidebar`, `.pdfViewer`, find bar |
-| [view-release-notes.md](view-release-notes.md) | `.release-notes-view`, `.changelog-item` |
-| [view-search.md](view-search.md) | `.search-result-*`, `.search-row` |
-| [view-tags.md](view-tags.md) | `.tag-container`, `.tag-pane-tag` |
-| [view-webviewer.md](view-webviewer.md) | `.webviewer-*` |
-| [view-header.md](view-header.md) | `.view-header`, `.view-actions`, `.view-content` |
-| [workspace-and-splits.md](workspace-and-splits.md) | `.workspace`, `.workspace-split`, `.workspace-leaf` |
+```sh
+bun run build
+bun run preview
+```
 
-## Failure modes to avoid
+The production build is written to `dist/`.
 
-- **"Approximately" — banned.** If you cannot give a concrete value, the spec is incomplete.
-- **"Subtle shadow" — banned.** Cite the `box-shadow` rule.
-- **"A reasonable easing" — banned.** Cite the cubic-bezier.
-- **Inventing colors.** Every color in the running app exists in `app.css` — find it.
-- **Skipping states.** A spec without `:hover`, `:active`, `:focus-visible`, `:disabled` is incomplete.
-- **Skipping themes.** Every spec must show light and dark resolved values.
-- **Skipping OS variants.** macOS ships different toggle dimensions, slider thumbs, and traffic-light offsets.
+## First Run
+
+1. Start the dev server with `bun run dev`.
+2. Open the local URL in Chromium.
+3. Choose or create a vault from the Vault Picker.
+4. Start writing Markdown notes, importing files, creating canvases, or creating
+   bases.
+
+Granite writes app-owned state under `.granite/` inside the vault. Existing
+`.obsidian/` folders are read for compatibility, but Granite does not need to
+rewrite that folder to operate.
+
+## Configure Granite
+
+Open Settings from the ribbon or Command Palette. Important areas include:
+
+- **Appearance:** theme, light/dark behavior, accent color, inline title,
+  ribbon/header visibility, CSS snippets.
+- **Files and links:** attachments folder, excluded files, link behavior,
+  deletion mode, confirmation behavior.
+- **Editor:** spellcheck, languages, Vim mode, source/live-preview behavior.
+- **Hotkeys:** capture, save, reset, and assign multiple bindings.
+- **Core plugins:** enable or disable built-in features.
+- **Community plugins:** turn off Restricted mode, browse/install plugins,
+  enable/disable installed plugins, and check for updates.
+- **Plugin options:** settings pages registered by enabled plugins.
+
+## Vaults And Files
+
+Granite vaults are plain folders. Common files include:
+
+```text
+MyVault/
+  .granite/
+    workspace.json
+    graph.json
+    plugins/
+  Notes/
+    Project.md
+  Board.canvas
+  Tasks.base
+  attachments/
+    image.png
+```
+
+Granite opens:
+
+- Markdown: `.md`
+- Canvas: `.canvas`
+- Bases: `.base`
+- Images: `.avif`, `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.svg`, `.webp`
+- Audio: `.flac`, `.m4a`, `.mp3`, `.ogg`, `.wav`, `.webm`, `.3gp`
+- Video: `.mkv`, `.mov`, `.mp4`, `.ogv`, `.webm`
+- PDF: `.pdf`
+
+## Plugins, Themes, And Snippets
+
+Community plugins live under:
+
+```text
+.granite/plugins/<plugin-id>/
+  manifest.json
+  main.js
+  styles.css
+  data.json
+```
+
+Plugins can register commands, status-bar items, workspace events, metadata
+reads, vault reads/writes, data persistence, and settings tabs. See
+[docs/plugin-api.md](docs/plugin-api.md).
+
+Themes and snippets are normal CSS. Granite's renderer CSS is tokenized so
+themes can override visual variables without patching app logic.
+
+Security note: community plugins are third-party JavaScript. Restricted mode is
+on by default for new vaults. Only enable plugins you trust.
+
+## Quality And Verification
+
+Run the standard local gate before committing:
+
+```sh
+bun run lint
+bun run typecheck
+bun run test
+bun run build
+git diff --check
+```
+
+Documentation checks:
+
+```sh
+bun run docs:check
+bun run docs:verify-browser
+```
+
+Accessibility checks:
+
+```sh
+bun run audit:a11y
+bun run audit:lighthouse-a11y
+```
+
+Browser verifiers live under `scripts/` and are exposed as `verify:*` package
+scripts. Examples:
+
+```sh
+bun run verify:keyboard-browser
+bun run verify:obsidian-vault-browser
+bun run verify:community-plugin-browser
+bun run verify:renderer-visual-browser
+```
+
+To run every audit/docs/verify script:
+
+```sh
+node - <<'NODE' | while read script; do
+  echo "== $script =="
+  bun run "$script" || exit $?
+done
+const pkg = JSON.parse(require("fs").readFileSync("package.json", "utf8"));
+for (const name of Object.keys(pkg.scripts)) {
+  if (
+    name.startsWith("verify:") ||
+    name.startsWith("audit:") ||
+    name === "docs:check" ||
+    name === "docs:verify-browser"
+  ) console.log(name);
+}
+NODE
+```
+
+## Contributing
+
+Start with [docs/contributor-guide.md](docs/contributor-guide.md).
+
+The short version:
+
+- Read the relevant spec or existing implementation first.
+- Root-cause bugs instead of papering over symptoms.
+- Add tests or browser verifiers that would have failed before the fix.
+- Keep user-facing docs, API docs, and examples in sync when public behavior
+  changes.
+- Run the strongest relevant checks before pushing.
+
+## Compatibility Notes
+
+Granite is designed for interoperability with Markdown vaults and Obsidian-style
+ecosystem conventions. It uses its own `.granite/` state folder while preserving
+existing `.obsidian/` content. It implements compatible file formats, plugin API
+concepts, theme/snippet conventions, and common linked-note workflows without
+requiring a proprietary database.
+
+## License
+
+See [LICENSE](LICENSE).

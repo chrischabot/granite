@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { t } from "../i18n";
 import {
   FileSystemCapabilityError,
   handleAdapter,
@@ -211,5 +212,29 @@ describe("handleAdapter", () => {
 
     expect(saved).toBe(payload);
     expect(elapsed).toBeLessThan(50);
+  });
+
+  it("reports localized access-denied reasons for empty-path writes", async () => {
+    const root = new MockDirectoryHandle("Vault") as unknown as FileSystemDirectoryHandle;
+    const adapter = handleAdapter(root, { systemTrash: null });
+
+    await expect(Effect.runPromise(adapter.writeText("" as never, "body"))).rejects.toMatchObject({
+      _tag: "FsAccessDenied",
+      path: "",
+      reason: t("fs.error.emptyPath"),
+    });
+  });
+
+  it("reports localized access-denied reasons for directory renames", async () => {
+    const root = new MockDirectoryHandle("Vault") as unknown as FileSystemDirectoryHandle;
+    const adapter = handleAdapter(root, { systemTrash: null });
+
+    await Effect.runPromise(adapter.mkdir("Folder"));
+
+    await expect(Effect.runPromise(adapter.rename("Folder", "Renamed"))).rejects.toMatchObject({
+      _tag: "FsAccessDenied",
+      path: "Folder",
+      reason: t("fs.error.directoryRenameUnsupported"),
+    });
   });
 });

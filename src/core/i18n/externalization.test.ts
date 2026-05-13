@@ -242,6 +242,8 @@ const FS_HANDLE_ADAPTER_FORBIDDEN_PATTERNS = [
   /File System Access API is not available in this browser/,
   /Read\/write permission not granted for this folder/,
   /Origin Private File System is not available in this browser/,
+  /reason: "Empty path"/,
+  /reason: "Directory rename not yet implemented"/,
 ];
 
 const FS_TRASH_FORBIDDEN_PATTERNS = [
@@ -1238,6 +1240,9 @@ describe("UI string externalization audit", () => {
       "vaultContext.error.permissionDenied",
     ]) {
       expect(vaultContextSource).toContain(requiredKey);
+    }
+    for (const requiredKey of ["fs.error.emptyPath", "fs.error.directoryRenameUnsupported"]) {
+      expect(handleAdapterSource).toContain(requiredKey);
     }
     for (const requiredKey of [
       "fs.trash.error.vaultPathUnavailable",

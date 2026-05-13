@@ -661,6 +661,8 @@ That's the tour — happy linking!
   "fileExplorer.trash.system": "system trash",
   "fileExplorer.trash.vault": "vault trash",
   "fileExplorer.trash.permanent": "permanent deletion",
+  "fs.error.emptyPath": "Empty path",
+  "fs.error.directoryRenameUnsupported": "Directory rename is not yet implemented",
   "fs.trash.error.vaultPathUnavailable": "Could not find an available vault trash path for {path}",
   "fs.trash.error.systemUnavailable":
     "System trash is not available from the browser File System Access adapter. Choose Vault trash or Permanent deletion.",
@@ -1572,6 +1574,8 @@ Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github
     "fileExplorer.trash.system": "אשפת המערכת",
     "fileExplorer.trash.vault": "אשפת הכספת",
     "fileExplorer.trash.permanent": "מחיקה לצמיתות",
+    "fs.error.emptyPath": "נתיב ריק",
+    "fs.error.directoryRenameUnsupported": "שינוי שם תיקייה עדיין אינו מיושם",
     "fs.trash.error.vaultPathUnavailable": "לא נמצא נתיב אשפת כספת זמין עבור {path}",
     "fs.trash.error.systemUnavailable":
       "אשפת המערכת אינה זמינה ממתאם File System Access בדפדפן. בחר באשפת הכספת או במחיקה לצמיתות.",

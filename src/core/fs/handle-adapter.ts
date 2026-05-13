@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { t } from "../i18n";
 import type { FileSystemImpl, FsUnsubscribe } from "./FileSystem";
 import { type NativeSystemTrashBridge, detectNativeSystemTrashBridge } from "./native-trash";
 import { basename, dirname, extension } from "./path";
@@ -133,6 +134,9 @@ async function* iterDir(
 }
 
 function adaptError(path: VaultPath, err: unknown): FsError {
+  if (err instanceof FsNotFound || err instanceof FsAccessDenied || err instanceof FsIoError) {
+    return err;
+  }
   if (err instanceof DOMException) {
     if (err.name === "NotFoundError") return new FsNotFound({ path });
     if (err.name === "NotAllowedError") {
@@ -235,7 +239,7 @@ export function handleAdapter(
    * closes the tab mid-save.
    */
   async function atomicWrite(path: VaultPath, payload: string | Uint8Array) {
-    if (!path) throw new FsAccessDenied({ path, reason: "Empty path" });
+    if (!path) throw new FsAccessDenied({ path, reason: t("fs.error.emptyPath") });
     const dir = dirname(path);
     const name = basename(path);
     const parent = await ensureDir(root, dir);
@@ -321,7 +325,7 @@ export function handleAdapter(
           // tracked in todo.md.
           throw new FsAccessDenied({
             path: from,
-            reason: "Directory rename not yet implemented",
+            reason: t("fs.error.directoryRenameUnsupported"),
           });
         }
         const file = await (fromResolved.handle as FileSystemFileHandle).getFile();

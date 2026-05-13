@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Filesystem adapter error externalization
+
+- **Root cause** — FSA adapter `FsAccessDenied.reason` values can surface in
+  UI error messages, but empty-path writes and directory renames still emitted
+  hard-coded English.
+- **i18n path** — routed both adapter reasons through `fs.error.emptyPath` and
+  `fs.error.directoryRenameUnsupported` with English and Hebrew translations.
+- **Error preservation** — fixed the adapter error mapper so internally raised
+  `FsAccessDenied` values are not wrapped as generic `FsIoError`.
+- **Regression ratchet** — extended `src/core/fs/handle-adapter.test.ts` and
+  `src/core/i18n/externalization.test.ts` to lock those adapter failures to
+  i18n keys.
+- **Tracker honesty** — recorded this as another string-externalization
+  improvement while leaving the full UI-wide externalization audit open.
+
+### Tests
+- `bun run test src/core/fs/handle-adapter.test.ts src/core/i18n/externalization.test.ts src/core/i18n/index.test.ts`
+- `bun run test`
+- `bun run build`
+- `git diff --check`
+
+---
+
 ## 2026-05-13 — Trash error externalization
 
 - **Root cause** — File Explorer delete errors can surface

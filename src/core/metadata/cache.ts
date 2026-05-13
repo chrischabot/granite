@@ -91,6 +91,29 @@ async function refreshOne(path: VaultPath): Promise<void> {
   }
 }
 
+async function refreshListedFile(file: VaultFile): Promise<void> {
+  if (extension(file.path) !== "md") return;
+  if (isExcluded(file.path, currentPatterns())) {
+    if (entries.delete(file.path)) emit();
+    return;
+  }
+  try {
+    const text = await run(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem;
+        return yield* fs.readText(file.path);
+      }),
+    );
+    entries.set(file.path, {
+      path: file.path,
+      mtimeMs: file.mtimeMs,
+      metadata: parseMetadata(text),
+    });
+  } catch {
+    /* ignore individual errors */
+  }
+}
+
 function bindWatcher() {
   if (vaultBound || unsubFs) return;
   vaultBound = true;
@@ -172,7 +195,7 @@ export const metadataCache = {
         chunks.push(eligible.slice(i, i + chunkSize));
       }
       for (const chunk of chunks) {
-        await Promise.all(chunk.map((f) => refreshOne(f.path)));
+        await Promise.all(chunk.map((f) => refreshListedFile(f)));
       }
       bindWatcher();
       emit();

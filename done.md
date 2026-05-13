@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Cold-start metadata indexing stat reduction
+
+- **Root cause** — bulk metadata indexing already receives `mtimeMs` and file
+  identity from `listAll()`, but then called the single-file refresh path and
+  re-statted every Markdown path before reading it.
+- **Indexing path** — added a listed-file refresh path that reads each Markdown
+  file once and stores metadata with the `listAll()` timestamp, preserving the
+  stat-based path for watcher and on-demand refreshes.
+- **Performance ratchet** — extended `src/core/metadata/cache.test.ts` with a
+  fake 1k-file filesystem proving cold-start indexing performs zero per-file
+  stat calls and indexes the expected switcher entries.
+- **Tracker honesty** — recorded this as a cold-start improvement while leaving
+  the 10k-note browser/profile budget open.
+
+### Tests
+- `bunx biome check --write src/core/metadata/cache.ts src/core/metadata/cache.test.ts`
+- `bun run test src/core/metadata/cache.test.ts`
+
+---
+
 ## 2026-05-13 — Graph pan transform budget ratchet
 
 - **Pan helper** — extracted graph viewport drag math and SVG transform

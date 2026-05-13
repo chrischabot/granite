@@ -447,6 +447,11 @@ body:not(.is-fullscreen) .status-bar {
 
 .status-bar-item.mod-clickable {
   cursor: var(--cursor);
+  outline: none;
+}
+
+.status-bar-item.mod-clickable:focus-visible {
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
 @media (hover: hover) {

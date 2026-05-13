@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 const uiRoot = join(root, "src/ui");
 const buttonsCss = readFileSync(join(root, "src/styles/buttons.css"), "utf8");
+const shellCss = readFileSync(join(root, "src/styles/shell.css"), "utf8");
+const treeItemCss = readFileSync(join(root, "src/styles/tree-item.css"), "utf8");
 
 function sourceFiles(dir: string): string[] {
   const out: string[] = [];
@@ -84,6 +86,21 @@ describe("icon-only accessibility audit", () => {
     expect(buttonsCss).toMatch(/\.clickable-icon:focus-visible\s*\{/);
     expect(buttonsCss).toMatch(
       /\.clickable-icon:focus-visible\s*\{[^}]*--background-modifier-border-focus/s,
+    );
+  });
+
+  it("keeps custom clickable rows visibly keyboard-focusable", () => {
+    expect(treeItemCss).toMatch(/\.tree-item-self\.is-clickable:focus-visible/);
+    expect(treeItemCss).toMatch(/\.tree-item-self\.mod-collapsible:focus-visible/);
+    expect(treeItemCss).toMatch(
+      /\.tree-item-self\.is-clickable:focus-visible,[^{]+\.tree-item-self\.mod-collapsible:focus-visible\s*\{[^}]*--background-modifier-border-focus/s,
+    );
+  });
+
+  it("keeps clickable status bar items visibly keyboard-focusable", () => {
+    expect(shellCss).toMatch(/\.status-bar-item\.mod-clickable:focus-visible\s*\{/);
+    expect(shellCss).toMatch(
+      /\.status-bar-item\.mod-clickable:focus-visible\s*\{[^}]*--background-modifier-border-focus/s,
     );
   });
 });

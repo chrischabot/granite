@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-05-13 — Custom row and status-bar focus-ring ratchets
+
+- **Root cause** — tree-item rows and clickable status-bar items are custom
+  keyboard controls, but `.tree-item-self` removed outlines and status-bar
+  clickables only had hover affordance, leaving visible keyboard focus
+  dependent on incidental browser behavior.
+- **Focus path** — added `:focus-visible` rings for clickable/collapsible
+  tree rows and clickable status-bar items using
+  `--background-modifier-border-focus`.
+- **Regression ratchet** — extended `src/core/a11y/icon-buttons.test.ts` to
+  read `tree-item.css` and `shell.css` and fail if those shared focus rings
+  disappear.
+- **Tracker honesty** — kept the full keyboard-only audit open because this
+  covers shared custom-control classes, not a browser traversal of every app
+  route.
+
+### Tests
+- `bun run test -- src/core/a11y/icon-buttons.test.ts`
+- `bun run audit:a11y`
+
+---
+
 ## 2026-05-13 — Localized Markdown autocomplete alias detail
 
 - **Root cause** — the Markdown wikilink autocomplete reused switcher alias

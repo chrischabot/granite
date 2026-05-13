@@ -53,6 +53,11 @@
   box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
+.tree-item-self.is-clickable:focus-visible,
+.tree-item-self.mod-collapsible:focus-visible {
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
 .tree-item-self.is-being-renamed {
   box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
   flex-grow: 1;

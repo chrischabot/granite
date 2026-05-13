@@ -152,5 +152,6 @@ describe("i18n", () => {
       "לא נמצאו תבניות. הגדירו תיקיית תבניות תחת הגדרות ← תבניות.",
     );
     expect(t("plugin.workspaces.loaded", { name: "Writing" })).toBe('הפריסה "Writing" נטענה');
+    expect(t("plugin.fileRecovery.noSnapshots")).toBe("אין עדיין צילומים לקובץ הזה.");
   });
 });

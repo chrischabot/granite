@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — File Recovery plugin i18n ratchet
+
+- **File Recovery labels** — routed command names/categories for viewing
+  recovery snapshots and taking an immediate snapshot through locale keys.
+- **Fallback flow copy** — routed no-active-note and no-snapshot notices,
+  restore picker prompt, overwrite confirmation, restore success notice, and
+  fallback restore error through i18n.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if File Recovery plugin command text returns as hard-coded English
+  literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, targeted File Recovery snapshot
+  behavior tests, full `bun run test`, `bun run build`, and `git diff --check`
+  pass.
+
+---
+
 ## 2026-05-13 — Templates/workspaces i18n ratchet
 
 - **Templates labels** — routed template insertion, current-date, and

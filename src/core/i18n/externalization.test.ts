@@ -723,6 +723,20 @@ const CORE_PLUGIN_TEMPLATE_WORKSPACE_FORBIDDEN_PATTERNS = [
   /Deleted layout/,
 ];
 
+const CORE_PLUGIN_FILE_RECOVERY_FORBIDDEN_PATTERNS = [
+  /category: "File recovery"/,
+  /name: "View recovery snapshots for current file"/,
+  /"Open a markdown note first\."/,
+  /"No snapshots yet for this file\."/,
+  /Restore which snapshot\?/,
+  /Enter number to view contents/,
+  /Restore this snapshot\? Current contents will be overwritten/,
+  /--- Preview ---/,
+  /"Snapshot restored\."/,
+  /"Restore failed"/,
+  /name: "Take a snapshot of the current file now"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1800,6 +1814,29 @@ describe("UI string externalization audit", () => {
       "plugin.workspaces.delete",
       "plugin.workspaces.prompt.delete",
       "plugin.workspaces.deleted",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps File Recovery plugin command fallback text routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/core/plugins-core/file-recovery.ts`, "utf8");
+    const violations = CORE_PLUGIN_FILE_RECOVERY_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+
+    for (const requiredKey of [
+      "plugin.fileRecovery.category",
+      "plugin.fileRecovery.view",
+      "plugin.fileRecovery.openMarkdownFirst",
+      "plugin.fileRecovery.noSnapshots",
+      "plugin.fileRecovery.prompt.restore",
+      "plugin.fileRecovery.confirm.restore",
+      "fileRecovery.notice.restored",
+      "plugin.fileRecovery.error.restore",
+      "plugin.fileRecovery.snapshotNow",
     ]) {
       expect(source).toContain(requiredKey);
     }

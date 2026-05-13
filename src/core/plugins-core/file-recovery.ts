@@ -1,4 +1,5 @@
 import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { workspaceStore } from "@core/workspace/store";
 import { type IDBPDatabase, openDB } from "idb";
@@ -170,14 +171,14 @@ export function registerFileRecoveryPlugin(openRecoveryUi?: (path: string) => vo
 
   register({
     id: "file-recovery:view",
-    category: "File recovery",
-    name: "View recovery snapshots for current file",
+    category: t("plugin.fileRecovery.category"),
+    name: t("plugin.fileRecovery.view"),
     callback: async () => {
       const state = workspaceStore.getState();
       const group = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
       const leaf = group?.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
       if (!leaf || leaf.state.type !== "markdown") {
-        noticeManager.show("Open a markdown note first.", { kind: "warning" });
+        noticeManager.show(t("plugin.fileRecovery.openMarkdownFirst"), { kind: "warning" });
         return;
       }
       if (openRecoveryUi) {
@@ -186,37 +187,45 @@ export function registerFileRecoveryPlugin(openRecoveryUi?: (path: string) => vo
       }
       const list = await listRecoverySnapshots(leaf.state.path);
       if (list.length === 0) {
-        noticeManager.show("No snapshots yet for this file.", { kind: "info" });
+        noticeManager.show(t("plugin.fileRecovery.noSnapshots"), { kind: "info" });
         return;
       }
       const labels = list
         .map(
-          (s, i) => `${i + 1}. ${new Date(s.mtimeMs).toLocaleString()} (${s.content.length} bytes)`,
+          (s, i) =>
+            `${i + 1}. ${new Date(s.mtimeMs).toLocaleString()} (${t("fileRecovery.bytes", {
+              bytes: String(s.content.length),
+            })})`,
         )
         .join("\n");
-      const pick = prompt(`Restore which snapshot?\n${labels}\n\nEnter number to view contents:`);
+      const pick = prompt(t("plugin.fileRecovery.prompt.restore", { labels }));
       const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
       const chosen = list[n];
       if (!chosen) return;
       const restoreOk = confirm(
-        `Restore this snapshot? Current contents will be overwritten.\n\n--- Preview ---\n${chosen.content.slice(0, 500)}${chosen.content.length > 500 ? "\n..." : ""}`,
+        t("plugin.fileRecovery.confirm.restore", {
+          preview: `${chosen.content.slice(0, 500)}${chosen.content.length > 500 ? "\n..." : ""}`,
+        }),
       );
       if (!restoreOk) return;
       try {
         await restoreRecoverySnapshot(chosen);
-        noticeManager.show("Snapshot restored.", { kind: "success" });
+        noticeManager.show(t("fileRecovery.notice.restored"), { kind: "success" });
       } catch (err) {
-        noticeManager.show(err instanceof Error ? err.message : "Restore failed", {
-          kind: "error",
-        });
+        noticeManager.show(
+          err instanceof Error ? err.message : t("plugin.fileRecovery.error.restore"),
+          {
+            kind: "error",
+          },
+        );
       }
     },
   });
 
   register({
     id: "file-recovery:snapshot-now",
-    category: "File recovery",
-    name: "Take a snapshot of the current file now",
+    category: t("plugin.fileRecovery.category"),
+    name: t("plugin.fileRecovery.snapshotNow"),
     callback: () => {
       lastSnapshotByPath.delete("__force__");
       // Force a snapshot regardless of the interval.

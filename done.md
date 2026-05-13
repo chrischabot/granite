@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Bases map browser verifier
+
+- **Root cause** — Bases map behavior had schema and projection unit coverage,
+  but the severe-test list still relied on manual browser checks for rendered
+  pins, empty-coordinate messaging, grouped map planes, and pin open behavior.
+- **Browser path** — added `verify:bases-map-browser`, which renders real
+  `.base` files through `BasesView` in an OPFS vault, verifies valid numeric
+  and numeric-string coordinates produce pins, rejects out-of-range rows,
+  checks grouped pin counts, and verifies an empty map explains missing
+  latitude/longitude coordinates.
+- **Open behavior** — the verifier dispatches exact pin clicks and proves a
+  normal pin click opens the note in the current workspace tab while Ctrl-click
+  opens the note in a new tab.
+
+### Tests
+- `bun run verify:bases-map-browser`
+- `node --check scripts/verify-bases-map-browser.mjs`
+- `bun run test -- src/core/bases/schema.test.ts src/ui/views/bases/BasesMapView.test.ts`
+- `bunx biome check src/ui/views/bases/BasesMapView.tsx src/ui/views/bases/BasesMapView.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — RTL browser verifier
 
 - **Root cause** — RTL behavior had unit coverage for locale direction and

@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Bases Map Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { metadataCache } from "@core/metadata/cache";
+      import { workspaceStore } from "@core/workspace/store";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+      import { BasesView } from "@/ui/views/BasesView";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "bases-map-browser";
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const bootingRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || bootingRef.current) return;
+          bootingRef.current = true;
+          void (async () => {
+            try {
+              if (!activeVault) await openOpfs(vaultName);
+              await run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  yield* fs.writeText(
+                    "Places.base",
+                    [
+                      "name: Places Map",
+                      'filter: ""',
+                      "columns:",
+                      "  - file.name",
+                      "  - latitude",
+                      "  - longitude",
+                      "  - region",
+                      "sort: file.name",
+                      "sortOrder: asc",
+                      "view: map",
+                      "mapLatitude: latitude",
+                      "mapLongitude: longitude",
+                      "groupBy: region",
+                      "",
+                    ].join("\n"),
+                  );
+                  yield* fs.writeText(
+                    "Empty.base",
+                    [
+                      "name: Empty Map",
+                      'filter: ""',
+                      "columns:",
+                      "  - file.name",
+                      "sort: file.name",
+                      "sortOrder: asc",
+                      "view: map",
+                      "mapLatitude: missingLat",
+                      "mapLongitude: missingLng",
+                      "",
+                    ].join("\n"),
+                  );
+                  yield* fs.writeText(
+                    "Places/London.md",
+                    "---\nlatitude: 51.5\nlongitude: \"-0.1\"\nregion: Europe\n---\n# London\n",
+                  );
+                  yield* fs.writeText(
+                    "Places/Paris.md",
+                    "---\nlatitude: 48.8566\nlongitude: 2.3522\nregion: Europe\n---\n# Paris\n",
+                  );
+                  yield* fs.writeText(
+                    "Places/Tokyo.md",
+                    "---\nlatitude: 35.6762\nlongitude: 139.6503\nregion: Asia\n---\n# Tokyo\n",
+                  );
+                  yield* fs.writeText(
+                    "Places/Invalid.md",
+                    "---\nlatitude: 120\nlongitude: 0\nregion: Invalid\n---\n# Invalid\n",
+                  );
+                }),
+              );
+              await metadataCache.indexVault();
+              workspaceStore.reset();
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        window.__graniteBasesMapBrowserReady = ready;
+        window.__graniteBasesMapBrowserError = error;
+        window.__graniteBasesMapBrowserWorkspace = () => {
+          const state = workspaceStore.getState();
+          const activeGroup = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
+          const activeLeaf = activeGroup?.activeLeafId ? state.leaves.get(activeGroup.activeLeafId) : null;
+          return {
+            activeGroupId: state.activeGroupId,
+            activeLeafId: activeGroup?.activeLeafId ?? null,
+            activeLeaf: activeLeaf ? { id: activeLeaf.id, state: activeLeaf.state } : null,
+            leafCount: state.leaves.size,
+            leaves: [...state.leaves.values()].map((leaf) => ({ id: leaf.id, state: leaf.state })),
+          };
+        };
+
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
+
+        return React.createElement(
+          "main",
+          {
+            style: {
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 24,
+              height: "100vh",
+              padding: 16,
+            },
+          },
+          React.createElement("section", { "aria-label": "Populated map" },
+            React.createElement(BasesView, { path: "Places.base" }),
+          ),
+          React.createElement("section", { "aria-label": "Empty map" },
+            React.createElement(BasesView, { path: "Empty.base" }),
+          ),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(ThemeProvider, null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

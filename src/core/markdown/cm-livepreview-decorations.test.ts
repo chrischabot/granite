@@ -172,6 +172,11 @@ describe("computeLivePreviewRanges", () => {
     expect(slices).toEqual(["![", "](image.png)"]);
   });
 
+  it("hides the caret in footnote references while leaving definitions source-like", () => {
+    const text = "See this.[^1]\n\n[^1]: **definition**";
+    expect(hiddenSlices(text, -1)).toEqual(["^", "**", "**"]);
+  });
+
   it("hides Obsidian comment delimiters", () => {
     const slices = hiddenSlices("keep %%private%% visible", -1);
     expect(slices).toEqual(["%%", "%%"]);

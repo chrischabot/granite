@@ -15,6 +15,7 @@ const HIGHLIGHT_RE = /==([^=\n]+)==/g;
 const STRIKE_RE = /~~([^~\n]+)~~/g;
 const WIKILINK_RE = /(!?)\[\[([^\]\n]+)\]\]/g;
 const MARKDOWN_LINK_RE = /(!?)\[([^\]\n]+)\]\(([^)\n]+)\)/g;
+const FOOTNOTE_REF_RE = /\[\^([^\]\n]+)\](?!:)/g;
 const COMMENT_RE = /%%([^%\n]+)%%/g;
 const INLINE_MATH_RE = /(?<!\$)\$([^$\n]+)\$(?!\$)/g;
 const CALLOUT_RE = /^(\s*>+\s*)\[!([^\]\n]+)\]([+-])?/;
@@ -505,6 +506,15 @@ export function computeLivePreviewRanges(
       const labelEnd = labelStart + label.length;
       addReplace(fullStart, labelStart);
       addReplace(labelEnd, fullEnd);
+    });
+
+    // Footnote references: [^id] renders as a [id] marker in preview. Keep
+    // definition lines (`[^id]: ...`) source-like until a full widget owns them.
+    forEachMatch(FOOTNOTE_REF_RE, line, (m) => {
+      const idx = m.index;
+      const len = m[0].length;
+      if (overlapsIgnoredInline(idx, idx + len) || isEscaped(line, idx)) return;
+      addReplace(idx + 1, idx + 2);
     });
 
     // Obsidian comments and inline math keep their content visible while

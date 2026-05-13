@@ -127,6 +127,23 @@
 
 ---
 
+## 2026-05-13 — Live Preview footnote reference ratchet
+
+- **Root cause** — Live Preview decoration coverage had no footnote-reference
+  case, leaving `[^id]` references fully source-like even though Reading view
+  renders the reference marker as `[id]`.
+- **Decoration path** — inactive footnote references now replace only the caret
+  in `[^id]`, yielding the conservative `[id]` preview shape while leaving
+  definition lines source-like until a full footnote widget owns them.
+- **Tracker honesty** — this is a marker-chrome ratchet, not full superscript
+  widget or browser verification coverage.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview frontmatter no-parse ratchet
 
 - **Root cause** — top-of-file YAML frontmatter was being scanned by the

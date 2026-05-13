@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Theme Contrast Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos">
+    <main style="padding: 24px">
+      <p>Granite contrast fixture</p>
+      <button type="button">Focusable control</button>
+    </main>
+    <script type="module">
+      import "../src/styles/index.css";
+
+      window.__graniteThemeContrastReady = true;
+      window.__graniteThemeContrastSet = (theme, highContrast) => {
+        document.body.classList.toggle("theme-light", theme === "light");
+        document.body.classList.toggle("theme-dark", theme === "dark");
+        document.body.classList.toggle("theme-high-contrast", Boolean(highContrast));
+      };
+      window.__graniteThemeContrastComputed = () => {
+        const styles = getComputedStyle(document.body);
+        return {
+          color: styles.color,
+          backgroundColor: styles.backgroundColor,
+          textNormal: styles.getPropertyValue("--text-normal").trim(),
+          backgroundPrimary: styles.getPropertyValue("--background-primary").trim(),
+          classes: [...document.body.classList],
+        };
+      };
+    </script>
+  </body>
+</html>

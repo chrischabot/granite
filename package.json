@@ -36,6 +36,7 @@
     "verify:rtl-browser": "node scripts/verify-rtl-browser.mjs",
     "verify:bases-map-browser": "node scripts/verify-bases-map-browser.mjs",
     "verify:a11y-announcements-browser": "node scripts/verify-a11y-announcements-browser.mjs",
+    "verify:theme-contrast-browser": "node scripts/verify-theme-contrast-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

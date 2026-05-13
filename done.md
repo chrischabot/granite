@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Theme contrast browser verifier
+
+- **Root cause** — body-text contrast had a source-level token test, but the
+  severe-test list still relied on manual browser inspection for real computed
+  `body` foreground/background colors in light, dark, and high-contrast modes.
+- **Browser path** — added `verify:theme-contrast-browser`, which serves the
+  real stylesheet bundle in Chromium, toggles `theme-light`, `theme-dark`, and
+  `theme-high-contrast` body classes, reads computed `color` and
+  `background-color`, and asserts each contrast ratio is at least 4.5:1.
+- **Measured coverage** — current browser ratios are 15.91:1 light, 11.93:1
+  dark, 21.00:1 light high-contrast, and 16.67:1 dark high-contrast.
+
+### Tests
+- `bun run verify:theme-contrast-browser`
+- `node --check scripts/verify-theme-contrast-browser.mjs`
+- `bun run test -- src/styles/contrast.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — A11y announcements browser verifier
 
 - **Root cause** — screen-reader announcements had unit and integration

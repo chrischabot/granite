@@ -6,7 +6,13 @@ import { Effect, Layer } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { activeThemePath, bindThemes, listThemes, setActiveTheme, unbindThemes } from "./loader";
 
-function makeThemeFs(files: Map<VaultPath, string>, writes: VaultPath[]): FileSystemImpl {
+type ThemeWatcher = Parameters<FileSystemImpl["watch"]>[0];
+
+function makeThemeFs(
+  files: Map<VaultPath, string>,
+  writes: VaultPath[],
+  watchers: ThemeWatcher[],
+): FileSystemImpl {
   return {
     rootName: "theme-vault",
     list: () => Effect.succeed([] as ReadonlyArray<VaultEntry>),
@@ -79,8 +85,12 @@ function makeThemeFs(files: Map<VaultPath, string>, writes: VaultPath[]): FileSy
         extension: extension(path),
       });
     },
-    watch: () => () => {
-      /* no-op */
+    watch: (listener) => {
+      watchers.push(listener);
+      return () => {
+        const index = watchers.indexOf(listener);
+        if (index >= 0) watchers.splice(index, 1);
+      };
     },
   };
 }
@@ -96,6 +106,7 @@ async function waitFor(predicate: () => boolean): Promise<void> {
 describe("theme loader", () => {
   let files: Map<VaultPath, string>;
   let writes: VaultPath[];
+  let watchers: ThemeWatcher[];
 
   beforeEach(async () => {
     await disposeRuntime();
@@ -112,8 +123,10 @@ describe("theme loader", () => {
       [".granite/snippets/not-a-theme.css", "body { color: red; }\n"],
     ]);
     writes = [];
+    watchers = [];
     setAppLayer(
-      () => Layer.succeed(FileSystem, makeThemeFs(files, writes)) as Layer.Layer<AppServices>,
+      () =>
+        Layer.succeed(FileSystem, makeThemeFs(files, writes, watchers)) as Layer.Layer<AppServices>,
     );
   });
 
@@ -147,5 +160,34 @@ describe("theme loader", () => {
     expect(style?.textContent).toContain("--background-primary");
     expect(writes).toEqual([".granite/active-theme.json"]);
     expect(files.get(".obsidian/themes/Minimal/theme.css")).toContain(".theme-light");
+  });
+
+  it("keeps the active community theme live when its CSS changes on disk", async () => {
+    document.body.classList.add("theme-light");
+    bindThemes("vault-1");
+    await waitFor(() => listThemes().length === 2);
+
+    await setActiveTheme(".obsidian/themes/Minimal/theme.css");
+    await waitFor(
+      () =>
+        getComputedStyle(document.body).getPropertyValue("--background-primary").trim() ===
+        "#ffffff",
+    );
+
+    files.set(
+      ".obsidian/themes/Minimal/theme.css",
+      ".theme-light { --background-primary: #123456; }\n.theme-dark { --background-primary: #654321; }\n",
+    );
+    watchers[0]?.({ type: "modify", path: ".obsidian/themes/Minimal/theme.css" });
+
+    await waitFor(() => {
+      const style = document.head.querySelector<HTMLStyleElement>(
+        'style[data-granite-theme=".obsidian/themes/Minimal/theme.css"]',
+      );
+      return style?.textContent?.includes("#123456") ?? false;
+    });
+    expect(getComputedStyle(document.body).getPropertyValue("--background-primary").trim()).toBe(
+      "#123456",
+    );
   });
 });

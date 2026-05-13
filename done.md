@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Community theme live-reload ratchet
+
+- **Root cause** — the compatibility tracker still needs real browser visual
+  verification for community themes, but the automated fixture only proved
+  discovery and initial injection, not that an active Obsidian-layout theme
+  continues to affect the rendered document after the CSS file changes.
+- **Regression ratchet** — extended `src/core/themes/loader.test.ts` with a
+  watcher-backed active-theme reload case that updates the mocked
+  `.obsidian/themes/<name>/theme.css`, waits for the injected stylesheet to
+  refresh, and verifies the CSS custom property visible to the document
+  changes.
+- **Tracker honesty** — left the browser visual cross-render item open because
+  this is DOM/CSSOM evidence, not pixel-level coverage of real community
+  themes.
+
+### Tests
+- `bun run test -- src/core/themes/loader.test.ts`
+
+---
+
 ## 2026-05-13 — Slow-startup diagnostic notice
 
 - **Root cause** — Settings → General → Advanced specified a default-on

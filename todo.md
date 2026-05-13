@@ -110,7 +110,7 @@
 - [x] Obsidian vault round-trip core fixture ← _shipped 2026-05-12 parser/canvas/base fixture_
 - [ ] Obsidian vault browser/manual round-trip over a large real vault fixture
 - [x] Community theme loader fixture ← _shipped 2026-05-12 Obsidian theme layout support_
-- [ ] Community theme browser visual cross-render
+- [ ] Community theme browser visual cross-render (DOM/CSSOM active-theme live-reload ratchet shipped; real browser visual cross-render remains)
 
 ---
 

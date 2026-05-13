@@ -3044,6 +3044,35 @@
 
 ---
 
+## 2026-05-13 — Community plugin browser verification
+
+- **Plugin discovery root cause** — the plugin loader no longer depends on
+  vault-wide `listAll()` scans to find `.granite/plugins`; those scans
+  intentionally hide `.granite`. It now enumerates `.granite/plugins`
+  directly, and the browser filesystem watcher keeps `.granite` app-data
+  changes observable while preserving `.granite` hiding for vault-wide scans.
+- **Install flow coverage** — added a Playwright-backed fixture with the real
+  Settings modal, Install Plugin modal, plugin loader, host registries, and
+  mocked credential-free registry/release fetches for Advanced Tables, Git,
+  and Calendar.
+- **Lifecycle/update coverage** — the verifier installs all three plugins into
+  an OPFS vault, checks persisted `manifest.json`, `main.js`, optional
+  `styles.css`, proves plugins are not enabled automatically, toggles each
+  plugin on/off, checks command/status/settings cleanup, and verifies Check for
+  updates uses persisted `manifestUrl` values.
+
+### Tests
+- Added `scripts/community-plugin-browser-fixture.html` and
+  `scripts/verify-community-plugin-browser.mjs`, exposed as
+  `bun run verify:community-plugin-browser`.
+- Extended `src/core/fs/handle-adapter.test.ts` to prove `.granite` stays
+  hidden from vault-wide `listAll()` while app-data changes still emit watch
+  events.
+- Validation: `bun run verify:community-plugin-browser`, targeted plugin/fs
+  tests, scoped Biome, and `bun run build` pass.
+
+---
+
 ## 2026-05-12 — Native host system-trash bridge
 
 - **Native trash bridge** — `handleAdapter()` now wires System trash mode to a

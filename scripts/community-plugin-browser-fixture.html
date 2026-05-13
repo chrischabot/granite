@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Community Plugin Browser Fixture</title>
+    <style>
+      body {
+        margin: 0;
+      }
+
+      #root {
+        height: 100vh;
+      }
+
+      .fixture-shell {
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .fixture-toolbar {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--background-modifier-border);
+        background: var(--background-secondary);
+      }
+    </style>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { commandRegistry } from "@core/commands/CommandRegistry";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { noticeManager } from "@core/notices/notice";
+      import { listSettingsTabs, listStatusBarItems } from "@core/plugins/host-registries";
+      import { listPlugins } from "@core/plugins/loader";
+      import { CommandsBootstrap } from "@/ui/commands/CommandsBootstrap";
+      import { NoticeContainer } from "@/ui/overlay/NoticeContainer";
+      import { InstallPluginModal } from "@/ui/prompts/InstallPluginModal";
+      import { SettingsModal } from "@/ui/prompts/SettingsModal";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || `community-plugin-${Date.now()}`;
+      const fetches = [];
+      const updateVersions = new Map();
+
+      const entries = [
+        {
+          id: "advanced-tables",
+          name: "Advanced Tables",
+          author: "TGrosinger",
+          description: "Format and navigate markdown tables.",
+          repo: "tgrosinger/advanced-tables-obsidian",
+        },
+        {
+          id: "obsidian-git",
+          name: "Git",
+          author: "Vinzent",
+          description: "Back up vault changes with Git.",
+          repo: "Vinzent03/obsidian-git",
+        },
+        {
+          id: "calendar",
+          name: "Calendar",
+          author: "Liam Cain",
+          description: "Calendar view for daily notes.",
+          repo: "liamcain/obsidian-calendar-plugin",
+        },
+      ];
+
+      const pluginByRepo = new Map(entries.map((entry) => [entry.repo, entry]));
+
+      function manifestFor(entry, version) {
+        return {
+          id: entry.id,
+          name: entry.name,
+          version,
+          description: entry.description,
+          author: entry.author,
+          main: "main.js",
+        };
+      }
+
+      function mainJsFor(entry) {
+        const commandId = `fixture:${entry.id}`;
+        const settingsName = `${entry.name} Options`;
+        return `
+          let removeCommand;
+          let removeSettings;
+          let status;
+          module.exports = {
+            async onLoad(api) {
+              removeCommand = api.commands.register({
+                id: ${JSON.stringify(commandId)},
+                name: ${JSON.stringify(`${entry.name} Fixture Command`)},
+                callback: () => api.notice.show(${JSON.stringify(`${entry.name} command ran`)})
+              });
+              status = api.statusBar.add({
+                text: ${JSON.stringify(entry.name)},
+                tooltip: ${JSON.stringify(`${entry.name} status`)}
+              });
+              removeSettings = api.addSettingsTab({
+                name: ${JSON.stringify(settingsName)},
+                render(container) {
+                  container.textContent = ${JSON.stringify(`${entry.name} settings panel`)};
+                }
+              });
+              api.events.on("layout-change", () => {});
+              await api.saveData({ loaded: true, id: ${JSON.stringify(entry.id)} });
+            },
+            onUnload() {
+              if (removeCommand) removeCommand();
+              if (removeSettings) removeSettings();
+              if (status) status.remove();
+            }
+          };
+        `;
+      }
+
+      function textResponse(text, status = 200) {
+        return new Response(text, {
+          status,
+          headers: { "content-type": "text/plain; charset=utf-8" },
+        });
+      }
+
+      window.fetch = async (input, init = {}) => {
+        const url = String(input);
+        fetches.push({ url, credentials: init?.credentials ?? null });
+        if (url.endsWith("/community-plugins.json")) {
+          return textResponse(JSON.stringify(entries));
+        }
+        const rawMatch = url.match(
+          /^https:\/\/raw\.githubusercontent\.com\/([^/]+\/[^/]+)\/master\/manifest\.json$/,
+        );
+        if (rawMatch) {
+          const entry = pluginByRepo.get(rawMatch[1]);
+          if (!entry) return textResponse("missing", 404);
+          return textResponse(JSON.stringify(manifestFor(entry, updateVersions.get(entry.id) || "1.0.0")));
+        }
+        const releaseMatch = url.match(
+          /^https:\/\/github\.com\/([^/]+\/[^/]+)\/releases\/download\/([^/]+)\/([^/?#]+)$/,
+        );
+        if (releaseMatch) {
+          const entry = pluginByRepo.get(releaseMatch[1]);
+          const version = decodeURIComponent(releaseMatch[2]);
+          const filename = releaseMatch[3];
+          if (!entry) return textResponse("missing", 404);
+          if (filename === "manifest.json") return textResponse(JSON.stringify(manifestFor(entry, version)));
+          if (filename === "main.js") return textResponse(mainJsFor(entry));
+          if (filename === "styles.css" && entry.id !== "calendar") {
+            return textResponse(`body { --fixture-${entry.id}: 1; }\n`);
+          }
+          return textResponse("missing", 404);
+        }
+        return textResponse(`Unexpected fetch: ${url}`, 500);
+      };
+
+      async function readVaultText(path) {
+        return await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            return yield* fs.readText(path);
+          }),
+        );
+      }
+
+      function snapshot() {
+        return {
+          plugins: listPlugins().map((plugin) => ({
+            id: plugin.manifest.id,
+            name: plugin.manifest.name,
+            version: plugin.manifest.version,
+            enabled: plugin.enabled,
+            manifestUrl: plugin.manifest.manifestUrl ?? null,
+          })),
+          commands: commandRegistry.list().map((command) => command.id),
+          statusItems: listStatusBarItems().map((item) => ({
+            pluginId: item.pluginId,
+            text: item.text,
+          })),
+          settingsTabs: listSettingsTabs().map((tab) => ({
+            pluginId: tab.pluginId,
+            name: tab.name,
+          })),
+          notices: noticeManager.list().map((notice) => ({
+            message: notice.message,
+            kind: notice.kind,
+          })),
+          fetches,
+        };
+      }
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const [settingsOpen, setSettingsOpen] = useState(true);
+        const [installPluginOpen, setInstallPluginOpen] = useState(false);
+        const bootingRef = useRef(false);
+
+        useEffect(() => {
+          if (bootingRef.current) return;
+          bootingRef.current = true;
+          void openOpfs(vaultName).catch((err) => {
+            setError(err instanceof Error ? err.message : String(err));
+          });
+        }, [openOpfs]);
+
+        useEffect(() => {
+          if (activeVault) setReady(true);
+        }, [activeVault]);
+
+        window.__graniteCommunityPluginReady = ready;
+        window.__graniteCommunityPluginError = error;
+        window.__graniteCommunityPluginSnapshot = snapshot;
+        window.__graniteCommunityPluginReadVaultText = readVaultText;
+        window.__graniteCommunityPluginSetUpdateVersion = (id, version) => {
+          updateVersions.set(id, version);
+        };
+
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        return React.createElement(
+          "div",
+          { className: "fixture-shell" },
+          React.createElement(
+            "div",
+            { className: "fixture-toolbar" },
+            React.createElement(
+              "button",
+              { type: "button", onClick: () => setSettingsOpen(true) },
+              "Open settings",
+            ),
+            React.createElement("span", null, ready ? "Community plugin fixture ready" : "Loading"),
+          ),
+          React.createElement(CommandsBootstrap, {
+            openPalette: () => {},
+            openSwitcher: () => {},
+            openVaultPicker: () => {},
+            openSettings: () => setSettingsOpen(true),
+            openHelp: () => {},
+            openInstallPlugin: () => setInstallPluginOpen(true),
+            openFileRecovery: () => {},
+          }),
+          React.createElement(SettingsModal, {
+            open: settingsOpen,
+            onClose: () => setSettingsOpen(false),
+          }),
+          React.createElement(InstallPluginModal, {
+            open: installPluginOpen,
+            onClose: () => setInstallPluginOpen(false),
+          }),
+          React.createElement(NoticeContainer),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

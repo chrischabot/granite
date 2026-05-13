@@ -242,4 +242,29 @@ describe("handleAdapter", () => {
       reason: t("fs.error.directoryRenameUnsupported"),
     });
   });
+
+  it("keeps .granite hidden from vault-wide listAll while still watching app-data changes", async () => {
+    const root = new MockDirectoryHandle("Vault") as unknown as FileSystemDirectoryHandle;
+    const adapter = handleAdapter(root, { pollIntervalMs: 5, systemTrash: null });
+    const events: Array<{ type: string; path: string }> = [];
+    await Effect.runPromise(adapter.writeText(".granite/plugins/demo/manifest.json", "{}"));
+
+    const listed = await Effect.runPromise(adapter.listAll({ extensions: ["json"] }));
+    expect(listed.map((entry) => entry.path)).not.toContain(".granite/plugins/demo/manifest.json");
+
+    const unsubscribe = adapter.watch((event) => {
+      if ("path" in event) events.push(event);
+    });
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await Effect.runPromise(adapter.writeText(".granite/plugins/demo/main.json", "{}"));
+      const deadline = Date.now() + 500;
+      while (!events.some((event) => event.path === ".granite/plugins/demo/main.json")) {
+        if (Date.now() > deadline) throw new Error("Timed out waiting for watch event");
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    } finally {
+      unsubscribe();
+    }
+  });
 });

@@ -149,6 +149,8 @@ function adaptError(path: VaultPath, err: unknown): FsError {
 export interface HandleAdapterOptions {
   /** Folders to skip during listAll (e.g. `.granite`, `node_modules`). */
   readonly skipDirs?: ReadonlyArray<string>;
+  /** Folders to skip while polling for watch events. Defaults keep hidden app data observable. */
+  readonly watchSkipDirs?: ReadonlyArray<string>;
   /** Polling interval for the watcher in ms. */
   readonly pollIntervalMs?: number;
   /**
@@ -159,6 +161,7 @@ export interface HandleAdapterOptions {
 }
 
 const DEFAULT_SKIP = [".granite", ".git", "node_modules"] as const;
+const DEFAULT_WATCH_SKIP = [".git", "node_modules"] as const;
 export const DEFAULT_WATCH_POLL_INTERVAL_MS = 200;
 
 export function handleAdapter(
@@ -166,6 +169,7 @@ export function handleAdapter(
   opts: HandleAdapterOptions = {},
 ): FileSystemImpl {
   const skipDirs = new Set([...DEFAULT_SKIP, ...(opts.skipDirs ?? [])]);
+  const watchSkipDirs = new Set([...DEFAULT_WATCH_SKIP, ...(opts.watchSkipDirs ?? [])]);
   const pollIntervalMs = opts.pollIntervalMs ?? DEFAULT_WATCH_POLL_INTERVAL_MS;
   const systemTrash = opts.systemTrash ?? detectNativeSystemTrashBridge();
 
@@ -384,7 +388,7 @@ export function handleAdapter(
         async function walk(handle: FileSystemDirectoryHandle, parentPath: VaultPath) {
           for await (const item of iterDir(handle, parentPath)) {
             if (item.entry.type === "directory") {
-              if (skipDirs.has(item.entry.name)) continue;
+              if (watchSkipDirs.has(item.entry.name)) continue;
               await walk(item.child as FileSystemDirectoryHandle, item.entry.path);
             } else {
               list.push(item.entry);

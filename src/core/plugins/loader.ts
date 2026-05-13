@@ -246,26 +246,20 @@ async function unloadPlugin(entry: PluginEntry): Promise<void> {
 async function refreshAll(): Promise<void> {
   if (!activeVaultId) return;
   const enabledSet = loadEnabledSet(activeVaultId);
-  let allFiles: ReadonlyArray<{ path: string }> = [];
+  let pluginIds: ReadonlyArray<string> = [];
   try {
-    allFiles = await run(
+    const pluginDirs = await run(
       Effect.gen(function* () {
         const fs = yield* FileSystem;
-        return yield* fs.listAll({ extensions: ["json"] });
+        return yield* fs.list(PLUGINS_DIR);
       }),
     );
+    pluginIds = pluginDirs.filter((entry) => entry.type === "directory").map((entry) => entry.name);
   } catch {
-    return;
+    pluginIds = [];
   }
-  const manifestPaths = allFiles
-    .filter((f) => f.path.startsWith(`${PLUGINS_DIR}/`) && f.path.endsWith("/manifest.json"))
-    .map((f) => f.path);
   const seen = new Set<string>();
-  for (const p of manifestPaths) {
-    const after = p.slice(PLUGINS_DIR.length + 1);
-    const slash = after.indexOf("/");
-    if (slash === -1) continue;
-    const id = after.slice(0, slash);
+  for (const id of pluginIds) {
     seen.add(id);
     const manifest = await readManifest(id);
     if (!manifest) continue;

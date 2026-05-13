@@ -1,7 +1,8 @@
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { t } from "@core/i18n";
 import { metadataCache } from "@core/metadata/cache";
-import { workspaceStore } from "@core/workspace/store";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
 
 function activeMarkdownPath(): string | null {
   const s = workspaceStore.getState();
@@ -23,8 +24,8 @@ export function registerRandomWalkPlugin(): () => void {
 
   register({
     id: "random-walk:next",
-    category: "Random walk",
-    name: "Walk to a random linked note",
+    category: t("plugin.randomWalk.category"),
+    name: t("plugin.randomWalk.next"),
     callback: () => {
       const current = activeMarkdownPath();
       const allEntries = metadataCache.getAllSwitcherEntries().filter((e) => e.alias === null);
@@ -32,9 +33,7 @@ export function registerRandomWalkPlugin(): () => void {
       if (current) {
         const meta = metadataCache.getMetadata(current);
         const candidates =
-          meta?.links.map((l) =>
-            l.target.endsWith(".md") ? l.target : `${l.target}.md`,
-          ) ?? [];
+          meta?.links.map((l) => (l.target.endsWith(".md") ? l.target : `${l.target}.md`)) ?? [];
         // Filter to those that actually exist in the vault.
         const known = new Set(allEntries.map((e) => e.path));
         const validCandidates = candidates.filter((c) => known.has(c) && c !== current);
@@ -43,18 +42,16 @@ export function registerRandomWalkPlugin(): () => void {
           workspaceStore.openFile(pick);
           return;
         }
-        noticeManager.show("No outgoing links — picking a random vault note instead.", {
+        noticeManager.show(t("plugin.randomWalk.noOutgoing"), {
           kind: "info",
           timeoutMs: 3000,
         });
       }
       // Fallback: random vault file (excluding the current).
-      const candidates = allEntries
-        .map((e) => e.path)
-        .filter((p) => p !== current);
+      const candidates = allEntries.map((e) => e.path).filter((p) => p !== current);
       const pick = randomChoice(candidates);
       if (pick) workspaceStore.openFile(pick);
-      else noticeManager.show("Vault is empty.", { kind: "warning" });
+      else noticeManager.show(t("plugin.randomWalk.empty"), { kind: "warning" });
     },
   });
 

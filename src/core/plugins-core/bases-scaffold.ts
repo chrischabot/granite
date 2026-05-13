@@ -1,7 +1,8 @@
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
 import { scaffoldBaseFile } from "@/ui/views/BasesView";
-import { workspaceStore } from "@core/workspace/store";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
 
 export function registerBasesScaffoldPlugin(): () => void {
   const registrations: Array<() => void> = [];
@@ -11,21 +12,20 @@ export function registerBasesScaffoldPlugin(): () => void {
 
   register({
     id: "bases:create",
-    category: "Bases",
-    name: "Create new base…",
+    category: t("plugin.bases.category"),
+    name: t("plugin.bases.create"),
     callback: async () => {
-      const name = prompt("New base name:", "Untitled.base");
+      const name = prompt(t("plugin.bases.prompt.name"), t("plugin.bases.defaultName"));
       if (!name) return;
       const filename = name.endsWith(".base") ? name : `${name}.base`;
       try {
         await scaffoldBaseFile(filename);
         workspaceStore.openBase({ path: filename });
-        noticeManager.show(`Created ${filename}`, { kind: "success" });
+        noticeManager.show(t("plugin.bases.notice.created", { filename }), { kind: "success" });
       } catch (err) {
-        noticeManager.show(
-          err instanceof Error ? err.message : "Could not create base",
-          { kind: "error" },
-        );
+        noticeManager.show(err instanceof Error ? err.message : t("plugin.bases.error.create"), {
+          kind: "error",
+        });
       }
     },
   });

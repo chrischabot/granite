@@ -96,5 +96,9 @@ describe("i18n", () => {
     expect(t("notice.dismiss")).toBe("סגירה");
     expect(t("command.openCommandPalette")).toBe("פתיחת פלטת הפקודות");
     expect(t("command.focusTab", { number: "3" })).toBe("מיקוד לשונית 3");
+    expect(t("plugin.bases.create")).toBe("יצירת בסיס חדש…");
+    expect(t("plugin.webViewer.error.invalidUrl")).toBe("זו אינה כתובת URL תקינה.");
+    expect(t("plugin.randomNote.empty")).toBe("אין עדיין הערות בכספת.");
+    expect(t("plugin.randomWalk.empty")).toBe("הכספת ריקה.");
   });
 });

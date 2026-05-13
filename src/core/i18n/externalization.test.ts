@@ -581,6 +581,26 @@ const COMMAND_BOOTSTRAP_FORBIDDEN_PATTERNS = [
   /name: "Create new canvas"/,
 ];
 
+const CORE_PLUGIN_SMALL_FORBIDDEN_PATTERNS = [
+  /category: "Bases"/,
+  /name: "Create new base…"/,
+  /prompt\("New base name:", "Untitled\.base"\)/,
+  /`Created \$\{filename\}`/,
+  /"Could not create base"/,
+  /category: "Web viewer"/,
+  /name: "Open web viewer…"/,
+  /prompt\("Open URL in a web viewer:", "https:\/\/"\)/,
+  /"That's not a valid URL\."/,
+  /category: "Random note"/,
+  /name: "Open random note"/,
+  /"Vault has no notes yet\."/,
+  /"Could not open random note"/,
+  /category: "Random walk"/,
+  /name: "Walk to a random linked note"/,
+  /"No outgoing links — picking a random vault note instead\."/,
+  /"Vault is empty\."/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1411,6 +1431,44 @@ describe("UI string externalization audit", () => {
     }
     expect(source).toContain("subscribeI18n");
     expect(source).toContain("getLocale");
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps small core plugin command labels, prompts, and notices routed through i18n keys", () => {
+    const sources = [
+      readFileSync(`${process.cwd()}/src/core/plugins-core/bases-scaffold.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/web-viewer.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/random-note.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/random-walk.ts`, "utf8"),
+    ];
+    const source = sources.join("\n");
+    const violations = CORE_PLUGIN_SMALL_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+
+    for (const requiredKey of [
+      "plugin.bases.category",
+      "plugin.bases.create",
+      "plugin.bases.prompt.name",
+      "plugin.bases.defaultName",
+      "plugin.bases.notice.created",
+      "plugin.bases.error.create",
+      "plugin.webViewer.category",
+      "plugin.webViewer.open",
+      "plugin.webViewer.prompt.url",
+      "plugin.webViewer.error.invalidUrl",
+      "plugin.randomNote.category",
+      "plugin.randomNote.open",
+      "plugin.randomNote.empty",
+      "plugin.randomNote.error.open",
+      "plugin.randomWalk.category",
+      "plugin.randomWalk.next",
+      "plugin.randomWalk.noOutgoing",
+      "plugin.randomWalk.empty",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
   });

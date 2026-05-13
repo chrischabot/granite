@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Small core plugin i18n ratchet
+
+- **Core plugin labels** — routed Bases scaffold, Web Viewer, Random Note, and
+  Random Walk command names/categories through locale keys.
+- **Prompts and notices** — routed their prompts, empty-state notices, success
+  messages, and fallback errors through i18n while leaving filenames and URLs as
+  user data.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if these small core plugin labels return as hard-coded English literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Built-in command i18n ratchet
 
 - **Command registrations** — routed built-in command palette names and

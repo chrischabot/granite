@@ -786,6 +786,7 @@ const CORE_PLUGIN_FILE_RECOVERY_FORBIDDEN_PATTERNS = [
 ];
 
 const PLUGIN_LOADER_FORBIDDEN_PATTERNS = [
+  /Plugin loader: no active vault when building plugin API/,
   /Plugin "\$\{entry\.manifest\.name\}": could not read/,
   /Plugin "\$\{entry\.manifest\.name\}" failed to load/,
 ];
@@ -1959,7 +1960,11 @@ describe("UI string externalization audit", () => {
     const source = readFileSync(`${process.cwd()}/src/core/plugins/loader.ts`, "utf8");
     const violations = PLUGIN_LOADER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(source));
 
-    for (const requiredKey of ["plugin.loader.error.readMain", "plugin.loader.error.load"]) {
+    for (const requiredKey of [
+      "plugin.loader.error.readMain",
+      "plugin.loader.error.load",
+      "plugin.loader.error.noActiveVault",
+    ]) {
       expect(source).toContain(requiredKey);
     }
 

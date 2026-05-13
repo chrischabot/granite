@@ -406,6 +406,8 @@ That's the tour — happy linking!
   "plugin.fileRecovery.snapshotNow": "Take a snapshot of the current file now",
   "plugin.loader.error.readMain": 'Plugin "{name}": could not read {main}',
   "plugin.loader.error.load": 'Plugin "{name}" failed to load: {message}',
+  "plugin.loader.error.noActiveVault":
+    "Plugin loader cannot build the plugin API without an active vault.",
   "plugin.communityRegistry.error.invalidJson": "Community plugin registry is not valid JSON",
   "plugin.communityRegistry.error.array": "Community plugin registry must be a JSON array",
   "plugin.communityRegistry.error.http": "HTTP {status} while fetching community plugin registry",
@@ -1314,6 +1316,7 @@ Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github
     "plugin.fileRecovery.snapshotNow": "צילום הקובץ הנוכחי עכשיו",
     "plugin.loader.error.readMain": 'התוסף "{name}": לא ניתן לקרוא את {main}',
     "plugin.loader.error.load": 'טעינת התוסף "{name}" נכשלה: {message}',
+    "plugin.loader.error.noActiveVault": "טוען התוספים לא יכול לבנות את API התוסף בלי כספת פעילה.",
     "plugin.communityRegistry.error.invalidJson": "רישום התוספים הקהילתיים אינו JSON תקין",
     "plugin.communityRegistry.error.array": "רישום התוספים הקהילתיים חייב להיות מערך JSON",
     "plugin.communityRegistry.error.http": "HTTP {status} בעת טעינת רישום התוספים הקהילתיים",

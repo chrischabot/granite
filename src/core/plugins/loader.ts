@@ -91,7 +91,7 @@ async function hydrateEnabledFromDisk(vaultId: string): Promise<void> {
 function makeApi(pluginId: string): PluginApi {
   const prefix = `[plugin:${pluginId}]`;
   if (!activeVaultInfo) {
-    throw new Error("Plugin loader: no active vault when building plugin API");
+    throw new Error(t("plugin.loader.error.noActiveVault"));
   }
   const vaultInfo = activeVaultInfo;
   return {

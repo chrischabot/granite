@@ -63,6 +63,9 @@ describe("i18n", () => {
     expect(t("quickSwitcher.placeholder")).toBe("חיפוש או יצירת הערה...");
     expect(t("commandPalette.pin")).toBe("נעיצת פקודה");
     expect(t("templatePicker.placeholder")).toBe("בחירת תבנית…");
+    expect(t("plugin.loader.error.noActiveVault")).toBe(
+      "טוען התוספים לא יכול לבנות את API התוסף בלי כספת פעילה.",
+    );
     expect(t("vaultPicker.title")).toBe("ניהול כספות");
     expect(t("vaultContext.reopenGrant", { name: "Work" })).toBe(
       'לפתוח מחדש את "Work"? לחצו כאן כדי לאשר גישה לתיקייה.',

@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-13 — Plugin loader invariant i18n ratchet
+
+- **Plugin loader invariant** — routed the no-active-vault plugin API failure
+  through a locale key before it can be embedded in the vault plugin-loader
+  notice.
+- **Regression audit** — extended the plugin-loader i18n audit so the raw
+  English invariant cannot return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted plugin-loader/i18n tests, full
+  `bun run test`, `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Filesystem capability error i18n ratchet
 
 - **Capability errors** — changed folder-pick, permission-denied, and OPFS

@@ -20,6 +20,7 @@ const CALLOUT_RE = /^(\s*>+\s*)\[!([^\]\n]+)\]([+-])?/;
 const HEADING_RE = /^(\s{0,3})(#{1,6})(\s+)/;
 const TASK_RE = /^(\s*(?:[-*+]|\d+[.)])\s+)\[[^\]\n]\](\s+)/;
 const BLOCK_ID_RE = /(^|\s)\^([A-Za-z0-9-]+)\s*$/;
+const HTML_BLOCK_OPEN_RE = /^\s*<([A-Za-z][A-Za-z0-9-]*)(?:\s[^<>]*)?>\s*$/;
 
 const replaceDeco = Decoration.replace({});
 
@@ -180,6 +181,7 @@ export function computeLivePreviewRanges(
   let fenceMarker = "";
   let inBlockComment = false;
   let inBlockMath = false;
+  let inHtmlBlockTag: string | null = null;
 
   for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
     const line = lines[lineIdx] ?? "";
@@ -201,6 +203,19 @@ export function computeLivePreviewRanges(
 
     // Skip lines inside fences AND the cursor's own line (raw view).
     if (inFence || lineIdx === cursorLineIndex) {
+      offset = lineStart + line.length + 1;
+      continue;
+    }
+
+    if (inHtmlBlockTag) {
+      if (line.includes(`</${inHtmlBlockTag}>`)) inHtmlBlockTag = null;
+      offset = lineStart + line.length + 1;
+      continue;
+    }
+
+    const htmlBlockOpen = line.match(HTML_BLOCK_OPEN_RE);
+    if (htmlBlockOpen?.[1]) {
+      inHtmlBlockTag = htmlBlockOpen[1];
       offset = lineStart + line.length + 1;
       continue;
     }

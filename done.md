@@ -127,6 +127,23 @@
 
 ---
 
+## 2026-05-13 — Live Preview multiline HTML no-parse ratchet
+
+- **Root cause** — the same HTML no-parse rule also applies across multiline
+  HTML blocks, but Live Preview still decorated Markdown markers between a
+  standalone `<div>` opener and matching closing tag.
+- **Decoration path** — added a scoped HTML-block state for standalone
+  opening tags. Lines inside the block stay raw, while angle-bracket autolinks
+  and same-line HTML continue through the existing inline handling.
+- **Tracker honesty** — kept the Live Preview TODO open because this is a
+  source-level ratchet, not the remaining browser/manual verification.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview HTML no-parse ratchet
 
 - **Root cause** — `07_markdown_syntax.md` says Markdown inside HTML

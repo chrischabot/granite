@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-05-13 — Workspace tablist keyboard navigation
+
+- **Keyboard gap** — workspace tabs exposed ARIA `tab`/`tablist` semantics but
+  did not support arrow-key tablist navigation.
+- **Tablist behavior** — added ArrowLeft/ArrowRight plus Home/End navigation
+  for horizontal tab groups, and ArrowUp/ArrowDown for stacked tab groups.
+- **Activation parity** — Space now activates focused tabs in addition to
+  Enter.
+- **Regression ratchet** — added `src/ui/workspace/TabStrip.test.tsx` for
+  horizontal and stacked keyboard navigation.
+- **Tracker honesty** — recorded this as a keyboard-only audit improvement
+  while leaving the full browser flow audit open.
+
+### Tests
+- `bunx biome check --write src/ui/workspace/TabStrip.tsx src/ui/workspace/Tab.tsx src/ui/workspace/TabStrip.test.tsx`
+- `bun run test src/ui/workspace/TabStrip.test.tsx src/core/a11y/icon-buttons.test.ts`
+- `bun run test`
+- `bun run build`
+- `git diff --check`
+
+---
+
 ## 2026-05-13 — Cold-start metadata indexing stat reduction
 
 - **Root cause** — bulk metadata indexing already receives `mtimeMs` and file

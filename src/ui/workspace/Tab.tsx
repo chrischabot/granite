@@ -116,7 +116,10 @@ export function Tab({ leaf, active }: TabProps) {
       }}
       onContextMenu={onContextMenu}
       onKeyDown={(e) => {
-        if (e.key === "Enter") workspaceStore.focusTab(leaf.id);
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          workspaceStore.focusTab(leaf.id);
+        }
       }}
       role="tab"
       aria-selected={active}

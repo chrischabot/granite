@@ -52,6 +52,37 @@ export function TabStrip({ leaves, activeLeafId, groupId, canCloseGroup, stacked
     setInsertBefore(undefined);
   };
 
+  const focusLeafAt = (index: number) => {
+    const leaf = leaves[index];
+    if (!leaf) return;
+    workspaceStore.focusTab(leaf.id);
+    requestAnimationFrame(() => {
+      innerRef.current?.querySelectorAll<HTMLElement>("[role='tab']")[index]?.focus();
+    });
+  };
+
+  const onTabListKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const target =
+      e.target instanceof HTMLElement ? e.target.closest<HTMLElement>("[role='tab']") : null;
+    const leafId = target?.getAttribute("data-leaf-id");
+    const index = leafId ? leaves.findIndex((leaf) => leaf.id === leafId) : -1;
+    if (index === -1 || leaves.length === 0) return;
+
+    const last = leaves.length - 1;
+    let nextIndex: number | null = null;
+    if (e.key === "Home") nextIndex = 0;
+    else if (e.key === "End") nextIndex = last;
+    else if (e.key === (stacked ? "ArrowDown" : "ArrowRight"))
+      nextIndex = (index + 1) % leaves.length;
+    else if (e.key === (stacked ? "ArrowUp" : "ArrowLeft")) {
+      nextIndex = (index - 1 + leaves.length) % leaves.length;
+    }
+
+    if (nextIndex === null) return;
+    e.preventDefault();
+    focusLeafAt(nextIndex);
+  };
+
   return (
     <div
       className="workspace-tab-header-container"
@@ -64,6 +95,7 @@ export function TabStrip({ leaves, activeLeafId, groupId, canCloseGroup, stacked
         className="workspace-tab-header-container-inner"
         role="tablist"
         aria-label={t("workspace.tab.list")}
+        onKeyDown={onTabListKeyDown}
       >
         {leaves.map((leaf) => (
           <div

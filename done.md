@@ -4,6 +4,31 @@
 
 ---
 
+## 2026-05-13 — External drag-and-drop browser verifier
+
+- **Root cause** — external drag/drop helpers had unit coverage, but the severe
+  tests still required manual browser passes for editor drops, modifier-based
+  host file links, missing host paths, File Explorer folder imports, root
+  imports, collision handling, and filename sanitization.
+- **Browser path** — added `verify:external-dnd-browser`, which opens a real
+  OPFS vault with `MarkdownView`, `FileExplorerView`, and `NoticeContainer`,
+  dispatches Chromium `DragEvent`s carrying real `File` objects, and verifies
+  every drop prevents default browser navigation.
+- **Coverage** — the verifier proves supported media drops into the editor are
+  imported through the attachment pipeline and embedded, Option/Alt host-path
+  drops insert `file:///` Markdown links without importing, missing host paths
+  show a warning, File Explorer folder drops import collision-free sanitized
+  names, and root drops import at the vault root.
+
+### Tests
+- `bun run verify:external-dnd-browser`
+- `node --check scripts/verify-external-dnd-browser.mjs`
+- `bun run test -- src/core/dnd/external-files.test.ts src/core/markdown/attach.test.ts`
+- `bunx biome check package.json scripts/external-dnd-browser-fixture.html scripts/verify-external-dnd-browser.mjs`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Community theme external reload browser coverage
 
 - **Root cause** — community-theme discovery, mounting, and live CSS refresh had

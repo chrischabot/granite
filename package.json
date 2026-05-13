@@ -45,6 +45,7 @@
     "verify:vim-mode-browser": "node scripts/verify-vim-mode-browser.mjs",
     "verify:multi-cursor-browser": "node scripts/verify-multi-cursor-browser.mjs",
     "verify:workspace-restart-browser": "node scripts/verify-workspace-restart-browser.mjs",
+    "verify:external-dnd-browser": "node scripts/verify-external-dnd-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

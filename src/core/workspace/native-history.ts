@@ -26,6 +26,10 @@ function buildUrlForLeaf(leaf: LeafState): string {
     case "webviewer":
       url.searchParams.set("web", leaf.url);
       break;
+    case "asset":
+      url.searchParams.set("asset", leaf.path);
+      url.searchParams.set("kind", leaf.kind);
+      break;
     case "canvas":
       url.searchParams.set("canvas", leaf.path ?? "");
       break;
@@ -63,6 +67,9 @@ function applyLeafState(leaf: LeafState): void {
       break;
     case "webviewer":
       workspaceStore.openWebviewer(leaf.url);
+      break;
+    case "asset":
+      workspaceStore.openAsset({ path: leaf.path, kind: leaf.kind });
       break;
     case "canvas":
       workspaceStore.openCanvas(leaf.path ? { path: leaf.path } : {});

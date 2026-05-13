@@ -35,6 +35,8 @@ export function displayLeafTitle(leaf: Leaf, t: Translate): string {
         return t("workspace.leaf.webViewer");
       }
     }
+    case "asset":
+      return s.path.split("/").pop() ?? t("workspace.leaf.asset");
     case "graph":
       return t("workspace.leaf.graph");
     case "canvas":

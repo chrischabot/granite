@@ -5,6 +5,7 @@ import { importExternalFileToVault } from "@core/dnd/external-files";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
+import { type NativeFileKind, nativeFileKindForExtension } from "@core/fs/file-formats";
 import {
   dirname,
   extension,
@@ -27,11 +28,19 @@ import {
   ChevronDown,
   ChevronRight,
   Clock,
+  Database,
+  File,
+  FileJson,
   FilePlus,
+  FileText,
+  FileType,
   FolderOpen,
   FolderPlus,
+  Image,
+  Music,
   Pencil,
   Trash2,
+  Video,
 } from "lucide-react";
 import {
   type KeyboardEvent,
@@ -137,7 +146,15 @@ export function FileExplorerView() {
     const group = activeGroupId ? groups.get(activeGroupId) : null;
     if (!group?.activeLeafId) return null;
     const leaf = leaves.get(group.activeLeafId);
-    return leaf?.state.type === "markdown" ? leaf.state.path : null;
+    if (
+      leaf?.state.type === "markdown" ||
+      leaf?.state.type === "canvas" ||
+      leaf?.state.type === "bases" ||
+      leaf?.state.type === "asset"
+    ) {
+      return leaf.state.path ?? null;
+    }
+    return null;
   })();
 
   const refresh = useCallback(async () => {
@@ -466,14 +483,7 @@ export function FileExplorerView() {
       setSelection(new Set([path]));
       lastClickedRef.current = path;
       if (mouse) {
-        const ext = extension(path);
-        if (ext === "md") {
-          workspaceStore.openFile(path);
-        } else if (ext === "canvas") {
-          workspaceStore.openCanvas({ path });
-        } else if (ext === "base") {
-          workspaceStore.openBase({ path });
-        }
+        workspaceStore.openPath(path);
       }
     },
     [flatFilePaths],
@@ -607,20 +617,14 @@ export function FileExplorerView() {
             id: "open",
             label: t("fileExplorer.menu.openCurrent"),
             callback: () => {
-              const ext = extension(path);
-              if (ext === "canvas") workspaceStore.openCanvas({ path });
-              else if (ext === "base") workspaceStore.openBase({ path });
-              else workspaceStore.openFile(path);
+              workspaceStore.openPath(path);
             },
           },
           {
             id: "open-new",
             label: t("fileExplorer.menu.openNew"),
             callback: () => {
-              const ext = extension(path);
-              if (ext === "canvas") workspaceStore.openCanvas({ path, newTab: true });
-              else if (ext === "base") workspaceStore.openBase({ path, newTab: true });
-              else workspaceStore.openFile(path, { newTab: true });
+              workspaceStore.openPath(path, { newTab: true });
             },
           },
           {
@@ -804,6 +808,7 @@ function TreeRow(props: RowProps) {
   const isDir = node.entry.type === "directory";
   const isCollapsed = isDir && collapsed.has(node.entry.path);
   const fileExt = node.entry.type === "file" ? (node.entry as VaultFile).extension : "";
+  const fileKind = !isDir ? nativeFileKindForExtension(fileExt) : null;
   const showExt = fileExt && fileExt !== "md";
   const isActive = !isDir && activePath === node.entry.path;
   const isSelected = !isDir && selection.has(node.entry.path);
@@ -833,8 +838,7 @@ function TreeRow(props: RowProps) {
       e.preventDefault();
       if (isDir) onToggle(node.entry.path);
       else if (fileExt === "md") workspaceStore.openFile(node.entry.path);
-      else if (fileExt === "canvas") workspaceStore.openCanvas({ path: node.entry.path });
-      else if (fileExt === "base") workspaceStore.openBase({ path: node.entry.path });
+      else workspaceStore.openPath(node.entry.path);
     } else if (e.key === "F2" && !isDir) {
       e.preventDefault();
       onStartRename(node.entry.path);
@@ -909,6 +913,7 @@ function TreeRow(props: RowProps) {
             {isCollapsed ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
           </span>
         )}
+        {!isDir && <span className="tree-item-icon">{fileIcon(fileKind)}</span>}
         <span className="tree-item-inner">
           {isRenaming ? (
             <input
@@ -966,4 +971,25 @@ function TreeRow(props: RowProps) {
       )}
     </>
   );
+}
+
+function fileIcon(kind: NativeFileKind | null) {
+  switch (kind) {
+    case "markdown":
+      return <FileText size={14} />;
+    case "canvas":
+      return <FileJson size={14} />;
+    case "base":
+      return <Database size={14} />;
+    case "image":
+      return <Image size={14} />;
+    case "audio":
+      return <Music size={14} />;
+    case "video":
+      return <Video size={14} />;
+    case "pdf":
+      return <FileType size={14} />;
+    default:
+      return <File size={14} />;
+  }
 }

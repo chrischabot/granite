@@ -1,3 +1,5 @@
+import { nativeFileKindForExtension, type NativeFileKind } from "@core/fs/file-formats";
+import { extension } from "@core/fs/path";
 import type { VaultPath } from "@core/fs/types";
 import { settingsStore } from "@core/settings/store";
 import { addRecent } from "./recents";
@@ -99,6 +101,27 @@ export const workspaceStore = {
     return () => {
       subscribers.delete(listener);
     };
+  },
+
+  openPath(path: VaultPath, opts: { newTab?: boolean; fragment?: string } = {}): LeafId {
+    const kind = nativeFileKindForExtension(extension(path));
+    const tabOpt = opts.newTab === undefined ? {} : { newTab: opts.newTab };
+    switch (kind) {
+      case "canvas":
+        return workspaceStore.openCanvas({ path, ...tabOpt });
+      case "base":
+        return workspaceStore.openBase({ path, ...tabOpt });
+      case "image":
+      case "audio":
+      case "video":
+      case "pdf":
+        return workspaceStore.openAsset({ path, kind, ...tabOpt });
+      default:
+        return workspaceStore.openFile(path, {
+          ...tabOpt,
+          ...(opts.fragment ? { fragment: opts.fragment } : {}),
+        });
+    }
   },
 
   openFile(
@@ -390,6 +413,51 @@ export const workspaceStore = {
           });
           return id;
         }
+      }
+    }
+
+    const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
+    const canReplace =
+      !opts.newTab &&
+      activeLeaf &&
+      (activeLeaf.state.type === "empty" ||
+        (activeLeaf.state.type === "markdown" && !activeLeaf.state.pinned));
+
+    if (canReplace && activeLeaf) {
+      const updated: Leaf = { id: activeLeaf.id, state: desired };
+      setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
+      return updated.id;
+    }
+
+    const id = newId("l");
+    const leaf: Leaf = { id, state: desired };
+    const leaves = new Map(state.leaves);
+    leaves.set(id, leaf);
+    const groups = new Map(state.groups);
+    groups.set(group.id, {
+      ...group,
+      leafIds: [...group.leafIds, id],
+      activeLeafId: id,
+    });
+    setState({ ...state, leaves, groups });
+    return id;
+  },
+
+  openAsset(opts: { newTab?: boolean; path: VaultPath; kind: NativeFileKind }): LeafId {
+    const groupId = state.activeGroupId;
+    if (!groupId) throw new Error("Workspace has no active group");
+    const group = state.groups.get(groupId);
+    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
+    const desired: LeafState = { type: "asset", path: opts.path, kind: opts.kind };
+
+    for (const id of group.leafIds) {
+      const leaf = state.leaves.get(id);
+      if (leaf?.state.type === "asset" && leaf.state.path === opts.path) {
+        setState({
+          ...state,
+          groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
+        });
+        return id;
       }
     }
 

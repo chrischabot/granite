@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-13 — Native asset file opening
+
+- **Root cause** — the storage spec marks images, audio, video, and PDFs as
+  native app-opened formats, but File Explorer only routed Markdown, Canvas,
+  and Bases into workspace leaves.
+- **Format oracle** — added `src/core/fs/file-formats.ts` as the shared
+  classifier/mime source for every accepted native extension in
+  `20_file_storage.md` §20.2, including `.3gp`.
+- **Workspace path** — added asset leaves and `AssetView` so File Explorer
+  opens images, audio, video, and PDF files in-app, with category icons and
+  shared routing through `workspaceStore.openPath()`.
+- **Embed parity** — switched Reading mode media embeds to the same classifier
+  so embedded and direct-open native formats stay in sync.
+- **Regression ratchet** — added format-classifier coverage and workspace
+  routing coverage for every native non-Markdown category.
+
+### Tests
+- `bun run test -- src/core/fs/file-formats.test.ts src/core/workspace/store.test.ts src/ui/views/ReadingView.test.tsx src/ui/views/file-explorer/sort.test.ts src/core/i18n/index.test.ts`
+
+---
+
 ## 2026-05-13 — Settings About section and shared app version
 
 - **Root cause** — `16_settings_reference.md` lists About as a built-in Options

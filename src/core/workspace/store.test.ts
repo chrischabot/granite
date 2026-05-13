@@ -185,6 +185,28 @@ describe("workspaceStore.openGraph + openCanvas + openBase", () => {
     const ids = activeGroupLeaves();
     expect(workspaceStore.getState().leaves.get(ids[0]!)!.state.type).toBe("bases");
   });
+
+  it("openPath routes every native non-Markdown format to the correct leaf type", () => {
+    const cases = [
+      ["Board.canvas", "canvas", undefined],
+      ["Books.base", "bases", undefined],
+      ["Image.avif", "asset", "image"],
+      ["Photo.jpeg", "asset", "image"],
+      ["Scan.pdf", "asset", "pdf"],
+      ["Song.mp3", "asset", "audio"],
+      ["Voice.3gp", "asset", "audio"],
+      ["Movie.webm", "asset", "video"],
+      ["Clip.mkv", "asset", "video"],
+    ] as const;
+
+    for (const [path, type, kind] of cases) {
+      workspaceStore.reset();
+      workspaceStore.openPath(path as VaultPath);
+      const leaf = workspaceStore.getState().leaves.get(activeGroupLeaves()[0]!)!;
+      expect(leaf.state.type, path).toBe(type);
+      if (leaf.state.type === "asset") expect(leaf.state.kind).toBe(kind);
+    }
+  });
 });
 
 describe("workspaceStore.hydrate", () => {

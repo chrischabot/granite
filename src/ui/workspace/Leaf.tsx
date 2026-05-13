@@ -18,6 +18,7 @@ import { GraphView } from "../views/GraphView";
 import { MarkdownView } from "../views/MarkdownView";
 import { ReadingView } from "../views/ReadingView";
 import { WebViewerView } from "../views/WebViewerView";
+import { AssetView } from "../views/AssetView";
 import { SidebarLeafView } from "../views/sidebar/SidebarLeafView";
 import { displayLeafTitle } from "./leaf-title";
 
@@ -98,6 +99,8 @@ function ViewBody({ leaf }: { leaf: Leaf }) {
       );
     case "webviewer":
       return <WebViewerView url={s.url} />;
+    case "asset":
+      return <AssetView path={s.path} kind={s.kind} />;
     case "graph":
       return <GraphView />;
     case "canvas":

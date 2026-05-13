@@ -4,6 +4,7 @@ import { parseCanvas } from "@core/canvas/schema";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
+import { mimeForNativeExtension, nativeFileKindForExtension } from "@core/fs/file-formats";
 import { extension, stem } from "@core/fs/path";
 import type { VaultFile, VaultPath } from "@core/fs/types";
 import { noteDirectionFromFrontmatter } from "@core/i18n/direction";
@@ -25,57 +26,6 @@ import { CanvasView } from "./CanvasView";
 
 export interface ReadingViewProps {
   path: VaultPath;
-}
-
-const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "avif"]);
-const AUDIO_EXTS = new Set(["mp3", "wav", "ogg", "m4a", "opus", "flac"]);
-const VIDEO_EXTS = new Set(["mp4", "mov", "webm", "ogv", "mkv"]);
-const PDF_EXTS = new Set(["pdf"]);
-
-function mimeForExtension(ext: string): string {
-  switch (ext) {
-    case "png":
-      return "image/png";
-    case "jpg":
-    case "jpeg":
-      return "image/jpeg";
-    case "gif":
-      return "image/gif";
-    case "webp":
-      return "image/webp";
-    case "svg":
-      return "image/svg+xml";
-    case "avif":
-      return "image/avif";
-    case "bmp":
-      return "image/bmp";
-    case "mp3":
-      return "audio/mpeg";
-    case "wav":
-      return "audio/wav";
-    case "ogg":
-      return "audio/ogg";
-    case "m4a":
-      return "audio/mp4";
-    case "opus":
-      return "audio/opus";
-    case "flac":
-      return "audio/flac";
-    case "mp4":
-      return "video/mp4";
-    case "mov":
-      return "video/quicktime";
-    case "webm":
-      return "video/webm";
-    case "ogv":
-      return "video/ogg";
-    case "mkv":
-      return "video/x-matroska";
-    case "pdf":
-      return "application/pdf";
-    default:
-      return "application/octet-stream";
-  }
 }
 
 export function ReadingView({ path }: ReadingViewProps) {
@@ -252,11 +202,8 @@ export function ReadingView({ path }: ReadingViewProps) {
       const href = el.getAttribute("data-href") ?? "";
       const cleanPath = href.replace(/#.*$/, "");
       const ext = extension(cleanPath);
-      const isImage = IMAGE_EXTS.has(ext);
-      const isAudio = AUDIO_EXTS.has(ext);
-      const isVideo = VIDEO_EXTS.has(ext);
-      const isPdf = PDF_EXTS.has(ext);
-      if (!isImage && !isAudio && !isVideo && !isPdf) return;
+      const kind = nativeFileKindForExtension(ext);
+      if (kind !== "image" && kind !== "audio" && kind !== "video" && kind !== "pdf") return;
       try {
         const bytes = await run(
           Effect.gen(function* () {
@@ -265,26 +212,26 @@ export function ReadingView({ path }: ReadingViewProps) {
           }),
         );
         if (cancelled) return;
-        const mimeType = mimeForExtension(ext);
+        const mimeType = mimeForNativeExtension(ext);
         const blob = new Blob([bytes as BlobPart], { type: mimeType });
         const url = URL.createObjectURL(blob);
         blobUrlsRef.current.push(url);
 
         const display = el.getAttribute("data-display") ?? cleanPath;
         let replacement: HTMLElement;
-        if (isImage) {
+        if (kind === "image") {
           const img = document.createElement("img");
           img.src = url;
           img.alt = display;
           img.style.maxWidth = "100%";
           replacement = img;
-        } else if (isAudio) {
+        } else if (kind === "audio") {
           const audio = document.createElement("audio");
           audio.src = url;
           audio.controls = true;
           audio.style.width = "100%";
           replacement = audio;
-        } else if (isVideo) {
+        } else if (kind === "video") {
           const video = document.createElement("video");
           video.src = url;
           video.controls = true;
@@ -469,6 +416,8 @@ export function ReadingView({ path }: ReadingViewProps) {
       const ext = extension(cleanPath);
       // Anything with a media/PDF/canvas/base ext was already handled by an
       // earlier effect (or is intentionally not recursed into).
+      const kind = nativeFileKindForExtension(ext);
+      if (kind && kind !== "markdown") return;
       if (ext && ext !== "md") return;
       const targetPath = cleanPath.endsWith(".md") ? cleanPath : `${cleanPath}.md`;
       const cycleKey = `${targetPath}#${fragmentText ?? ""}`;

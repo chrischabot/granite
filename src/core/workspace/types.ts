@@ -1,4 +1,5 @@
 import type { VaultPath } from "@core/fs/types";
+import type { NativeFileKind } from "@core/fs/file-formats";
 
 export type LeafId = string;
 export type TabGroupId = string;
@@ -25,6 +26,7 @@ export type LeafState =
     }
   | { readonly type: "settings" }
   | { readonly type: "webviewer"; readonly url: string }
+  | { readonly type: "asset"; readonly path: VaultPath; readonly kind: NativeFileKind }
   | { readonly type: "graph" }
   | { readonly type: "canvas"; readonly path?: string }
   | { readonly type: "bases"; readonly path?: string }
@@ -76,6 +78,8 @@ export function leafTitle(leaf: Leaf): string {
         return "Web viewer";
       }
     }
+    case "asset":
+      return s.path.split("/").pop() ?? "Asset";
     case "graph":
       return "Graph view";
     case "canvas":

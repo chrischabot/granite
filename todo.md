@@ -8,6 +8,7 @@
 ## Outstanding by acceptance-criteria section
 
 ### §24.1 Vault & files
+- [x] Accepted native file formats open in appropriate app views ← _shipped 2026-05-13 native asset leaves_
 - [x] Configurable trash setting (system trash / vault `.trash/` / permanent) ← _shipped 2026-05-12 native host trash bridge_
 - [x] External-edit-detected ≤ 500 ms perf assertion ← _shipped 2026-05-12 external edit sync_
 - [x] Multi-window simultaneous vaults ← _shipped 2026-05-12 vault window bootstrap_

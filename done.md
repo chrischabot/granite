@@ -4,6 +4,30 @@
 
 ---
 
+## 2026-05-13 — Locale-aware date token formatting
+
+- **Root cause** — Daily Notes and Templates supported `MMMM`/`MMM`/`dddd`/`ddd`
+  style tokens with hard-coded English month and weekday names, so generated
+  filenames and inserted template text ignored the active locale.
+- **Shared formatter** — added `src/core/i18n/date-format.ts` to keep numeric
+  Moment-style tokens intact while resolving month and weekday names through
+  `Intl.DateTimeFormat(getLocale())`.
+- **Plugin wiring** — routed Daily Notes filenames and Template `{{date}}` /
+  `{{time}}` expansions through the shared formatter.
+- **Regression ratchet** — added locale-aware formatter tests and extended the
+  source externalization audit so English month/day arrays cannot creep back
+  into those plugin paths.
+- **Tracker honesty** — recorded this as another i18n improvement while leaving
+  the full UI-wide externalization audit open.
+
+### Tests
+- `bun run test src/core/i18n/date-format.test.ts src/core/i18n/externalization.test.ts src/core/i18n/index.test.ts`
+- `bun run test`
+- `bun run build`
+- `git diff --check`
+
+---
+
 ## 2026-05-13 — Filesystem adapter error externalization
 
 - **Root cause** — FSA adapter `FsAccessDenied.reason` values can surface in

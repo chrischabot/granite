@@ -3,6 +3,7 @@ import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { join, normalize } from "@core/fs/path";
 import { t } from "@core/i18n";
+import { formatMomentDate } from "@core/i18n/date-format";
 import { workspaceStore } from "@core/workspace/store";
 import { Effect } from "effect";
 
@@ -28,80 +29,11 @@ function loadSettings(): DailyNotesSettings {
   }
 }
 
-const PAD2 = (n: number) => n.toString().padStart(2, "0");
-
-/** Tiny Moment-format implementation supporting YYYY MM DD HH mm SS dddd ddd. */
-function formatDate(d: Date, fmt: string): string {
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const fullDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const months = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  const fullMonths = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December",
-  ];
-
-  return fmt.replace(/YYYY|YY|MMMM|MMM|MM|DD|dddd|ddd|HH|mm|ss|D|M/g, (token) => {
-    switch (token) {
-      case "YYYY":
-        return d.getFullYear().toString();
-      case "YY":
-        return d.getFullYear().toString().slice(-2);
-      case "MMMM":
-        return fullMonths[d.getMonth()] ?? "";
-      case "MMM":
-        return months[d.getMonth()] ?? "";
-      case "MM":
-        return PAD2(d.getMonth() + 1);
-      case "M":
-        return (d.getMonth() + 1).toString();
-      case "DD":
-        return PAD2(d.getDate());
-      case "D":
-        return d.getDate().toString();
-      case "dddd":
-        return fullDays[d.getDay()] ?? "";
-      case "ddd":
-        return days[d.getDay()] ?? "";
-      case "HH":
-        return PAD2(d.getHours());
-      case "mm":
-        return PAD2(d.getMinutes());
-      case "ss":
-        return PAD2(d.getSeconds());
-      default:
-        return token;
-    }
-  });
-}
-
 async function openDailyNote(offsetDays: number): Promise<void> {
   const { format, folder } = loadSettings();
   const date = new Date();
   date.setDate(date.getDate() + offsetDays);
-  const filename = `${formatDate(date, format)}.md`;
+  const filename = `${formatMomentDate(date, format)}.md`;
   const fullPath = folder ? join(normalize(folder), filename) : filename;
 
   await run(

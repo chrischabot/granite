@@ -4,6 +4,7 @@ import { FileSystem } from "@core/fs/FileSystem";
 import { extension, normalize, stem } from "@core/fs/path";
 import type { VaultFile } from "@core/fs/types";
 import { t } from "@core/i18n";
+import { formatMomentDate } from "@core/i18n/date-format";
 import { noticeManager } from "@core/notices/notice";
 import { workspaceStore } from "@core/workspace/store";
 import { Effect } from "effect";
@@ -40,68 +41,16 @@ export function setTemplatesSettings(s: TemplatesSettings): void {
   }
 }
 
-const PAD2 = (n: number) => n.toString().padStart(2, "0");
-
-function formatDate(d: Date, fmt: string): string {
-  return fmt.replace(/YYYY|YY|MMMM|MMM|MM|DD|HH|mm|ss|D|M/g, (token) => {
-    switch (token) {
-      case "YYYY":
-        return d.getFullYear().toString();
-      case "YY":
-        return d.getFullYear().toString().slice(-2);
-      case "MM":
-        return PAD2(d.getMonth() + 1);
-      case "M":
-        return (d.getMonth() + 1).toString();
-      case "DD":
-        return PAD2(d.getDate());
-      case "D":
-        return d.getDate().toString();
-      case "HH":
-        return PAD2(d.getHours());
-      case "mm":
-        return PAD2(d.getMinutes());
-      case "ss":
-        return PAD2(d.getSeconds());
-      case "MMMM":
-        return (
-          [
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-          ][d.getMonth()] ?? ""
-        );
-      case "MMM":
-        return (
-          ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][
-            d.getMonth()
-          ] ?? ""
-        );
-      default:
-        return token;
-    }
-  });
-}
-
 function expandTokens(template: string, ctx: { title: string }): string {
   const settings = getTemplatesSettings();
   const now = new Date();
   return template
     .replace(/\{\{title\}\}/g, ctx.title)
     .replace(/\{\{date(?::([^}]+))?\}\}/g, (_, fmt: string | undefined) =>
-      formatDate(now, fmt ?? settings.dateFormat),
+      formatMomentDate(now, fmt ?? settings.dateFormat),
     )
     .replace(/\{\{time(?::([^}]+))?\}\}/g, (_, fmt: string | undefined) =>
-      formatDate(now, fmt ?? settings.timeFormat),
+      formatMomentDate(now, fmt ?? settings.timeFormat),
     );
 }
 
@@ -184,7 +133,7 @@ export function registerTemplatesPlugin(): () => void {
     name: t("plugin.templates.insertDate"),
     callback: () => {
       const settings = getTemplatesSettings();
-      const txt = formatDate(new Date(), settings.dateFormat);
+      const txt = formatMomentDate(new Date(), settings.dateFormat);
       const state = workspaceStore.getState();
       const group = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
       const leaf = group?.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
@@ -204,7 +153,7 @@ export function registerTemplatesPlugin(): () => void {
     name: t("plugin.templates.insertTime"),
     callback: () => {
       const settings = getTemplatesSettings();
-      const txt = formatDate(new Date(), settings.timeFormat);
+      const txt = formatMomentDate(new Date(), settings.timeFormat);
       const state = workspaceStore.getState();
       const group = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
       const leaf = group?.activeLeafId ? state.leaves.get(group.activeLeafId) : null;

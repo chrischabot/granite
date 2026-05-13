@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite File Recovery Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import {
+        clearRecoverySnapshots,
+        listRecoverySnapshots,
+        saveRecoverySnapshotForTests,
+      } from "@core/plugins-core/file-recovery";
+      import { FileRecoveryModal } from "@/ui/prompts/FileRecoveryModal";
+      import { NoticeContainer } from "@/ui/overlay/NoticeContainer";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "file-recovery-browser";
+      const NOTE_PATH = "Note.md";
+      const CURRENT = "# Note\n\ncurrent line\nkeep line\n";
+      const OLDER = "# Note\n\nolder line\nkeep line\n";
+      const NEWER = "# Note\n\nrestored line\nkeep line\nextra recovered line\n";
+
+      let copiedText = "";
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: {
+          writeText: async (text) => {
+            copiedText = text;
+          },
+        },
+      });
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [path, setPath] = useState(null);
+        const [error, setError] = useState(null);
+        const bootingRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || bootingRef.current) return;
+          bootingRef.current = true;
+          void (async () => {
+            try {
+              if (!activeVault) await openOpfs(vaultName);
+              await clearRecoverySnapshots();
+              await run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  yield* fs.writeText(NOTE_PATH, CURRENT);
+                }),
+              );
+              await saveRecoverySnapshotForTests({
+                path: NOTE_PATH,
+                mtimeMs: Date.UTC(2026, 4, 13, 8, 30),
+                content: OLDER,
+              });
+              await saveRecoverySnapshotForTests({
+                path: NOTE_PATH,
+                mtimeMs: Date.UTC(2026, 4, 13, 9, 30),
+                content: NEWER,
+              });
+              setPath(NOTE_PATH);
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        window.__graniteFileRecoveryBrowserReady = ready;
+        window.__graniteFileRecoveryBrowserError = error;
+        window.__graniteFileRecoveryBrowserReadNote = () =>
+          run(
+            Effect.gen(function* () {
+              const fs = yield* FileSystem;
+              return yield* fs.readText(NOTE_PATH);
+            }),
+          );
+        window.__graniteFileRecoveryBrowserSnapshotCount = async () =>
+          (await listRecoverySnapshots(NOTE_PATH)).length;
+        window.__graniteFileRecoveryBrowserCopiedText = () => copiedText;
+        window.__graniteFileRecoveryBrowserReopen = () => setPath(NOTE_PATH);
+
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(NoticeContainer),
+          React.createElement(FileRecoveryModal, { path, onClose: () => setPath(null) }),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(ThemeProvider, null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

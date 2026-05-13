@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-05-13 — File recovery browser verifier
+
+- **Root cause** — file-recovery restore behavior had IndexedDB/filesystem
+  unit coverage, but the severe-test list still relied on manual browser checks
+  for the modal UI, diff preview, copy, restore, and clear flows.
+- **Browser path** — added `verify:file-recovery-browser`, which opens an OPFS
+  vault, seeds real recovery snapshots, renders `FileRecoveryModal`, verifies
+  the current filename, snapshot list, newest-first active selection, and
+  line-level diff against current file content.
+- **Recovery actions** — the verifier toggles to raw snapshot preview, copies
+  the selected snapshot through a clipboard stub, restores it to disk through
+  the active `FileSystem`, reopens the modal, clears snapshots after accepting
+  confirmation, and verifies IndexedDB is empty.
+
+### Tests
+- `bun run verify:file-recovery-browser`
+- `node --check scripts/verify-file-recovery-browser.mjs`
+- `bun run test -- src/core/plugins-core/file-recovery.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Theme contrast browser verifier
 
 - **Root cause** — body-text contrast had a source-level token test, but the

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Fold Persistence Browser Fixture</title>
+    <style>
+      body {
+        margin: 0;
+      }
+
+      #root {
+        height: 100vh;
+      }
+
+      .fixture-shell {
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .fixture-status {
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--background-modifier-border);
+        background: var(--background-secondary);
+        color: var(--text-muted);
+        font: 12px var(--font-interface);
+      }
+    </style>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { flushWorkspacePersistence } from "@core/workspace/persist";
+      import { workspaceStore } from "@core/workspace/store";
+      import { MarkdownView } from "@/ui/views/MarkdownView";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "fold-persistence-browser";
+      const notePath = "Folded.md";
+      const noteText = [
+        "# Fold me",
+        "",
+        "folded body line one",
+        "folded body line two",
+        "",
+        "# Keep visible",
+        "",
+        "visible body line",
+      ].join("\n");
+
+      async function seedVault() {
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            yield* fs.writeText(notePath, noteText);
+          }),
+        );
+      }
+
+      function activeMarkdownLeaf(state) {
+        const group = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
+        const leaf = group?.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
+        return leaf?.state?.type === "markdown" ? leaf : null;
+      }
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const workspace = useSyncExternalStore(
+          workspaceStore.subscribe,
+          workspaceStore.getState,
+          workspaceStore.getServerSnapshot,
+        );
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const openingRef = useRef(false);
+        const seededRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || openingRef.current) return;
+          openingRef.current = true;
+          void (async () => {
+            try {
+              if (activeVault?.entry.name !== vaultName) await openOpfs(vaultName);
+              if (!seededRef.current) {
+                seededRef.current = true;
+                await seedVault();
+              }
+              workspaceStore.openFile(notePath, { mode: "source" });
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        const leaf = activeMarkdownLeaf(workspace);
+
+        window.__graniteFoldPersistenceReady = ready && leaf !== null;
+        window.__graniteFoldPersistenceError = error;
+        window.__graniteFoldPersistenceState = () => {
+          const state = workspaceStore.getState();
+          const markdown = activeMarkdownLeaf(state);
+          return {
+            activeVaultName: activeVault?.entry.name ?? null,
+            ready,
+            error,
+            leafCount: state.leaves.size,
+            groupCount: state.groups.size,
+            opening: openingRef.current,
+            seeded: seededRef.current,
+            leafId: markdown?.id ?? null,
+            path: markdown?.state.path ?? null,
+            folds: markdown?.state.folds ?? [],
+            editorText: document.querySelector(".cm-editor")?.textContent ?? "",
+          };
+        };
+        window.__graniteFoldPersistenceFlush = () => flushWorkspacePersistence();
+
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        return React.createElement(
+          "div",
+          { className: "fixture-shell" },
+          React.createElement("div", { className: "fixture-status" }, ready ? "Fold fixture ready" : "Loading"),
+          leaf?.state.type === "markdown"
+            ? React.createElement(MarkdownView, {
+                key: leaf.id,
+                leafId: leaf.id,
+                path: leaf.state.path,
+                livePreview: leaf.state.mode === "live-preview",
+                fragment: leaf.state.fragment,
+                folds: leaf.state.folds,
+              })
+            : null,
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

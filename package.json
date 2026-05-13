@@ -41,6 +41,7 @@
     "verify:external-edit-browser": "node scripts/verify-external-edit-browser.mjs",
     "verify:error-boundary-browser": "node scripts/verify-error-boundary-browser.mjs",
     "verify:debug-info-browser": "node scripts/verify-debug-info-browser.mjs",
+    "verify:fold-persistence-browser": "node scripts/verify-fold-persistence-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

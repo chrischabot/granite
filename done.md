@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Fold persistence browser verifier
+
+- **Root cause** — fold normalization and workspace snapshot persistence had
+  unit coverage, but the severe-test list still relied on a manual browser
+  check for the rendered CodeMirror fold interaction surviving a page reload
+  and clearing after unfold.
+- **Browser path** — added `verify:fold-persistence-browser`, which opens a real
+  OPFS vault, renders `MarkdownView`, folds a heading through CodeMirror's fold
+  gutter, flushes workspace persistence, reloads, and verifies the body remains
+  hidden while the following heading stays visible.
+- **Clear path** — the verifier then unfolds through the rendered fold
+  placeholder, verifies `workspaceStore` has no persisted fold ranges, flushes
+  again, reloads, and verifies the note remains expanded.
+
+### Tests
+- `bun run verify:fold-persistence-browser`
+- `node --check scripts/verify-fold-persistence-browser.mjs`
+- `bun run test -- src/core/workspace/folds.test.ts src/core/workspace/persist.test.ts`
+- `bunx biome check package.json scripts/fold-persistence-browser-fixture.html scripts/verify-fold-persistence-browser.mjs`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Debug info browser verifier
 
 - **Root cause** — debug-info collection and command registration had unit

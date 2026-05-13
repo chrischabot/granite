@@ -654,6 +654,31 @@ const NOTE_COMPOSER_FORBIDDEN_PATTERNS = [
   /"Merge failed"/,
 ];
 
+const CORE_PLUGIN_UTILITY_FORBIDDEN_PATTERNS = [
+  /category: "Unique note"/,
+  /name: "Create new unique note"/,
+  /"Could not create unique note"/,
+  /category: "Daily notes"/,
+  /name: "Open today's daily note"/,
+  /name: "Open yesterday's daily note"/,
+  /name: "Open tomorrow's daily note"/,
+  /category: "Vault"/,
+  /name: "Show vault statistics"/,
+  /Files: \$\{files\.length\.toLocaleString\(\)\}/,
+  /Words: \$\{totalWords\.toLocaleString\(\)\}/,
+  /Internal links: \$\{totalLinks\.toLocaleString\(\)\}/,
+  /Vault statistics/,
+  /"Could not compute vault statistics"/,
+  /category: "Audio recorder"/,
+  /name: "Start\/stop recording"/,
+  /"Recording is already in progress\."/,
+  /"Microphone permission denied"/,
+  /"Recording… click here to stop\."/,
+  /Saved recording to/,
+  /"Could not save recording"/,
+  /"No recording in progress\."/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1614,6 +1639,48 @@ describe("UI string externalization audit", () => {
       "plugin.noteComposer.error.targetMissing",
       "plugin.noteComposer.notice.merged",
       "plugin.noteComposer.error.merge",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps utility core plugin labels and notices routed through i18n keys", () => {
+    const sources = [
+      readFileSync(`${process.cwd()}/src/core/plugins-core/unique-note.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/daily-notes.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/vault-stats.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/audio-recorder.ts`, "utf8"),
+    ];
+    const source = sources.join("\n");
+    const violations = CORE_PLUGIN_UTILITY_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+
+    for (const requiredKey of [
+      "plugin.uniqueNote.category",
+      "plugin.uniqueNote.create",
+      "plugin.uniqueNote.error.create",
+      "plugin.dailyNotes.category",
+      "plugin.dailyNotes.openToday",
+      "plugin.dailyNotes.openYesterday",
+      "plugin.dailyNotes.openTomorrow",
+      "plugin.vaultStats.category",
+      "plugin.vaultStats.show",
+      "plugin.vaultStats.title",
+      "plugin.vaultStats.files",
+      "plugin.vaultStats.words",
+      "plugin.vaultStats.internalLinks",
+      "plugin.vaultStats.error.compute",
+      "plugin.audioRecorder.category",
+      "plugin.audioRecorder.toggle",
+      "plugin.audioRecorder.alreadyRecording",
+      "plugin.audioRecorder.error.microphone",
+      "plugin.audioRecorder.recording",
+      "plugin.audioRecorder.saved",
+      "plugin.audioRecorder.error.save",
+      "plugin.audioRecorder.noneRecording",
     ]) {
       expect(source).toContain(requiredKey);
     }

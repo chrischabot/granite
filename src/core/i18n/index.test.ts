@@ -123,5 +123,11 @@ describe("i18n", () => {
         linkLabel: t("plugin.noteComposer.links"),
       }),
     ).toBe('מוזג אל "Archive". שוכתבו 2 קישורים.');
+    expect(t("plugin.uniqueNote.create")).toBe("יצירת הערה ייחודית חדשה");
+    expect(t("plugin.dailyNotes.openTomorrow")).toBe("פתיחת ההערה היומית של מחר");
+    expect(t("plugin.vaultStats.files", { count: "12" })).toBe("קבצים: 12");
+    expect(t("plugin.audioRecorder.saved", { path: "attachments/a.webm" })).toBe(
+      "ההקלטה נשמרה אל attachments/a.webm",
+    );
   });
 });

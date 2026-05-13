@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Utility core plugin i18n ratchet
+
+- **Utility plugin labels** — routed Unique Note, Daily Notes, Vault Stats, and
+  Audio Recorder command names/categories through locale keys.
+- **Notices and stats copy** — routed unique-note fallback errors, Vault Stats
+  summary labels, Audio Recorder recording lifecycle notices, save notices, and
+  fallback errors through i18n.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if these utility plugin labels or notices return as hard-coded English
+  literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Note Composer i18n ratchet
 
 - **Note Composer labels** — routed extract-selection and merge-into command

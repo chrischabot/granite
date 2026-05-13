@@ -1,9 +1,10 @@
-import { Effect } from "effect";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
+import { t } from "@core/i18n";
 import { metadataCache } from "@core/metadata/cache";
 import { noticeManager } from "@core/notices/notice";
+import { Effect } from "effect";
 
 function countWords(text: string): number {
   let body = text;
@@ -28,8 +29,8 @@ export function registerVaultStatsPlugin(): () => void {
 
   register({
     id: "vault-stats:show",
-    category: "Vault",
-    name: "Show vault statistics",
+    category: t("plugin.vaultStats.category"),
+    name: t("plugin.vaultStats.show"),
     callback: async () => {
       try {
         const files = await run(
@@ -69,22 +70,24 @@ export function registerVaultStatsPlugin(): () => void {
           }
         }
         const lines = [
-          `Files: ${files.length.toLocaleString()}`,
-          `Words: ${totalWords.toLocaleString()}`,
-          `Headings: ${totalHeadings.toLocaleString()}`,
-          `Internal links: ${totalLinks.toLocaleString()}`,
-          `Block IDs: ${totalBlocks.toLocaleString()}`,
-          `Footnotes: ${totalFootnotes.toLocaleString()}`,
-          `Distinct tags: ${tagSet.size.toLocaleString()}`,
-          `Distinct properties: ${propertyKeys.size.toLocaleString()}`,
+          t("plugin.vaultStats.files", { count: files.length.toLocaleString() }),
+          t("plugin.vaultStats.words", { count: totalWords.toLocaleString() }),
+          t("plugin.vaultStats.headings", { count: totalHeadings.toLocaleString() }),
+          t("plugin.vaultStats.internalLinks", { count: totalLinks.toLocaleString() }),
+          t("plugin.vaultStats.blockIds", { count: totalBlocks.toLocaleString() }),
+          t("plugin.vaultStats.footnotes", { count: totalFootnotes.toLocaleString() }),
+          t("plugin.vaultStats.distinctTags", { count: tagSet.size.toLocaleString() }),
+          t("plugin.vaultStats.distinctProperties", {
+            count: propertyKeys.size.toLocaleString(),
+          }),
         ];
-        noticeManager.show(`Vault statistics:\n${lines.join("\n")}`, {
+        noticeManager.show(`${t("plugin.vaultStats.title")}:\n${lines.join("\n")}`, {
           kind: "info",
           timeoutMs: 0,
         });
       } catch (err) {
         noticeManager.show(
-          err instanceof Error ? err.message : "Could not compute vault statistics",
+          err instanceof Error ? err.message : t("plugin.vaultStats.error.compute"),
           { kind: "error" },
         );
       }

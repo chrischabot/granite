@@ -1,10 +1,11 @@
-import { Effect } from "effect";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { join, normalize } from "@core/fs/path";
-import { workspaceStore } from "@core/workspace/store";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
+import { Effect } from "effect";
 
 const SETTINGS_KEY = "granite.unique-note.v1";
 
@@ -41,14 +42,22 @@ const PAD2 = (n: number) => n.toString().padStart(2, "0");
 function formatDate(d: Date, fmt: string): string {
   return fmt.replace(/YYYY|YY|MM|DD|HH|mm|ss/g, (token) => {
     switch (token) {
-      case "YYYY": return d.getFullYear().toString();
-      case "YY": return d.getFullYear().toString().slice(-2);
-      case "MM": return PAD2(d.getMonth() + 1);
-      case "DD": return PAD2(d.getDate());
-      case "HH": return PAD2(d.getHours());
-      case "mm": return PAD2(d.getMinutes());
-      case "ss": return PAD2(d.getSeconds());
-      default: return token;
+      case "YYYY":
+        return d.getFullYear().toString();
+      case "YY":
+        return d.getFullYear().toString().slice(-2);
+      case "MM":
+        return PAD2(d.getMonth() + 1);
+      case "DD":
+        return PAD2(d.getDate());
+      case "HH":
+        return PAD2(d.getHours());
+      case "mm":
+        return PAD2(d.getMinutes());
+      case "ss":
+        return PAD2(d.getSeconds());
+      default:
+        return token;
     }
   });
 }
@@ -61,8 +70,8 @@ export function registerUniqueNotePlugin(): () => void {
 
   register({
     id: "unique-note:create",
-    category: "Unique note",
-    name: "Create new unique note",
+    category: t("plugin.uniqueNote.category"),
+    name: t("plugin.uniqueNote.create"),
     callback: async () => {
       const settings = getUniqueNoteSettings();
       const folder = normalize(settings.folder);
@@ -97,7 +106,7 @@ export function registerUniqueNotePlugin(): () => void {
         workspaceStore.openFile(fullPath);
       } catch (err) {
         noticeManager.show(
-          err instanceof Error ? err.message : "Could not create unique note",
+          err instanceof Error ? err.message : t("plugin.uniqueNote.error.create"),
           { kind: "error" },
         );
       }

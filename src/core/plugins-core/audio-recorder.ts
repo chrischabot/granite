@@ -1,10 +1,11 @@
-import { Effect } from "effect";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { join, normalize } from "@core/fs/path";
-import { workspaceStore } from "@core/workspace/store";
+import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
+import { Effect } from "effect";
 
 const SETTINGS_KEY = "granite.audio-recorder.v1";
 
@@ -35,7 +36,7 @@ let active: {
 
 async function startRecording(): Promise<void> {
   if (active) {
-    noticeManager.show("Recording is already in progress.", { kind: "warning" });
+    noticeManager.show(t("plugin.audioRecorder.alreadyRecording"), { kind: "warning" });
     return;
   }
   let stream: MediaStream;
@@ -43,7 +44,7 @@ async function startRecording(): Promise<void> {
     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
   } catch (err) {
     noticeManager.show(
-      err instanceof Error ? err.message : "Microphone permission denied",
+      err instanceof Error ? err.message : t("plugin.audioRecorder.error.microphone"),
       { kind: "error" },
     );
     return;
@@ -53,7 +54,7 @@ async function startRecording(): Promise<void> {
   recorder.ondataavailable = (e) => {
     if (e.data && e.data.size > 0) chunks.push(e.data);
   };
-  const noticeId = noticeManager.show("Recording… click here to stop.", {
+  const noticeId = noticeManager.show(t("plugin.audioRecorder.recording"), {
     kind: "warning",
     timeoutMs: 0,
   });
@@ -63,7 +64,7 @@ async function startRecording(): Promise<void> {
     const a = active;
     active = null;
     if (a?.noticeId) noticeManager.dismiss(a.noticeId);
-    a?.stream.getTracks().forEach((t) => t.stop());
+    for (const track of a?.stream.getTracks() ?? []) track.stop();
     if (!a) return;
     const blob = new Blob(a.chunks, { type: "audio/webm" });
     const bytes = new Uint8Array(await blob.arrayBuffer());
@@ -89,10 +90,10 @@ async function startRecording(): Promise<void> {
           }),
         );
       }
-      noticeManager.show(`Saved recording to ${path}`, { kind: "success" });
+      noticeManager.show(t("plugin.audioRecorder.saved", { path }), { kind: "success" });
     } catch (err) {
       noticeManager.show(
-        err instanceof Error ? err.message : "Could not save recording",
+        err instanceof Error ? err.message : t("plugin.audioRecorder.error.save"),
         { kind: "error" },
       );
     }
@@ -103,7 +104,7 @@ async function startRecording(): Promise<void> {
 
 function stopRecording(): void {
   if (!active) {
-    noticeManager.show("No recording in progress.", { kind: "warning" });
+    noticeManager.show(t("plugin.audioRecorder.noneRecording"), { kind: "warning" });
     return;
   }
   active.recorder.stop();
@@ -117,8 +118,8 @@ export function registerAudioRecorderPlugin(): () => void {
 
   register({
     id: "audio-recorder:toggle",
-    category: "Audio recorder",
-    name: "Start/stop recording",
+    category: t("plugin.audioRecorder.category"),
+    name: t("plugin.audioRecorder.toggle"),
     callback: () => {
       if (active) stopRecording();
       else void startRecording();

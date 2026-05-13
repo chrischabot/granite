@@ -245,6 +245,7 @@ const FS_HANDLE_ADAPTER_FORBIDDEN_PATTERNS = [
 ];
 
 const FS_TRASH_FORBIDDEN_PATTERNS = [
+  /Could not find an available vault trash path/,
   /System trash is not available from the browser File System Access adapter/,
   /Choose Vault trash or Permanent deletion/,
 ];
@@ -1238,7 +1239,12 @@ describe("UI string externalization audit", () => {
     ]) {
       expect(vaultContextSource).toContain(requiredKey);
     }
-    expect(trashSource).toContain("fs.trash.error.systemUnavailable");
+    for (const requiredKey of [
+      "fs.trash.error.vaultPathUnavailable",
+      "fs.trash.error.systemUnavailable",
+    ]) {
+      expect(trashSource).toContain(requiredKey);
+    }
     for (const requiredKey of [
       "help.title",
       "help.keys.commandPalette",

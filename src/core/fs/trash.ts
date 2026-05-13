@@ -37,7 +37,7 @@ function moveToVaultTrash(path: VaultPath): Effect.Effect<void, FsError, FileSys
     }
 
     return yield* Effect.fail(
-      new FsUnsupported({ feature: `Could not find an available vault trash path for ${path}` }),
+      new FsUnsupported({ feature: t("fs.trash.error.vaultPathUnavailable", { path }) }),
     );
   });
 }

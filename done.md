@@ -4,15 +4,16 @@
 
 ---
 
-## 2026-05-13 — System-trash error externalization
+## 2026-05-13 — Trash error externalization
 
 - **Root cause** — File Explorer delete errors can surface
-  `FsUnsupported.feature`, but the system-trash unsupported message in
-  `src/core/fs/trash.ts` was still hard-coded English.
-- **i18n path** — routed the message through `fs.trash.error.systemUnavailable`
-  with English and Hebrew translations.
+  `FsUnsupported.feature`, but the vault-trash exhaustion and system-trash
+  unsupported messages in `src/core/fs/trash.ts` were still hard-coded English.
+- **i18n path** — routed both messages through
+  `fs.trash.error.vaultPathUnavailable` and
+  `fs.trash.error.systemUnavailable` with English and Hebrew translations.
 - **Regression ratchet** — extended `src/core/fs/trash.test.ts` and
-  `src/core/i18n/externalization.test.ts` so the system-trash failure cannot
+  `src/core/i18n/externalization.test.ts` so trash failures cannot
   silently fall back to hard-coded English.
 - **Tracker honesty** — recorded this as a string-externalization improvement
   while leaving the full UI-wide externalization audit open.

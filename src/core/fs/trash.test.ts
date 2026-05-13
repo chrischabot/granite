@@ -105,6 +105,21 @@ describe("deleteVaultPath", () => {
     expect(files.has(".trash/Notes/A 1.md")).toBe(true);
   });
 
+  it("reports a localized error when every vault-trash candidate is taken", async () => {
+    const { fs, calls, files } = makeFs();
+    files.add("Notes/A.md");
+    files.add(".trash/Notes/A.md");
+    for (let suffix = 1; suffix < 1000; suffix++) {
+      files.add(`.trash/Notes/A ${suffix}.md`);
+    }
+
+    await expect(runWithFs(fs, deleteVaultPath("Notes/A.md", "vault"))).rejects.toMatchObject({
+      _tag: "FsUnsupported",
+      feature: t("fs.trash.error.vaultPathUnavailable", { path: "Notes/A.md" }),
+    });
+    expect(calls).toEqual([]);
+  });
+
   it("does not fake system trash when the adapter lacks an OS-trash capability", async () => {
     const { fs, calls } = makeFs();
 

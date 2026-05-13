@@ -1,5 +1,6 @@
 import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { initHotkeyDispatcher } from "@core/commands/hotkeys";
+import { getLocale, subscribeI18n, t as translate } from "@core/i18n";
 import { registerAudioRecorderPlugin } from "@core/plugins-core/audio-recorder";
 import { registerBasesScaffoldPlugin } from "@core/plugins-core/bases-scaffold";
 import { registerCopyLinkPlugin } from "@core/plugins-core/copy-link";
@@ -20,7 +21,7 @@ import { registerWebViewerPlugin } from "@core/plugins-core/web-viewer";
 import { registerWorkspacesPlugin } from "@core/plugins-core/workspaces";
 import { showUpdateCheckNotices } from "@core/plugins/update-check";
 import { workspaceStore } from "@core/workspace/store";
-import { useEffect } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 
 interface CommandsBootstrapProps {
   openPalette: () => void;
@@ -41,6 +42,16 @@ export function CommandsBootstrap({
   openInstallPlugin,
   openFileRecovery,
 }: CommandsBootstrapProps) {
+  const locale = useSyncExternalStore(subscribeI18n, getLocale, getLocale);
+  const t = useCallback<typeof translate>(
+    (key, params) => {
+      // Rebind localized command labels when the active locale changes.
+      void locale;
+      return translate(key, params);
+    },
+    [locale],
+  );
+
   useEffect(() => {
     const dispose = initHotkeyDispatcher();
     const registrations: Array<() => void> = [];
@@ -51,7 +62,7 @@ export function CommandsBootstrap({
 
     register({
       id: "app:open-command-palette",
-      name: "Open command palette",
+      name: t("command.openCommandPalette"),
       hotkeys: [
         { modifiers: ["Mod"], key: "p" },
         { modifiers: ["Mod", "Shift"], key: "p" },
@@ -61,50 +72,50 @@ export function CommandsBootstrap({
 
     register({
       id: "app:open-quick-switcher",
-      name: "Open quick switcher",
+      name: t("command.openQuickSwitcher"),
       hotkeys: [{ modifiers: ["Mod"], key: "o" }],
       callback: openSwitcher,
     });
 
     register({
       id: "app:open-vault-switcher",
-      name: "Open vault switcher",
+      name: t("command.openVaultSwitcher"),
       callback: openVaultPicker,
     });
 
     register({
       id: "app:open-settings",
-      name: "Open settings",
+      name: t("command.openSettings"),
       hotkeys: [{ modifiers: ["Mod"], key: "," }],
       callback: openSettings,
     });
 
     register({
       id: "help:open-cheat-sheet",
-      category: "Help",
-      name: "Show keyboard cheat-sheet",
+      category: t("command.category.help"),
+      name: t("command.showKeyboardCheatSheet"),
       hotkeys: [{ modifiers: [], key: "F1" }],
       callback: openHelp,
     });
 
     register({
       id: "plugins:install-from-url",
-      category: "Plugins",
-      name: "Install plugin from URL…",
+      category: t("command.category.plugins"),
+      name: t("command.installPluginFromUrl"),
       callback: openInstallPlugin,
     });
 
     register({
       id: "plugins:check-updates",
-      category: "Plugins",
-      name: "Check for plugin updates",
+      category: t("command.category.plugins"),
+      name: t("command.checkPluginUpdates"),
       callback: () => showUpdateCheckNotices({ appVersion: "0.1.0-dev" }),
     });
 
     register({
       id: "app:toggle-theme",
-      category: "Appearance",
-      name: "Toggle light/dark theme",
+      category: t("command.category.appearance"),
+      name: t("command.toggleLightDarkTheme"),
       callback: () => {
         const body = document.body;
         const isDark = body.classList.contains("theme-dark");
@@ -115,8 +126,8 @@ export function CommandsBootstrap({
 
     register({
       id: "editor:split-right",
-      category: "Editor",
-      name: "Split right",
+      category: t("command.category.editor"),
+      name: t("command.splitRight"),
       hotkeys: [{ modifiers: ["Mod"], key: "\\" }],
       checkCallback: () => {
         const s = workspaceStore.getState();
@@ -132,8 +143,8 @@ export function CommandsBootstrap({
 
     register({
       id: "editor:split-down",
-      category: "Editor",
-      name: "Split down",
+      category: t("command.category.editor"),
+      name: t("command.splitDown"),
       hotkeys: [{ modifiers: ["Mod", "Shift"], key: "\\" }],
       checkCallback: () => {
         const s = workspaceStore.getState();
@@ -149,8 +160,8 @@ export function CommandsBootstrap({
 
     register({
       id: "editor:close-group",
-      category: "Editor",
-      name: "Close current tab group",
+      category: t("command.category.editor"),
+      name: t("command.closeCurrentTabGroup"),
       checkCallback: () => {
         const s = workspaceStore.getState();
         return s.rootGroupIds.length > 1 && !!s.activeGroupId;
@@ -163,8 +174,8 @@ export function CommandsBootstrap({
 
     register({
       id: "editor:close-active-tab",
-      category: "Editor",
-      name: "Close active tab",
+      category: t("command.category.editor"),
+      name: t("command.closeActiveTab"),
       hotkeys: [{ modifiers: ["Mod"], key: "w" }],
       checkCallback: () => {
         const s = workspaceStore.getState();
@@ -176,24 +187,24 @@ export function CommandsBootstrap({
 
     register({
       id: "tabs:cycle-next",
-      category: "Tabs",
-      name: "Switch to next tab in group",
+      category: t("command.category.tabs"),
+      name: t("command.switchNextTab"),
       hotkeys: [{ modifiers: ["Ctrl"], key: "Tab" }],
       callback: () => workspaceStore.cycleTab("next"),
     });
 
     register({
       id: "tabs:cycle-previous",
-      category: "Tabs",
-      name: "Switch to previous tab in group",
+      category: t("command.category.tabs"),
+      name: t("command.switchPreviousTab"),
       hotkeys: [{ modifiers: ["Ctrl", "Shift"], key: "Tab" }],
       callback: () => workspaceStore.cycleTab("previous"),
     });
 
     register({
       id: "editor:insert-block-id",
-      category: "Editor",
-      name: "Insert block id and copy link",
+      category: t("command.category.editor"),
+      name: t("command.insertBlockId"),
       checkCallback: () => {
         const s = workspaceStore.getState();
         const group = s.activeGroupId ? s.groups.get(s.activeGroupId) : null;
@@ -219,8 +230,8 @@ export function CommandsBootstrap({
       const key = String(n);
       register({
         id: `editor:focus-tab-${n}`,
-        category: "Editor",
-        name: `Focus tab ${n}`,
+        category: t("command.category.editor"),
+        name: t("command.focusTab", { number: String(n) }),
         hotkeys: [{ modifiers: ["Mod"], key }],
         hidden: true,
         callback: () => {
@@ -236,8 +247,8 @@ export function CommandsBootstrap({
 
     register({
       id: "editor:toggle-pin",
-      category: "Editor",
-      name: "Toggle pin on active tab",
+      category: t("command.category.editor"),
+      name: t("command.togglePin"),
       checkCallback: () => {
         const s = workspaceStore.getState();
         const group = s.activeGroupId ? s.groups.get(s.activeGroupId) : null;
@@ -253,8 +264,8 @@ export function CommandsBootstrap({
 
     register({
       id: "editor:reveal-in-explorer",
-      category: "Editor",
-      name: "Reveal active file in explorer",
+      category: t("command.category.editor"),
+      name: t("command.revealActiveFile"),
       checkCallback: () => {
         const s = workspaceStore.getState();
         const group = s.activeGroupId ? s.groups.get(s.activeGroupId) : null;
@@ -283,8 +294,8 @@ export function CommandsBootstrap({
 
     register({
       id: "graph:open",
-      category: "Graph",
-      name: "Open graph view",
+      category: t("command.category.graph"),
+      name: t("command.openGraphView"),
       callback: () => {
         workspaceStore.openGraph();
       },
@@ -292,8 +303,8 @@ export function CommandsBootstrap({
 
     register({
       id: "file:print-active-note",
-      category: "File",
-      name: "Print active note…",
+      category: t("command.category.file"),
+      name: t("command.printActiveNote"),
       checkCallback: () => {
         const s = workspaceStore.getState();
         const group = s.activeGroupId ? s.groups.get(s.activeGroupId) : null;
@@ -312,8 +323,8 @@ export function CommandsBootstrap({
 
     register({
       id: "canvas:open",
-      category: "Canvas",
-      name: "Create new canvas",
+      category: t("command.category.canvas"),
+      name: t("command.createNewCanvas"),
       callback: () => {
         workspaceStore.openCanvas();
       },
@@ -369,6 +380,7 @@ export function CommandsBootstrap({
     openHelp,
     openInstallPlugin,
     openFileRecovery,
+    t,
   ]);
 
   return null;

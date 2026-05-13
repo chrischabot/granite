@@ -549,6 +549,38 @@ const INLINE_AND_OVERLAY_FORBIDDEN_PATTERNS = [
   /aria-label="Dismiss"/,
 ];
 
+const COMMAND_BOOTSTRAP_FORBIDDEN_PATTERNS = [
+  /name: "Open command palette"/,
+  /name: "Open quick switcher"/,
+  /name: "Open vault switcher"/,
+  /name: "Open settings"/,
+  /category: "Help"/,
+  /name: "Show keyboard cheat-sheet"/,
+  /category: "Plugins"/,
+  /name: "Install plugin from URL…"/,
+  /name: "Check for plugin updates"/,
+  /category: "Appearance"/,
+  /name: "Toggle light\/dark theme"/,
+  /category: "Editor"/,
+  /name: "Split right"/,
+  /name: "Split down"/,
+  /name: "Close current tab group"/,
+  /name: "Close active tab"/,
+  /category: "Tabs"/,
+  /name: "Switch to next tab in group"/,
+  /name: "Switch to previous tab in group"/,
+  /name: "Insert block id and copy link"/,
+  /name: `Focus tab \$\{n\}`/,
+  /name: "Toggle pin on active tab"/,
+  /name: "Reveal active file in explorer"/,
+  /category: "Graph"/,
+  /name: "Open graph view"/,
+  /category: "File"/,
+  /name: "Print active note…"/,
+  /category: "Canvas"/,
+  /name: "Create new canvas"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1342,6 +1374,43 @@ describe("UI string externalization audit", () => {
     ]) {
       expect(source).toContain(requiredKey);
     }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps built-in command registrations routed through i18n keys", () => {
+    const source = readFileSync(`${process.cwd()}/src/ui/commands/CommandsBootstrap.tsx`, "utf8");
+    const violations = COMMAND_BOOTSTRAP_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+
+    for (const requiredKey of [
+      "command.openCommandPalette",
+      "command.openQuickSwitcher",
+      "command.openVaultSwitcher",
+      "command.openSettings",
+      "command.category.help",
+      "command.showKeyboardCheatSheet",
+      "command.category.plugins",
+      "command.installPluginFromUrl",
+      "command.checkPluginUpdates",
+      "command.category.appearance",
+      "command.toggleLightDarkTheme",
+      "command.category.editor",
+      "command.splitRight",
+      "command.closeActiveTab",
+      "command.category.tabs",
+      "command.switchNextTab",
+      "command.insertBlockId",
+      "command.focusTab",
+      "command.openGraphView",
+      "command.printActiveNote",
+      "command.createNewCanvas",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+    expect(source).toContain("subscribeI18n");
+    expect(source).toContain("getLocale");
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
   });

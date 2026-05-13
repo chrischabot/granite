@@ -4,6 +4,25 @@
 
 ---
 
+## 2026-05-13 — Built-in command i18n ratchet
+
+- **Command registrations** — routed built-in command palette names and
+  categories from `CommandsBootstrap` through locale keys, including tab focus
+  labels.
+- **Locale switching** — command registrations now refresh when the active UI
+  locale changes so Command Palette and Hotkeys labels can update without a
+  reload.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if these built-in command labels return as hard-coded English literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Inline and overlay i18n ratchet
 
 - **Inline title** — routed rename validation, rename/rewrite notices, fallback

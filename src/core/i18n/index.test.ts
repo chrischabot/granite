@@ -94,5 +94,7 @@ describe("i18n", () => {
     expect(t("errorBoundary.reload")).toBe("טעינת גרניט מחדש");
     expect(t("hoverPopover.fileNotFound")).toBe("הקובץ לא נמצא בכספת.");
     expect(t("notice.dismiss")).toBe("סגירה");
+    expect(t("command.openCommandPalette")).toBe("פתיחת פלטת הפקודות");
+    expect(t("command.focusTab", { number: "3" })).toBe("מיקוד לשונית 3");
   });
 });

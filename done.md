@@ -4,6 +4,20 @@
 
 ---
 
+## 2026-05-13 — Renderer card CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/card.css` for selectable
+  card containers, hover/selected states, titles, descriptions, and card lists.
+- **Regression audit** — extended the renderer module test so card styles stay
+  imported and spec-linked.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer empty-state CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/empty-state.css` for

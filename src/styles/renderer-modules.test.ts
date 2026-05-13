@@ -160,6 +160,18 @@ const MODULES = [
       ".feedback-banner-dismiss-button",
     ],
   },
+  {
+    file: "card.css",
+    spec: "specs/renderer/card.md",
+    selectors: [
+      ".card-container.mod-horizontal",
+      ".card.u-clickable:hover",
+      ".card.is-selected",
+      ".card-title",
+      ".card-description",
+      ".card-container.mod-horizontal .card ul",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {

@@ -1,18 +1,20 @@
-import { Effect } from "effect";
-import { useEffect, useRef, useState } from "react";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { dirname, isInvalidName, join, stem } from "@core/fs/path";
-import { rewriteWikilinksOnRename } from "@core/links/rewrite";
-import { workspaceStore } from "@core/workspace/store";
-import { noticeManager } from "@core/notices/notice";
 import type { VaultPath } from "@core/fs/types";
+import { rewriteWikilinksOnRename } from "@core/links/rewrite";
+import { noticeManager } from "@core/notices/notice";
+import { workspaceStore } from "@core/workspace/store";
+import { Effect } from "effect";
+import { useEffect, useRef, useState } from "react";
+import { useI18n } from "../i18n/useI18n";
 
 export interface InlineTitleProps {
   path: VaultPath;
 }
 
 export function InlineTitle({ path }: InlineTitleProps) {
+  const t = useI18n();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(stem(path));
   const inputRef = useRef<HTMLInputElement>(null);
@@ -37,7 +39,7 @@ export function InlineTitle({ path }: InlineTitleProps) {
       return;
     }
     if (isInvalidName(next)) {
-      noticeManager.show("That name contains invalid characters.", { kind: "error" });
+      noticeManager.show(t("inlineTitle.error.invalidName"), { kind: "error" });
       setValue(stem(path));
       return;
     }
@@ -55,27 +57,25 @@ export function InlineTitle({ path }: InlineTitleProps) {
       );
       workspaceStore.openFile(newPath);
       try {
-        const { filesUpdated, linksRewritten } = await rewriteWikilinksOnRename(
-          path,
-          newPath,
-        );
+        const { filesUpdated, linksRewritten } = await rewriteWikilinksOnRename(path, newPath);
         if (linksRewritten > 0) {
           noticeManager.show(
-            `Renamed and updated ${linksRewritten} wikilink${linksRewritten === 1 ? "" : "s"} in ${filesUpdated} file${filesUpdated === 1 ? "" : "s"}.`,
+            t("inlineTitle.notice.renamedAndRewritten", {
+              links: String(linksRewritten),
+              linkLabel: t(linksRewritten === 1 ? "inlineTitle.wikilink" : "inlineTitle.wikilinks"),
+              files: String(filesUpdated),
+              fileLabel: t(filesUpdated === 1 ? "inlineTitle.file" : "inlineTitle.files"),
+            }),
             { kind: "success" },
           );
         }
       } catch {
-        noticeManager.show(
-          "Renamed, but could not update outgoing wikilinks. Run a vault-wide search to fix them.",
-          { kind: "warning" },
-        );
+        noticeManager.show(t("inlineTitle.notice.renameRewriteFailed"), { kind: "warning" });
       }
     } catch (err) {
-      noticeManager.show(
-        err instanceof Error ? err.message : "Could not rename file",
-        { kind: "error" },
-      );
+      noticeManager.show(err instanceof Error ? err.message : t("inlineTitle.error.rename"), {
+        kind: "error",
+      });
       setValue(stem(path));
     }
   };
@@ -125,7 +125,7 @@ export function InlineTitle({ path }: InlineTitleProps) {
         lineHeight: 1.2,
         letterSpacing: "-0.015em",
       }}
-      title="Double-click to rename"
+      title={t("inlineTitle.renameTitle")}
     >
       {value}
     </h1>

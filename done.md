@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Inline and overlay i18n ratchet
+
+- **Inline title** — routed rename validation, rename/rewrite notices, fallback
+  rename error, plural labels, and rename tooltip through locale keys.
+- **Overlay chrome** — routed error-boundary fallback title/actions/safety copy,
+  hover preview loading/missing states, and notice dismiss aria label through
+  i18n.
+- **Accessibility cleanup** — converted the hover preview opener to a semantic
+  button and documented the sanitized Markdown preview injection.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if these formerly hard-coded inline/overlay labels return.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n/overlay tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Bases view i18n ratchet
 
 - **Bases view chrome** — routed no-path/loading states, filter summary,

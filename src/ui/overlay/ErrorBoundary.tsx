@@ -3,6 +3,7 @@ import {
   reportCapturedError,
   subscribeErrorReports,
 } from "@core/errors/reporter";
+import { subscribeI18n, t } from "@core/i18n";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 interface ErrorBoundaryProps {
@@ -25,6 +26,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   };
 
   private unsubscribeReports: (() => void) | null = null;
+  private unsubscribeI18n: (() => void) | null = null;
 
   static getDerivedStateFromError(error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true, error, source: "react" };
@@ -32,6 +34,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   override componentDidMount(): void {
     this.unsubscribeReports = subscribeErrorReports((report) => this.showReport(report));
+    this.unsubscribeI18n = subscribeI18n(() => this.forceUpdate());
     window.addEventListener("error", this.onWindowError);
     window.addEventListener("unhandledrejection", this.onUnhandledRejection);
   }
@@ -39,6 +42,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   override componentWillUnmount(): void {
     this.unsubscribeReports?.();
     this.unsubscribeReports = null;
+    this.unsubscribeI18n?.();
+    this.unsubscribeI18n = null;
     window.removeEventListener("error", this.onWindowError);
     window.removeEventListener("unhandledrejection", this.onUnhandledRejection);
   }
@@ -80,7 +85,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   override render(): ReactNode {
     if (!this.state.hasError) return this.props.children;
-    const message = this.state.error?.message ?? "Unknown error";
+    const message = this.state.error?.message ?? t("errorBoundary.unknown");
     return (
       <div
         role="alert"
@@ -105,7 +110,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             color: "var(--text-error)",
           }}
         >
-          Granite hit an error{this.state.source ? ` (${this.state.source})` : ""}
+          {t("errorBoundary.title", { source: this.state.source ? ` (${this.state.source})` : "" })}
         </div>
         <div
           style={{
@@ -133,7 +138,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               fontFamily: "var(--font-monospace)",
             }}
           >
-            <summary style={{ cursor: "var(--cursor)" }}>Component stack</summary>
+            <summary style={{ cursor: "var(--cursor)" }}>
+              {t("errorBoundary.componentStack")}
+            </summary>
             <pre
               style={{
                 whiteSpace: "pre-wrap",
@@ -148,14 +155,14 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         )}
         <div style={{ display: "flex", gap: "var(--size-4-2)" }}>
           <button type="button" className="mod-cta" onClick={this.reload}>
-            Reload Granite
+            {t("errorBoundary.reload")}
           </button>
           <button type="button" onClick={this.reset}>
-            Dismiss and continue
+            {t("errorBoundary.dismiss")}
           </button>
         </div>
         <div style={{ color: "var(--text-faint)", fontSize: "var(--font-ui-smaller)" }}>
-          Your vault contents are stored as plain Markdown — nothing has been lost.
+          {t("errorBoundary.vaultSafe")}
         </div>
       </div>
     );

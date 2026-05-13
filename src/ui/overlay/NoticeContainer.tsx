@@ -2,12 +2,14 @@ import { type Notice, noticeManager } from "@core/notices/notice";
 import { X } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { useI18n } from "../i18n/useI18n";
 
 function getList(): ReadonlyArray<Notice> {
   return noticeManager.list();
 }
 
 export function NoticeContainer() {
+  const t = useI18n();
   const notices = useSyncExternalStore(noticeManager.subscribe, getList, getList);
 
   if (notices.length === 0) return null;
@@ -44,7 +46,7 @@ export function NoticeContainer() {
           </button>
           <button
             type="button"
-            aria-label="Dismiss"
+            aria-label={t("notice.dismiss")}
             onClick={(e) => {
               e.stopPropagation();
               noticeManager.dismiss(n.id);

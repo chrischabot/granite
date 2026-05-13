@@ -1,11 +1,12 @@
-import { Effect } from "effect";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { stem } from "@core/fs/path";
 import { renderMarkdown } from "@core/markdown/renderer";
 import { workspaceStore } from "@core/workspace/store";
+import { Effect } from "effect";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useI18n } from "../i18n/useI18n";
 
 export interface HoverPopoverRequest {
   /** Vault path to preview (with `.md` extension). */
@@ -71,6 +72,7 @@ interface HoverPopoverProps {
 }
 
 function HoverPopover({ request, onClose }: HoverPopoverProps) {
+  const t = useI18n();
   const { path, fragment, x, y } = request;
   const [content, setContent] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
@@ -141,15 +143,19 @@ function HoverPopover({ request, onClose }: HoverPopoverProps) {
       }}
       onMouseLeave={() => hideHoverPopover()}
     >
-      <div
+      <button
+        type="button"
         style={{
+          width: "100%",
           padding: "var(--size-2-2) var(--size-4-3)",
           fontSize: "var(--font-ui-smaller)",
           color: "var(--text-muted)",
           background: "var(--background-secondary)",
+          border: 0,
           borderBottom: "1px solid var(--background-modifier-border)",
           cursor: "var(--cursor-link)",
           userSelect: "none",
+          textAlign: "left",
         }}
         onClick={() => {
           workspaceStore.openFile(path, {
@@ -161,7 +167,7 @@ function HoverPopover({ request, onClose }: HoverPopoverProps) {
       >
         {stem(path)}
         {fragment && <span style={{ color: "var(--text-faint)" }}> · {fragment}</span>}
-      </div>
+      </button>
       <div
         className="markdown-preview-view markdown-rendered"
         style={{
@@ -174,11 +180,12 @@ function HoverPopover({ request, onClose }: HoverPopoverProps) {
       >
         {missing ? (
           <div style={{ color: "var(--text-faint)", fontStyle: "italic" }}>
-            File not found in vault.
+            {t("hoverPopover.fileNotFound")}
           </div>
         ) : !content ? (
-          <div style={{ color: "var(--text-faint)" }}>Loading…</div>
+          <div style={{ color: "var(--text-faint)" }}>{t("hoverPopover.loading")}</div>
         ) : (
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: renderMarkdown sanitizes Markdown output before preview injection.
           <div dangerouslySetInnerHTML={{ __html: html }} />
         )}
       </div>

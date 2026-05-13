@@ -90,5 +90,9 @@ describe("i18n", () => {
     expect(t("bases.title")).toBe("בסיסים");
     expect(t("bases.empty.noMatchingFiles")).toBe("אין קבצים תואמים.");
     expect(t("bases.map.open", { name: "London" })).toBe("פתיחת London");
+    expect(t("inlineTitle.renameTitle")).toBe("לחיצה כפולה לשינוי שם");
+    expect(t("errorBoundary.reload")).toBe("טעינת גרניט מחדש");
+    expect(t("hoverPopover.fileNotFound")).toBe("הקובץ לא נמצא בכספת.");
+    expect(t("notice.dismiss")).toBe("סגירה");
   });
 });

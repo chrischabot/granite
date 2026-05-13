@@ -532,6 +532,23 @@ const BASES_VIEW_FORBIDDEN_PATTERNS = [
   /grouped by \{config\.groupBy\}/,
 ];
 
+const INLINE_AND_OVERLAY_FORBIDDEN_PATTERNS = [
+  /"That name contains invalid characters\."/,
+  /"Could not rename file"/,
+  /Renamed and updated \$\{linksRewritten\}/,
+  /Renamed, but could not update outgoing wikilinks/,
+  /title="Double-click to rename"/,
+  /"Unknown error"/,
+  /Granite hit an error/,
+  />\s*Component stack\s*</,
+  />\s*Reload Granite\s*</,
+  />\s*Dismiss and continue\s*</,
+  /Your vault contents are stored as plain Markdown/,
+  />\s*File not found in vault\.\s*</,
+  />\s*Loading…\s*</,
+  /aria-label="Dismiss"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1288,6 +1305,40 @@ describe("UI string externalization audit", () => {
       "bases.map.aria",
       "bases.map.open",
       "bases.map.empty",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps Inline Title, error boundary, hover preview, and notice labels routed through i18n keys", () => {
+    const sources = [
+      readFileSync(`${process.cwd()}/src/ui/views/InlineTitle.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/overlay/ErrorBoundary.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/overlay/HoverPopover.tsx`, "utf8"),
+      readFileSync(`${process.cwd()}/src/ui/overlay/NoticeContainer.tsx`, "utf8"),
+    ];
+    const source = sources.join("\n");
+    const violations = INLINE_AND_OVERLAY_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+
+    for (const requiredKey of [
+      "inlineTitle.error.invalidName",
+      "inlineTitle.error.rename",
+      "inlineTitle.notice.renamedAndRewritten",
+      "inlineTitle.notice.renameRewriteFailed",
+      "inlineTitle.renameTitle",
+      "errorBoundary.unknown",
+      "errorBoundary.title",
+      "errorBoundary.componentStack",
+      "errorBoundary.reload",
+      "errorBoundary.dismiss",
+      "errorBoundary.vaultSafe",
+      "hoverPopover.fileNotFound",
+      "hoverPopover.loading",
+      "notice.dismiss",
     ]) {
       expect(source).toContain(requiredKey);
     }

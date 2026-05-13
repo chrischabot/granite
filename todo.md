@@ -117,10 +117,8 @@
 ## Renderer fidelity backlog
 
 Phase 13 schedules per-component CSS module reorganization across 5 batches.
-4 of the 75 spec files have no dedicated CSS module yet (e.g. `view-pdf.md`,
-`settings-community-plugins.md`, `settings-community-themes.md`,
-`view-bases.md`, `view-graph.md`, etc.). See PLAN.md §3.2 for the full
-mapping.
+3 of the 75 spec files have no dedicated CSS module yet: `view-pdf.md`,
+`view-bases.md`, and `view-graph.md`. See PLAN.md §3.2 for the full mapping.
 
 ---
 

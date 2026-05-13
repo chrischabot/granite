@@ -300,6 +300,30 @@ const MODULES = [
       ".sync-exclude-folder-remove",
     ],
   },
+  {
+    file: "settings-community.css",
+    spec: [
+      "specs/renderer/settings-community-plugins.md",
+      "specs/renderer/settings-community-themes.md",
+    ],
+    selectors: [
+      ".mod-community-modal .modal-sidebar .setting-item:not(.setting-item-heading)",
+      ".community-modal-details",
+      ".community-modal-search-results-wrapper.is-empty-results",
+      ".community-modal-search-results-status-content",
+      ".community-modal-search-results-cta.mobile-tap",
+      ".community-modal-search-results",
+      ".community-item .suggestion-highlight",
+      ".community-item-badge.mod-update",
+      ".community-item-screenshot.mod-unavailable",
+      ".community-item-screenshot .placeholder-icon .svg-icon",
+      ".community-modal-info-name",
+      ".community-modal-info-downloads",
+      ".community-modal-button-container",
+      ".community-readme video",
+      "body:not(.is-phone) .community-item.is-selected .flair",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {
@@ -314,7 +338,11 @@ describe("renderer CSS module coverage", () => {
   it("keeps each extracted module linked to its renderer spec", () => {
     for (const module of MODULES) {
       const css = readFileSync(`${STYLE_DIR}/${module.file}`, "utf8");
-      expect(css.startsWith(`/* SPEC: ${module.spec} */`)).toBe(true);
+      const specs = Array.isArray(module.spec) ? module.spec : [module.spec];
+      expect(css.startsWith(`/* SPEC: ${specs[0]} */`)).toBe(true);
+      for (const spec of specs) {
+        expect(css).toContain(`/* SPEC: ${spec} */`);
+      }
       for (const selector of module.selectors) {
         expect(css).toContain(selector);
       }

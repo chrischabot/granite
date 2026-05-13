@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-13 — Renderer community browser CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/settings-community.css`
+  for the shared Community Plugins/Themes modal chrome, including sidebar
+  rows, search-result states, community cards, screenshots, details panes,
+  action buttons, README media constraints, and selected/update states.
+- **Regression audit** — extended the renderer module test to support shared
+  modules linked to more than one renderer spec.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer history and sync CSS module
 
 - **Dedicated module** — added spec-linked `src/styles/view-history-sync.css`

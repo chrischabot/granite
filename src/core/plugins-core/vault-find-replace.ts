@@ -1,11 +1,12 @@
-import { Effect } from "effect";
-import { commandRegistry, type Command } from "@core/commands/CommandRegistry";
+import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
-import { settingsStore } from "@core/settings/store";
-import { noticeManager } from "@core/notices/notice";
 import type { VaultFile } from "@core/fs/types";
+import { t } from "@core/i18n";
+import { noticeManager } from "@core/notices/notice";
+import { settingsStore } from "@core/settings/store";
+import { Effect } from "effect";
 
 export interface ReplaceOptions {
   caseSensitive: boolean;
@@ -39,9 +40,7 @@ export function replaceInText(
 ): { text: string; count: number } {
   if (!find) return { text, count: 0 };
   const flags = opts.caseSensitive ? "g" : "gi";
-  const re = opts.regex
-    ? new RegExp(find, flags)
-    : new RegExp(escapeRegex(find), flags);
+  const re = opts.regex ? new RegExp(find, flags) : new RegExp(escapeRegex(find), flags);
   const replacement = opts.regex ? replace : escapeReplacement(replace);
   // Count via a separate scan so the in-place replace can use the native
   // capture-group substitution path.
@@ -60,15 +59,15 @@ export function registerVaultFindReplacePlugin(): () => void {
 
   register({
     id: "vault:find-replace",
-    category: "Vault",
-    name: "Find and replace across vault…",
+    category: t("plugin.findReplace.category"),
+    name: t("plugin.findReplace.name"),
     callback: async () => {
-      const find = prompt("Find what?", "");
+      const find = prompt(t("plugin.findReplace.prompt.find"), "");
       if (!find) return;
-      const replace = prompt(`Replace "${find}" with:`, "");
+      const replace = prompt(t("plugin.findReplace.prompt.replace", { find }), "");
       if (replace === null) return;
-      const caseSensitive = confirm("Match case? OK = yes, Cancel = no");
-      const regex = confirm("Treat the find string as a regular expression?");
+      const caseSensitive = confirm(t("plugin.findReplace.confirm.matchCase"));
+      const regex = confirm(t("plugin.findReplace.confirm.regex"));
       const opts: ReplaceOptions = { caseSensitive, regex };
 
       const patterns = parseExcludePatterns(settingsStore.getState().excludedFiles);
@@ -87,9 +86,7 @@ export function registerVaultFindReplacePlugin(): () => void {
             const fs = yield* FileSystem;
             const files = yield* fs.listAll({ extensions: ["md"] });
             const eligible =
-              patterns.length === 0
-                ? files
-                : files.filter((f) => !isExcluded(f.path, patterns));
+              patterns.length === 0 ? files : files.filter((f) => !isExcluded(f.path, patterns));
             for (const file of eligible) {
               filesScanned += 1;
               const text = yield* fs.readText(file.path);
@@ -102,7 +99,7 @@ export function registerVaultFindReplacePlugin(): () => void {
         );
       } catch (err) {
         noticeManager.show(
-          err instanceof Error ? err.message : "Find & replace failed during scan",
+          err instanceof Error ? err.message : t("plugin.findReplace.error.scan"),
           { kind: "error" },
         );
         return;
@@ -110,20 +107,38 @@ export function registerVaultFindReplacePlugin(): () => void {
 
       if (pending.length === 0) {
         noticeManager.show(
-          `No matches across ${filesScanned} file${filesScanned === 1 ? "" : "s"}.`,
+          t("plugin.findReplace.noMatches", {
+            count: String(filesScanned),
+            fileLabel: t(
+              filesScanned === 1 ? "plugin.findReplace.file" : "plugin.findReplace.files",
+            ),
+          }),
           { kind: "info" },
         );
         return;
       }
 
       const totalCount = pending.reduce((s, p) => s + p.count, 0);
-      const previewLines = pending
-        .slice(0, 5)
-        .map((p) => `• ${p.file.path} (${p.count})`);
+      const previewLines = pending.slice(0, 5).map((p) => `• ${p.file.path} (${p.count})`);
       const suffix =
-        pending.length > 5 ? `\n…and ${pending.length - 5} more file(s)` : "";
+        pending.length > 5
+          ? `\n${t("plugin.findReplace.moreFiles", {
+              count: String(pending.length - 5),
+            })}`
+          : "";
       const okToWrite = confirm(
-        `Replace ${totalCount} occurrence${totalCount === 1 ? "" : "s"} across ${pending.length} file${pending.length === 1 ? "" : "s"}?\n\n${previewLines.join("\n")}${suffix}\n\nThis cannot be undone.`,
+        t("plugin.findReplace.confirm.write", {
+          occurrences: String(totalCount),
+          occurrenceLabel: t(
+            totalCount === 1 ? "plugin.findReplace.occurrence" : "plugin.findReplace.occurrences",
+          ),
+          files: String(pending.length),
+          fileLabel: t(
+            pending.length === 1 ? "plugin.findReplace.file" : "plugin.findReplace.files",
+          ),
+          preview: previewLines.join("\n"),
+          suffix,
+        }),
       );
       if (!okToWrite) return;
 
@@ -144,16 +159,31 @@ export function registerVaultFindReplacePlugin(): () => void {
           .slice(0, 3)
           .map((p) => `${p.count}× ${p.file.path}`)
           .join("; ");
-        const tail = pending.length > 3 ? `; …+${pending.length - 3} more` : "";
+        const tail =
+          pending.length > 3
+            ? t("plugin.findReplace.summaryTail", { count: String(pending.length - 3) })
+            : "";
         noticeManager.show(
-          `Replaced ${replaceCount} occurrence${replaceCount === 1 ? "" : "s"} in ${filesTouched} file${filesTouched === 1 ? "" : "s"} (${top}${tail}).`,
+          t("plugin.findReplace.replaced", {
+            occurrences: String(replaceCount),
+            occurrenceLabel: t(
+              replaceCount === 1
+                ? "plugin.findReplace.occurrence"
+                : "plugin.findReplace.occurrences",
+            ),
+            files: String(filesTouched),
+            fileLabel: t(
+              filesTouched === 1 ? "plugin.findReplace.file" : "plugin.findReplace.files",
+            ),
+            summary: `${top}${tail}`,
+          }),
           { kind: "success", timeoutMs: 8000 },
         );
       } catch (err) {
         noticeManager.show(
           err instanceof Error
-            ? `Find & replace failed mid-write: ${err.message}`
-            : "Find & replace failed mid-write",
+            ? t("plugin.findReplace.error.writeWithMessage", { message: err.message })
+            : t("plugin.findReplace.error.write"),
           { kind: "error" },
         );
       }

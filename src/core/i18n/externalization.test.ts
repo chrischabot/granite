@@ -679,6 +679,30 @@ const CORE_PLUGIN_UTILITY_FORBIDDEN_PATTERNS = [
   /"No recording in progress\."/,
 ];
 
+const CORE_PLUGIN_VAULT_EDIT_FORBIDDEN_PATTERNS = [
+  /name: "Find and replace across vault…"/,
+  /prompt\("Find what\?", ""\)/,
+  /Replace "\$\{find\}" with:/,
+  /"Match case\? OK = yes, Cancel = no"/,
+  /"Treat the find string as a regular expression\?"/,
+  /"Find & replace failed during scan"/,
+  /No matches across/,
+  /Replace \$\{totalCount\} occurrence/,
+  /This cannot be undone/,
+  /Replaced \$\{replaceCount\} occurrence/,
+  /Find & replace failed mid-write/,
+  /category: "Tags"/,
+  /name: "Rename a tag across the vault"/,
+  /"No tags found in vault\."/,
+  /Rename which tag\?/,
+  /"That tag name is invalid\."/,
+  /Rename #\$\{oldTag\} to:/,
+  /"That destination tag name is invalid\."/,
+  /No occurrences of #\$\{oldTag\} found/,
+  /Renamed #\$\{oldTag\}/,
+  /"Tag rename failed"/,
+];
+
 describe("UI string externalization audit", () => {
   it("keeps audited UI surfaces routed through i18n keys", () => {
     const source = readFileSync(`${process.cwd()}/src/ui/views/sidebar/SearchView.tsx`, "utf8");
@@ -1681,6 +1705,46 @@ describe("UI string externalization audit", () => {
       "plugin.audioRecorder.saved",
       "plugin.audioRecorder.error.save",
       "plugin.audioRecorder.noneRecording",
+    ]) {
+      expect(source).toContain(requiredKey);
+    }
+
+    expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
+  });
+
+  it("keeps vault editing plugin prompts and notices routed through i18n keys", () => {
+    const sources = [
+      readFileSync(`${process.cwd()}/src/core/plugins-core/vault-find-replace.ts`, "utf8"),
+      readFileSync(`${process.cwd()}/src/core/plugins-core/tag-rename.ts`, "utf8"),
+    ];
+    const source = sources.join("\n");
+    const violations = CORE_PLUGIN_VAULT_EDIT_FORBIDDEN_PATTERNS.filter((pattern) =>
+      pattern.test(source),
+    );
+
+    for (const requiredKey of [
+      "plugin.findReplace.category",
+      "plugin.findReplace.name",
+      "plugin.findReplace.prompt.find",
+      "plugin.findReplace.prompt.replace",
+      "plugin.findReplace.confirm.matchCase",
+      "plugin.findReplace.confirm.regex",
+      "plugin.findReplace.error.scan",
+      "plugin.findReplace.noMatches",
+      "plugin.findReplace.confirm.write",
+      "plugin.findReplace.replaced",
+      "plugin.findReplace.error.writeWithMessage",
+      "plugin.findReplace.error.write",
+      "plugin.tagRename.category",
+      "plugin.tagRename.name",
+      "plugin.tagRename.noTags",
+      "plugin.tagRename.prompt.from",
+      "plugin.tagRename.error.invalidSource",
+      "plugin.tagRename.prompt.to",
+      "plugin.tagRename.error.invalidDestination",
+      "plugin.tagRename.noOccurrences",
+      "plugin.tagRename.renamed",
+      "plugin.tagRename.error.rename",
     ]) {
       expect(source).toContain(requiredKey);
     }

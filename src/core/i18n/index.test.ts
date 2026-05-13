@@ -129,5 +129,24 @@ describe("i18n", () => {
     expect(t("plugin.audioRecorder.saved", { path: "attachments/a.webm" })).toBe(
       "ההקלטה נשמרה אל attachments/a.webm",
     );
+    expect(
+      t("plugin.findReplace.replaced", {
+        occurrences: "3",
+        occurrenceLabel: t("plugin.findReplace.occurrences"),
+        files: "2",
+        fileLabel: t("plugin.findReplace.files"),
+        summary: "2× A.md; 1× B.md",
+      }),
+    ).toBe("הוחלפו 3 מופעים ב-2 קבצים (2× A.md; 1× B.md).");
+    expect(
+      t("plugin.tagRename.renamed", {
+        oldTag: "old",
+        newTag: "new",
+        occurrences: "1",
+        occurrenceLabel: t("plugin.tagRename.occurrence"),
+        files: "1",
+        fileLabel: t("plugin.tagRename.file"),
+      }),
+    ).toBe("שם התגית #old שונה ל-#new (1 מופע ב-1 קובץ).");
   });
 });

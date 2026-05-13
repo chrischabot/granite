@@ -4,6 +4,28 @@
 
 ---
 
+## 2026-05-13 — Vault editing plugin i18n ratchet
+
+- **Vault editing labels** — routed Vault Find/Replace and Tag Rename command
+  names/categories through locale keys.
+- **Prompts and summaries** — routed find/replace prompts, confirmation text,
+  no-match notices, write summaries, tag-rename prompts, validation errors,
+  no-occurrence notices, success summaries, and fallback errors through i18n.
+- **Parser cleanup** — removed non-null assertions from the touched Tag Rename
+  parsing helpers while preserving the existing rewrite/count behavior.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if these vault editing plugin prompts or notices return as hard-coded
+  English literals.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, targeted Vault Find/Replace +
+  Tag Rename behavior tests, full `bun run test`, `bun run build`, and
+  `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Utility core plugin i18n ratchet
 
 - **Utility plugin labels** — routed Unique Note, Daily Notes, Vault Stats, and

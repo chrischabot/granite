@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Format Converter Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos">
+    <script type="module">
+      import { Effect, Layer } from "effect";
+      import { commandRegistry } from "@core/commands/CommandRegistry";
+      import { disposeRuntime, setAppLayer } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { extension } from "@core/fs/path";
+      import { noticeManager } from "@core/notices/notice";
+      import { registerFormatConverterPlugin } from "@core/plugins-core/format-converter";
+
+      const files = new Map([
+        [
+          "Legacy.md",
+          [
+            "---",
+            "tag: '#work'",
+            "alias: Old name",
+            "cssclass: wide-page",
+            "---",
+            "# Legacy",
+            "",
+          ].join("\n"),
+        ],
+        [
+          "Mixed.md",
+          [
+            "---",
+            "tags: [work, home]",
+            "tag: [work, deep]",
+            "---",
+            "# Mixed",
+            "",
+          ].join("\n"),
+        ],
+        ["Clean.md", "---\ntags: [kept]\n---\n# Clean\n"],
+        ["Attachment.png", "not markdown; must never be read or written"],
+      ]);
+      const reads = [];
+      const writes = [];
+
+      function fileEntry(path, content) {
+        return {
+          type: "file",
+          path,
+          name: path.split("/").pop() ?? path,
+          size: content.length,
+          mtimeMs: 0,
+          ctimeMs: 0,
+          extension: extension(path),
+        };
+      }
+
+      function makeFs() {
+        return {
+          rootName: "format-converter-browser-vault",
+          list: () => Effect.succeed([]),
+          listAll: (opts) => {
+            const extensions = new Set(opts?.extensions ?? []);
+            return Effect.succeed(
+              [...files.entries()]
+                .map(([path, content]) => fileEntry(path, content))
+                .filter((entry) => extensions.size === 0 || extensions.has(entry.extension)),
+            );
+          },
+          readText: (path) => {
+            reads.push(path);
+            const content = files.get(path);
+            return content === undefined
+              ? Effect.fail({ _tag: "FsNotFound", path })
+              : Effect.succeed(content);
+          },
+          readBytes: (path) => {
+            const content = files.get(path);
+            return content === undefined
+              ? Effect.fail({ _tag: "FsNotFound", path })
+              : Effect.succeed(new TextEncoder().encode(content));
+          },
+          writeText: (path, content) => {
+            writes.push(path);
+            files.set(path, content);
+            return Effect.void;
+          },
+          writeBytes: () => Effect.void,
+          mkdir: () => Effect.void,
+          rename: () => Effect.void,
+          remove: () => Effect.void,
+          stat: (path) => {
+            const content = files.get(path);
+            return Effect.succeed(content === undefined ? null : fileEntry(path, content));
+          },
+          watch: () => () => {},
+        };
+      }
+
+      async function run() {
+        await disposeRuntime();
+        setAppLayer(() => Layer.succeed(FileSystem, makeFs()));
+        const unregister = registerFormatConverterPlugin();
+        try {
+          await commandRegistry.run("format:migrate-legacy-properties");
+        } finally {
+          unregister();
+        }
+        const notices = noticeManager.list().map((notice) => ({
+          message: notice.message,
+          kind: notice.kind,
+        }));
+        const success = notices.find((notice) => notice.kind === "success");
+        if (!success || !success.message.includes("Migrated 4 legacy properties in 2 notes.")) {
+          throw new Error(`Unexpected migration notice: ${JSON.stringify(notices)}`);
+        }
+        if (reads.includes("Attachment.png") || writes.includes("Attachment.png")) {
+          throw new Error(`Non-Markdown file was touched: reads=${reads}; writes=${writes}`);
+        }
+        if (writes.join(",") !== "Legacy.md,Mixed.md") {
+          throw new Error(`Unexpected write set: ${writes.join(",")}`);
+        }
+        if (files.get("Clean.md") !== "---\ntags: [kept]\n---\n# Clean\n") {
+          throw new Error("Clean Markdown file was modified");
+        }
+        const legacy = files.get("Legacy.md") ?? "";
+        const mixed = files.get("Mixed.md") ?? "";
+        for (const unexpected of ["tag:", "alias:", "cssclass:"]) {
+          if (legacy.includes(unexpected) || mixed.includes(unexpected)) {
+            throw new Error(`Legacy key remained after migration: ${unexpected}`);
+          }
+        }
+        for (const expected of ["tags:", "- work", "aliases:", "- Old name", "cssclasses:", "- wide-page"]) {
+          if (!legacy.includes(expected)) throw new Error(`Legacy.md missing ${expected}: ${legacy}`);
+        }
+        for (const expected of ["- work", "- home", "- deep"]) {
+          if (!mixed.includes(expected)) throw new Error(`Mixed.md missing ${expected}: ${mixed}`);
+        }
+        await disposeRuntime();
+        return { ok: true, reads, writes, notice: success.message, legacy, mixed };
+      }
+
+      window.__graniteFormatConverterResult = run().catch((error) => ({
+        ok: false,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }));
+    </script>
+  </body>
+</html>

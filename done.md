@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Format Converter command browser verifier
+
+- **Root cause** — legacy-property migration had pure unit tests, but the
+  severe-test list still lacked command-level evidence that the registered
+  Format Converter command scans the vault correctly and reports real counts.
+- **Browser path** — added `verify:format-converter-browser`, which registers
+  the Format Converter plugin command against an in-memory vault, runs
+  `format:migrate-legacy-properties`, and verifies the success notice reports
+  4 migrated legacy properties in 2 notes.
+- **Regression guarantee** — the verifier proves every Markdown file is read,
+  only changed Markdown files are written, a clean Markdown file remains
+  byte-identical, and a non-Markdown attachment is never read or written.
+
+### Tests
+- `bun run verify:format-converter-browser`
+- `bun run test -- src/core/plugins-core/format-converter.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Properties browser verifier
 
 - **Root cause** — property formatting had unit coverage, but the severe-test

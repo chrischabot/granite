@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Graph pan transform budget ratchet
+
+- **Pan helper** — extracted graph viewport drag math and SVG transform
+  formatting into `src/core/graph/pan.ts` so the pan path has a focused,
+  non-React contract.
+- **Renderer wiring** — updated `GraphView` to use the shared transform helper
+  for the initial SVG transform, resize/view sync, and pointer-drag movement.
+- **Performance ratchet** — added `src/core/graph/pan.test.ts` to prove 10k
+  pan transform calculations stay under a single-frame budget.
+- **Tracker honesty** — recorded this as automated coverage for the imperative
+  pan path while leaving browser FPS verification open.
+
+### Tests
+- `bunx biome check --write src/core/graph/pan.ts src/core/graph/pan.test.ts src/ui/views/GraphView.tsx`
+- `bun run test src/core/graph/pan.test.ts src/core/graph/store.test.ts`
+
+---
+
 ## 2026-05-13 — Live preview DOM rendering ratchet
 
 - **Integration coverage** — extended

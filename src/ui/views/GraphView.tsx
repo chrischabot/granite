@@ -2,6 +2,7 @@ import { stem } from "@core/fs/path";
 import type { VaultFile } from "@core/fs/types";
 import { colorForString, folderColorForPath, tagColorForFile } from "@core/graph/colors";
 import { firstMatchingGroup } from "@core/graph/groups";
+import { transformForGraphViewport, viewportForPanDrag } from "@core/graph/pan";
 import {
   DEFAULT_GRAPH_CONFIG,
   type GraphColorMode,
@@ -71,9 +72,7 @@ export function GraphView() {
 
   const applyViewportTransform = useCallback(
     (next = viewRef.current) => {
-      const cx = size.w / 2 + next.x;
-      const cy = size.h / 2 + next.y;
-      viewportRef.current?.setAttribute("transform", `translate(${cx},${cy}) scale(${next.scale})`);
+      viewportRef.current?.setAttribute("transform", transformForGraphViewport(next, size));
     },
     [size],
   );
@@ -323,11 +322,7 @@ export function GraphView() {
   const onMouseMove = (e: React.MouseEvent) => {
     const drag = draggingRef.current;
     if (!drag) return;
-    viewRef.current = {
-      ...viewRef.current,
-      x: drag.viewX + (e.clientX - drag.startX),
-      y: drag.viewY + (e.clientY - drag.startY),
-    };
+    viewRef.current = viewportForPanDrag(viewRef.current, drag, e.clientX, e.clientY);
     applyViewportTransform();
   };
   const onMouseUp = () => {
@@ -356,9 +351,6 @@ export function GraphView() {
 
   const byIdRender = new Map<string, GraphNode>();
   for (const n of nodes) byIdRender.set(n.id, n);
-
-  const cx = size.w / 2 + view.x;
-  const cy = size.h / 2 + view.y;
 
   const colorFor = (n: GraphNode): string => {
     if (config.colorMode === "groups") {
@@ -395,7 +387,7 @@ export function GraphView() {
         aria-label={t("graph.aria")}
       >
         <title>{t("graph.aria")}</title>
-        <g ref={viewportRef} transform={`translate(${cx},${cy}) scale(${view.scale})`}>
+        <g ref={viewportRef} transform={transformForGraphViewport(view, size)}>
           {edges.map((e) => {
             const a = byIdRender.get(e.source);
             const b = byIdRender.get(e.target);

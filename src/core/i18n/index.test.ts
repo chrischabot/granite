@@ -117,6 +117,10 @@ describe("i18n", () => {
       t("plugin.reload.notice.reloaded", { count: "2", pluginLabel: t("plugin.reload.plugins") }),
     ).toBe("נטענו מחדש 2 תוספים.");
     expect(t("plugin.tour.open")).toBe("פתיחת הסיור בגרניט");
+    expect(t("plugin.tour.notice.created", { path: t("plugin.tour.path") })).toBe(
+      "נוצר Welcome to Granite.md.",
+    );
+    expect(t("plugin.tour.body")).toContain("# ברוכים הבאים לגרניט");
     expect(t("plugin.update.allUpToDate")).toBe("כל התוספים מעודכנים.");
     expect(t("plugin.format.noWikilinks")).toBe("אין קישורי ויקי להמרה.");
     expect(

@@ -216,7 +216,57 @@ const EN_LOCALE: LocaleMap = {
   "plugin.reload.notice.reloaded": "Reloaded {count} {pluginLabel}.",
   "plugin.tour.category": "Help",
   "plugin.tour.open": "Open Granite tour",
-  "plugin.tour.notice.created": "Created Welcome to Granite.md.",
+  "plugin.tour.path": "Welcome to Granite.md",
+  "plugin.tour.body": `---
+tags: [granite, welcome]
+---
+
+# Welcome to Granite
+
+A short tour. Edit / delete this note any time — it lives in your vault as plain Markdown.
+
+## Linking
+
+- Wikilinks resolve to other notes: \`[[Some Note]]\` · \`[[Note|alias]]\` · \`[[Note#Heading]]\` · \`[[Note#^block-id]]\`.
+- Type \`[[\` in the editor to open the autocomplete; type \`[[##\` for cross-vault heading search.
+- Hover any wikilink (in the editor or reading view) to preview the target.
+
+## Editing
+
+- Press **Mod+P** for the command palette, **Mod+O** for the quick switcher.
+- Type **/** at the start of a line in the editor for the slash-command palette.
+- Press **Mod+\\\\** to split the active tab right; **Mod+Shift+\\\\** to split down.
+- Drop or paste images / audio / video / PDFs into the editor — Granite saves them under \`attachments/\` and inserts an embed.
+
+## Reading view
+
+The view-header eye / pencil icon toggles between source mode and reading view. Reading view supports:
+
+- KaTeX math: \`$x^2 + y^2 = z^2$\`, plus block math.
+- Mermaid diagrams (\`\`\`\`mermaid\`\`\`\` fences).
+- Live query blocks (\`\`\`\`query\`\`\`\` fences) — try \`tag:granite\`.
+- Note section embeds: \`![[Welcome to Granite#Linking]]\`.
+- Footnotes, callouts (\`> [!note]\`), tasks, highlights (\`==text==\`).
+
+## Plugins
+
+\`Settings → Plugins\` lists every plugin discovered in \`.granite/plugins/\`. Plugins are
+disabled by default — Restricted Mode protects you. See the [examples](https://github.com/) for
+sample plugin sources.
+
+## Bookmarks
+
+Pick **Bookmarks** in the left sidebar; the \`+\` menu lets you bookmark the current note,
+heading, block id, or a saved search.
+
+## Files
+
+- \`Mod+Delete\` on selected file-explorer rows deletes them.
+- Drag a file onto a folder to move it; outgoing wikilinks rewrite themselves.
+
+That's the tour — happy linking!
+`,
+  "plugin.tour.notice.created": "Created {path}.",
   "plugin.tour.error.open": "Could not open tour",
   "plugin.update.incompatible":
     'Plugin "{pluginId}" requires Granite ≥ {minAppVersion}; you have {appVersion}.',
@@ -1045,7 +1095,56 @@ const builtinLocales: Record<LocaleId, LocaleMap> = {
     "plugin.reload.notice.reloaded": "נטענו מחדש {count} {pluginLabel}.",
     "plugin.tour.category": "עזרה",
     "plugin.tour.open": "פתיחת הסיור בגרניט",
-    "plugin.tour.notice.created": "נוצר Welcome to Granite.md.",
+    "plugin.tour.path": "Welcome to Granite.md",
+    "plugin.tour.body": `---
+tags: [granite, welcome]
+---
+
+# ברוכים הבאים לגרניט
+
+סיור קצר. אפשר לערוך או למחוק את ההערה הזו בכל זמן — היא חיה בכספת כ-Markdown רגיל.
+
+## קישורים
+
+- קישורי ויקי נפתחים להערות אחרות: \`[[Some Note]]\` · \`[[Note|alias]]\` · \`[[Note#Heading]]\` · \`[[Note#^block-id]]\`.
+- הקלידו \`[[\` בעורך כדי לפתוח השלמה אוטומטית; הקלידו \`[[##\` לחיפוש כותרות בכל הכספת.
+- רחפו מעל כל קישור ויקי בעורך או בתצוגת קריאה כדי לראות תצוגה מקדימה.
+
+## עריכה
+
+- לחצו **Mod+P** לפתיחת פלטת הפקודות, **Mod+O** למחליף המהיר.
+- הקלידו **/** בתחילת שורה בעורך כדי לפתוח פלטת פקודות לשורה.
+- לחצו **Mod+\\\\** לפיצול הלשונית הפעילה ימינה; **Mod+Shift+\\\\** לפיצול מטה.
+- גררו או הדביקו תמונות / אודיו / וידאו / PDF לעורך — גרניט שומר אותם תחת \`attachments/\` ומוסיף הטמעה.
+
+## תצוגת קריאה
+
+סמל העין / העיפרון בכותרת התצוגה מחליף בין מצב מקור לתצוגת קריאה. תצוגת קריאה תומכת ב:
+
+- מתמטיקת KaTeX: \`$x^2 + y^2 = z^2$\`, וגם בלוקי מתמטיקה.
+- דיאגרמות Mermaid (גדרות \`\`\`\`mermaid\`\`\`\`).
+- בלוקי חיפוש חיים (גדרות \`\`\`\`query\`\`\`\`) — נסו \`tag:granite\`.
+- הטמעות מקטעי הערה: \`![[Welcome to Granite#Linking]]\`.
+- הערות שוליים, callouts (\`> [!note]\`), משימות והדגשות (\`==text==\`).
+
+## תוספים
+
+\`Settings → Plugins\` מציג כל תוסף שנמצא ב-\`.granite/plugins/\`. תוספים כבויים כברירת מחדל —
+Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github.com/) למקורות תוסף לדוגמה.
+
+## סימניות
+
+בחרו **Bookmarks** בסרגל הצד השמאלי; תפריט \`+\` מאפשר לסמן את ההערה הנוכחית, כותרת,
+מזהה בלוק או חיפוש שמור.
+
+## קבצים
+
+- \`Mod+Delete\` על שורות נבחרות בסייר הקבצים מוחק אותן.
+- גרירת קובץ אל תיקייה מעבירה אותו; קישורי ויקי יוצאים מתעדכנים בעצמם.
+
+זה הסיור — קישור נעים!
+`,
+    "plugin.tour.notice.created": "נוצר {path}.",
     "plugin.tour.error.open": "לא ניתן לפתוח את הסיור",
     "plugin.update.incompatible":
       'התוסף "{pluginId}" דורש גרניט ≥ {minAppVersion}; אצלכם {appVersion}.',

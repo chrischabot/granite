@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Tour note i18n ratchet
+
+- **Generated tour note** — routed the built-in Tour plugin's generated note
+  filename and Markdown body through locale keys.
+- **Tour notice** — changed the creation notice to interpolate the localized
+  tour filename instead of baking it into the message.
+- **Regression audit** — extended `src/core/i18n/externalization.test.ts` to
+  fail if the Tour plugin reintroduces the hard-coded English path/body.
+
+### Tests
+- Extended `src/core/i18n/index.test.ts` and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted i18n tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Community registry error i18n ratchet
 
 - **Registry errors** — routed community-plugin registry parse and HTTP fetch

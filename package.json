@@ -27,6 +27,7 @@
     "verify:properties-browser": "node scripts/verify-properties-browser.mjs",
     "verify:format-converter-browser": "node scripts/verify-format-converter-browser.mjs",
     "verify:canvas-snap-browser": "node scripts/verify-canvas-snap-browser.mjs",
+    "verify:canvas-marquee-browser": "node scripts/verify-canvas-marquee-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

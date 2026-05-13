@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Canvas marquee browser verifier
+
+- **Root cause** — marquee, multi-select, axis-lock, and Alt/Option duplicate
+  behavior had pure helper tests, but the severe-test list still relied on
+  manual browser checks for the actual canvas pointer and keyboard flows.
+- **Browser path** — added `verify:canvas-marquee-browser`, which renders a
+  three-node canvas with an internal edge and drives real Shift-marquee,
+  Cmd/Ctrl+Backspace delete, selected-node drag, Shift-axis drag, and
+  Alt/Option-drag duplicate gestures in Chromium.
+- **JSON guarantees** — the verifier proves marquee delete removes selected
+  cards and their edge, selected drags move every selected card by the same
+  delta while leaving unselected cards fixed, axis-lock zeroes the weaker axis,
+  and duplicate creates fresh node ids plus a rewired internal edge while
+  preserving originals.
+
+### Tests
+- `bun run verify:canvas-marquee-browser`
+- `node --check scripts/verify-canvas-marquee-browser.mjs`
+- `bun run test -- src/core/canvas/interactions.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Canvas snap browser verifier
 
 - **Root cause** — canvas snap behavior had focused interaction-unit coverage,

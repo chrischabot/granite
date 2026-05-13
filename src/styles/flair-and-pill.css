@@ -49,15 +49,3 @@
     color: var(--text-muted);
   }
 }
-
-.multi-select-pill {
-  background-color: var(--pill-background);
-  border-radius: var(--pill-radius);
-  color: var(--pill-color);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--size-2-1);
-  max-width: 100%;
-  padding: var(--size-2-1) var(--size-2-3);
-  white-space: nowrap;
-}

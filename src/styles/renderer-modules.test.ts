@@ -38,6 +38,18 @@ const MODULES = [
     ],
   },
   {
+    file: "multi-select.css",
+    spec: "specs/renderer/multi-select.md",
+    selectors: [
+      ".multi-select-container",
+      ".multi-select-pill:focus::after",
+      ".multi-select-pill-content",
+      ".multi-select-pill-remove-button",
+      ".multi-select-input:empty::before",
+      ".multi-select-duplicate",
+    ],
+  },
+  {
     file: "checkbox.css",
     spec: "specs/renderer/checkbox.md",
     selectors: [
@@ -58,7 +70,7 @@ const MODULES = [
   {
     file: "flair-and-pill.css",
     spec: "specs/renderer/flair-and-pill.md",
-    selectors: [".flair.mod-pop", ".suggestion-flair", ".tree-item-flair", ".multi-select-pill"],
+    selectors: [".flair.mod-pop", ".suggestion-flair", ".tree-item-flair"],
   },
   {
     file: "notice.css",
@@ -116,5 +128,8 @@ describe("renderer CSS module coverage", () => {
     const views = readFileSync(`${STYLE_DIR}/views.css`, "utf8");
     expect(views).not.toContain("Tree item rows");
     expect(views).not.toContain(".tree-item-self {");
+
+    const flair = readFileSync(`${STYLE_DIR}/flair-and-pill.css`, "utf8");
+    expect(flair).not.toContain(".multi-select-pill {");
   });
 });

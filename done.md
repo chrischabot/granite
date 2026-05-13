@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Renderer multi-select CSS module
+
+- **Dedicated module** — extracted multi-select container, pill, remove button,
+  input placeholder, focus ring, and duplicate-flash styles into spec-linked
+  `src/styles/multi-select.css`.
+- **Token completion** — added the pill focus sizing tokens documented by the
+  renderer spec.
+- **Regression audit** — extended the renderer module test so multi-select
+  styles stay imported, spec-linked, and out of the flair-only module.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: targeted style tests, full `bun run test`, `bun run build`,
+  and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer tree item CSS module
 
 - **Dedicated module** — extracted the shared tree row primitive into

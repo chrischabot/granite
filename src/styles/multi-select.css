@@ -1,0 +1,99 @@
+/* SPEC: specs/renderer/multi-select.md */
+
+.multi-select-container {
+  cursor: text;
+  display: inline-flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--size-2-3);
+  min-height: var(--input-height);
+  vertical-align: top;
+}
+
+.multi-select-pill {
+  --icon-size: var(--icon-xs);
+  --icon-stroke: var(--icon-xs-stroke-width);
+  align-items: center;
+  background-color: var(--pill-background);
+  border: var(--pill-border-width) solid var(--pill-border-color);
+  border-radius: var(--pill-radius);
+  color: var(--pill-color);
+  cursor: var(--cursor);
+  display: flex;
+  font-weight: var(--pill-weight);
+  gap: var(--size-2-1);
+  line-height: 1;
+  max-width: calc(100% - var(--size-2-3) - 1ch);
+  padding: var(--pill-padding-y) 0;
+  position: relative;
+}
+
+.multi-select-pill:focus::after {
+  border-radius: var(--pill-radius);
+  box-shadow: 0 0 0 1px var(--background-modifier-border-focus), inset 0 0 0 1px
+    var(--background-modifier-border-focus);
+  content: "";
+  display: block;
+  height: 100%;
+  inset-inline-end: var(--pill-focus-left-adjust);
+  pointer-events: none;
+  position: absolute;
+  width: var(--pill-focus-width);
+}
+
+@media (hover: hover) {
+  .multi-select-pill:hover {
+    background-color: var(--pill-background-hover);
+    border: var(--pill-border-width) solid var(--pill-border-color-hover);
+    color: var(--pill-color-hover);
+    text-decoration: var(--pill-decoration-hover);
+  }
+}
+
+.multi-select-pill-content {
+  margin-inline-start: var(--pill-padding-x);
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.multi-select-pill-remove-button {
+  --icon-size: var(--icon-xs);
+  --icon-stroke: var(--icon-xs-stroke-width);
+  align-items: center;
+  border-radius: var(--radius-s);
+  color: var(--pill-color-remove);
+  cursor: var(--cursor);
+  display: flex;
+  margin-inline-end: min(var(--size-2-3), var(--pill-padding-x));
+}
+
+@media (hover: hover) {
+  .multi-select-pill-remove-button:hover {
+    color: var(--pill-color-remove-hover);
+  }
+}
+
+.multi-select-input {
+  background-color: inherit;
+  border: none;
+  color: var(--text-normal);
+  cursor: text;
+  font-family: var(--font-interface);
+  max-width: max-content;
+  min-width: 1ch;
+  word-break: break-word;
+}
+
+.multi-select-input::-webkit-scrollbar {
+  display: none;
+}
+
+.multi-select-input:empty::before {
+  color: var(--input-placeholder-color);
+  content: attr(placeholder, "\200B");
+  pointer-events: none;
+}
+
+.multi-select-duplicate {
+  animation: multi-select-highlight 2000ms ease-in;
+}

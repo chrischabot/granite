@@ -117,6 +117,11 @@ describe("computeLivePreviewRanges", () => {
     expect(hiddenSlices(text, -1)).toEqual(["**", "**"]);
   });
 
+  it("skips formatting inside same-line HTML elements", () => {
+    const text = "<div>**not bold** and [[not a link]]</div> then **bold**";
+    expect(hiddenSlices(text, -1)).toEqual(["**", "**"]);
+  });
+
   it("does not hide escaped inline formatting markers", () => {
     const text = String.raw`\**bold** \*italic* \==mark== \~~gone~~ \$math$ then **real**`;
     expect(hiddenSlices(text, -1)).toEqual(["**", "**"]);

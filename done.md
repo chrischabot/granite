@@ -127,6 +127,24 @@
 
 ---
 
+## 2026-05-13 — Live Preview HTML no-parse ratchet
+
+- **Root cause** — `07_markdown_syntax.md` says Markdown inside HTML
+  elements is intentionally not parsed, but the Live Preview decorator still
+  hid formatting and wikilink markers inside same-line HTML elements such as
+  `<div>**not bold** and [[not a link]]</div>`.
+- **Decoration path** — added same-line HTML element ranges to the ignored
+  inline zones used by formatting, links, comments, and math decoration. Code
+  spans and HTML elements now share the same "leave source raw" guard.
+- **Tracker honesty** — kept the Live Preview TODO open because this adds a
+  source-level spec ratchet, not the outstanding browser/manual verification.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview block-id marker ratchet
 
 - **Root cause** — `07_markdown_syntax.md` defines `^id` block-reference

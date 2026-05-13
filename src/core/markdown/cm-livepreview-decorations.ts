@@ -155,6 +155,15 @@ function codeSpanRanges(line: string): Array<[number, number]> {
   return ranges;
 }
 
+function htmlElementRanges(line: string): Array<[number, number]> {
+  const ranges: Array<[number, number]> = [];
+  const re = /<([A-Za-z][A-Za-z0-9-]*)(?:\s[^<>]*)?>.*?<\/\1>/g;
+  forEachMatch(re, line, (m) => {
+    ranges.push([m.index, m.index + m[0].length]);
+  });
+  return ranges;
+}
+
 /**
  * Compute which character ranges should be hidden on each non-cursor line.
  * Exported pure function for test coverage. Positions are 0-based document
@@ -232,9 +241,9 @@ export function computeLivePreviewRanges(
 
     // Inline-code spans on this line — record their (start, end) pairs so we
     // can skip formatting inside them.
-    const codeSpans = codeSpanRanges(line);
-    const overlapsCode = (start: number, end: number): boolean =>
-      codeSpans.some(([s, e]) => start < e && end > s);
+    const ignoredInlineSpans = [...codeSpanRanges(line), ...htmlElementRanges(line)];
+    const overlapsIgnoredInline = (start: number, end: number): boolean =>
+      ignoredInlineSpans.some(([s, e]) => start < e && end > s);
 
     const headingMatch = line.match(HEADING_RE);
     if (headingMatch) {
@@ -286,7 +295,11 @@ export function computeLivePreviewRanges(
     forEachMatch(BOLD_ITALIC_STAR_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 3)) {
+      if (
+        overlapsIgnoredInline(idx, idx + len) ||
+        isEscaped(line, idx) ||
+        isEscaped(line, idx + len - 3)
+      ) {
         return;
       }
       addReplace(idx, idx + 3);
@@ -296,7 +309,11 @@ export function computeLivePreviewRanges(
     forEachMatch(BOLD_ITALIC_UNDERSCORE_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 3)) {
+      if (
+        overlapsIgnoredInline(idx, idx + len) ||
+        isEscaped(line, idx) ||
+        isEscaped(line, idx + len - 3)
+      ) {
         return;
       }
       addReplace(idx, idx + 3);
@@ -307,9 +324,9 @@ export function computeLivePreviewRanges(
     // A delimiter scan is used for asterisk bold so nested italic like
     // `**strong *em* text**` still hides the outer bold markers.
     for (let start = 0; start < line.length; start++) {
-      if (!isDoubleAsteriskMarker(line, start) || overlapsCode(start, start + 2)) continue;
+      if (!isDoubleAsteriskMarker(line, start) || overlapsIgnoredInline(start, start + 2)) continue;
       for (let end = start + 2; end < line.length; end++) {
-        if (!isDoubleAsteriskMarker(line, end) || overlapsCode(end, end + 2)) continue;
+        if (!isDoubleAsteriskMarker(line, end) || overlapsIgnoredInline(end, end + 2)) continue;
         addReplace(start, start + 2);
         addReplace(end, end + 2);
         start = end + 1;
@@ -318,9 +335,10 @@ export function computeLivePreviewRanges(
     }
 
     for (let start = 0; start < line.length; start++) {
-      if (!isDoubleUnderscoreMarker(line, start) || overlapsCode(start, start + 2)) continue;
+      if (!isDoubleUnderscoreMarker(line, start) || overlapsIgnoredInline(start, start + 2))
+        continue;
       for (let end = start + 2; end < line.length; end++) {
-        if (!isDoubleUnderscoreMarker(line, end) || overlapsCode(end, end + 2)) continue;
+        if (!isDoubleUnderscoreMarker(line, end) || overlapsIgnoredInline(end, end + 2)) continue;
         addReplace(start, start + 2);
         addReplace(end, end + 2);
         start = end + 1;
@@ -333,9 +351,9 @@ export function computeLivePreviewRanges(
     // content regex so nested bold like `*em **strong** text*` still hides the
     // outer italic markers.
     for (let start = 0; start < line.length; start++) {
-      if (!isSingleAsteriskMarker(line, start) || overlapsCode(start, start + 1)) continue;
+      if (!isSingleAsteriskMarker(line, start) || overlapsIgnoredInline(start, start + 1)) continue;
       for (let end = start + 1; end < line.length; end++) {
-        if (!isSingleAsteriskMarker(line, end) || overlapsCode(end, end + 1)) continue;
+        if (!isSingleAsteriskMarker(line, end) || overlapsIgnoredInline(end, end + 1)) continue;
         addReplace(start, start + 1);
         addReplace(end, end + 1);
         start = end;
@@ -347,7 +365,11 @@ export function computeLivePreviewRanges(
     forEachMatch(HIGHLIGHT_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 2)) {
+      if (
+        overlapsIgnoredInline(idx, idx + len) ||
+        isEscaped(line, idx) ||
+        isEscaped(line, idx + len - 2)
+      ) {
         return;
       }
       addReplace(idx, idx + 2);
@@ -358,7 +380,11 @@ export function computeLivePreviewRanges(
     forEachMatch(STRIKE_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 2)) {
+      if (
+        overlapsIgnoredInline(idx, idx + len) ||
+        isEscaped(line, idx) ||
+        isEscaped(line, idx + len - 2)
+      ) {
         return;
       }
       addReplace(idx, idx + 2);
@@ -372,7 +398,7 @@ export function computeLivePreviewRanges(
       if (
         !isSingleUnderscoreCandidate(line, start) ||
         isWordChar(line[start - 1]) ||
-        overlapsCode(start, start + 1)
+        overlapsIgnoredInline(start, start + 1)
       ) {
         continue;
       }
@@ -380,7 +406,7 @@ export function computeLivePreviewRanges(
         if (
           !isSingleUnderscoreCandidate(line, end) ||
           isWordChar(line[end + 1]) ||
-          overlapsCode(end, end + 1)
+          overlapsIgnoredInline(end, end + 1)
         ) {
           continue;
         }
@@ -400,7 +426,7 @@ export function computeLivePreviewRanges(
       if (!parts.target) return;
       const fullStart = m.index;
       const fullEnd = fullStart + m[0].length;
-      if (overlapsCode(fullStart, fullEnd)) return;
+      if (overlapsIgnoredInline(fullStart, fullEnd)) return;
       const openLen = isEmbed ? 3 : 2;
       // Opening `[[` (preceded by optional `!`).
       addReplace(fullStart, fullStart + openLen);
@@ -421,7 +447,7 @@ export function computeLivePreviewRanges(
       const isEmbed = m[1] === "!";
       const fullStart = m.index;
       const fullEnd = fullStart + m[0].length;
-      if (overlapsCode(fullStart, fullEnd)) return;
+      if (overlapsIgnoredInline(fullStart, fullEnd)) return;
       const label = m[2];
       if (!label) return;
       const openLen = isEmbed ? 2 : 1;
@@ -436,7 +462,7 @@ export function computeLivePreviewRanges(
     forEachMatch(COMMENT_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len)) return;
+      if (overlapsIgnoredInline(idx, idx + len)) return;
       addReplace(idx, idx + 2);
       addReplace(idx + len - 2, idx + len);
     });
@@ -444,7 +470,11 @@ export function computeLivePreviewRanges(
     forEachMatch(INLINE_MATH_RE, line, (m) => {
       const idx = m.index;
       const len = m[0].length;
-      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 1)) {
+      if (
+        overlapsIgnoredInline(idx, idx + len) ||
+        isEscaped(line, idx) ||
+        isEscaped(line, idx + len - 1)
+      ) {
         return;
       }
       addReplace(idx, idx + 1);

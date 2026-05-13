@@ -4,6 +4,21 @@
 
 ---
 
+## 2026-05-13 — Renderer scrollbar CSS module
+
+- **Dedicated module** — added spec-linked `src/styles/scrollbars.css` for
+  styled scrollbars, Android geometry, Firefox fallback, screenshot hiding,
+  print hiding, and always-hidden scroll surfaces.
+- **Regression audit** — extended the renderer module test so scrollbar styles
+  stay imported and spec-linked.
+
+### Tests
+- Extended `src/styles/renderer-modules.test.ts`.
+- Validation: Biome check, targeted style tests, full `bun run test`,
+  `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Renderer multi-select CSS module
 
 - **Dedicated module** — extracted multi-select container, pill, remove button,

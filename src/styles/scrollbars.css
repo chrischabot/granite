@@ -1,0 +1,71 @@
+/* SPEC: specs/renderer/scrollbars.md */
+
+.is-android {
+  --scrollbar-border-width: 0;
+  --scrollbar-height: 5px;
+  --scrollbar-radius: 0;
+  --scrollbar-width: 5px;
+}
+
+.view-header-title::-webkit-scrollbar,
+.help-options-container::-webkit-scrollbar,
+.open-vault-options-container::-webkit-scrollbar {
+  display: none;
+}
+
+.graph-controls::-webkit-scrollbar,
+.graph-controls::-webkit-scrollbar-thumb,
+.search-params::-webkit-scrollbar,
+.search-params::-webkit-scrollbar-thumb {
+  display: none;
+}
+
+body.is-screenshotting *::-webkit-scrollbar {
+  display: none;
+}
+
+body.styled-scrollbars ::-webkit-scrollbar {
+  background-color: transparent;
+  border-radius: var(--scrollbar-radius);
+  height: var(--scrollbar-height);
+  width: var(--scrollbar-width);
+}
+
+body.styled-scrollbars ::-webkit-scrollbar-track {
+  background-color: transparent;
+}
+
+body.styled-scrollbars ::-webkit-scrollbar-thumb {
+  background-clip: padding-box;
+  background-color: var(--scrollbar-thumb-bg);
+  border: 2px solid transparent;
+  border-radius: var(--scrollbar-radius);
+  border-width: var(--scrollbar-border-width);
+  min-height: 45px;
+}
+
+body.styled-scrollbars ::-webkit-scrollbar-thumb:active {
+  border-radius: var(--scrollbar-radius);
+}
+
+body.styled-scrollbars ::-webkit-scrollbar-thumb:hover,
+body.styled-scrollbars ::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-active-thumb-bg);
+}
+
+body.styled-scrollbars ::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@supports not selector(::-webkit-scrollbar) {
+  body.styled-scrollbars {
+    scrollbar-color: var(--scrollbar-thumb-bg) var(--scrollbar-bg);
+    scrollbar-width: thin;
+  }
+}
+
+@media print {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}

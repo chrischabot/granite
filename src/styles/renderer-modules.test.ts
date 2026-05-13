@@ -95,6 +95,18 @@ const MODULES = [
       ".drop-indicator:not(.is-active)",
     ],
   },
+  {
+    file: "scrollbars.css",
+    spec: "specs/renderer/scrollbars.md",
+    selectors: [
+      ".is-android",
+      "body.is-screenshotting *::-webkit-scrollbar",
+      "body.styled-scrollbars ::-webkit-scrollbar-thumb",
+      "body.styled-scrollbars ::-webkit-scrollbar-corner",
+      "@supports not selector(::-webkit-scrollbar)",
+      "@media print",
+    ],
+  },
 ] as const;
 
 describe("renderer CSS module coverage", () => {

@@ -17,7 +17,7 @@
 - [x] Vim key bindings (CM6 vim addon) ← _shipped 2026-05-12 Phase 12 sweep_
 - [x] Multi-cursor (Alt+click) + rectangular Alt-drag ← _shipped 2026-05-12 Phase 12 sweep_
 - [x] Code folding (heading + indent) with persisted fold state ← _shipped 2026-05-12 Phase 12 sweep_
-- [ ] Full live-preview decoration replacement (table cells, nested/block-level marker cases, escaped marker handling, multi-backtick code spans, and custom task markers shipped; DOM-level CodeMirror rendering ratchet shipped 2026-05-13; browser verification remains)
+- [ ] Full live-preview decoration replacement (table cells, nested/block-level marker cases, escaped marker handling, multi-backtick code spans, custom task markers, and nested bold-inside-asterisk-italic ratchet shipped; DOM-level CodeMirror rendering ratchet shipped 2026-05-13; browser verification remains)
 
 ### §24.3 Parser fidelity — Phase 14
 - [x] CommonMark conformance harness ← _shipped 2026-05-12 official 0.31.2 suite_

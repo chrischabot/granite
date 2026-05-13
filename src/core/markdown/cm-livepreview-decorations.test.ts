@@ -72,6 +72,11 @@ describe("computeLivePreviewRanges", () => {
     expect(slices).toEqual(["**", "**"]);
   });
 
+  it("hides nested bold markers inside asterisk italic", () => {
+    const slices = hiddenSlices("very *important **nested** text* now", -1);
+    expect(slices).toEqual(["*", "**", "**", "*"]);
+  });
+
   it("does not match underscores inside identifiers", () => {
     expect(hiddenSlices("foo_bar_baz", -1)).toEqual([]);
     expect(hiddenSlices("snake_case", -1)).toEqual([]);

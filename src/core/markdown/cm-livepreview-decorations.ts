@@ -12,7 +12,6 @@ const BOLD_RE = /\*\*([^*\n]+)\*\*/g;
 const UNDERSCORE_BOLD_RE = /__([^_\n]+)__/g;
 const BOLD_ITALIC_STAR_RE = /\*\*\*([^*\n]+)\*\*\*/g;
 const BOLD_ITALIC_UNDERSCORE_RE = /___([^_\n]+)___/g;
-const ASTERISK_ITALIC_RE = /(?<!\*)\*([^*\n]+)\*(?!\*)/g;
 const HIGHLIGHT_RE = /==([^=\n]+)==/g;
 const STRIKE_RE = /~~([^~\n]+)~~/g;
 const UNDERSCORE_ITALIC_RE = /(?<![A-Za-z0-9_])_([^_\n]+)_(?![A-Za-z0-9_])/g;
@@ -82,6 +81,15 @@ function isEscaped(line: string, index: number): boolean {
   let slashCount = 0;
   for (let i = index - 1; i >= 0 && line[i] === "\\"; i--) slashCount += 1;
   return slashCount % 2 === 1;
+}
+
+function isSingleAsteriskMarker(line: string, index: number): boolean {
+  return (
+    line[index] === "*" &&
+    line[index - 1] !== "*" &&
+    line[index + 1] !== "*" &&
+    !isEscaped(line, index)
+  );
 }
 
 function codeSpanRanges(line: string): Array<[number, number]> {
@@ -277,16 +285,19 @@ export function computeLivePreviewRanges(
     });
 
     // Asterisk italic: *word* — hide the single `*` markers without matching
-    // the markers inside `**bold**`.
-    forEachMatch(ASTERISK_ITALIC_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (overlapsCode(idx, idx + len) || isEscaped(line, idx) || isEscaped(line, idx + len - 1)) {
-        return;
+    // the markers inside `**bold**`. A delimiter scan is used instead of a
+    // content regex so nested bold like `*em **strong** text*` still hides the
+    // outer italic markers.
+    for (let start = 0; start < line.length; start++) {
+      if (!isSingleAsteriskMarker(line, start) || overlapsCode(start, start + 1)) continue;
+      for (let end = start + 1; end < line.length; end++) {
+        if (!isSingleAsteriskMarker(line, end) || overlapsCode(end, end + 1)) continue;
+        addReplace(start, start + 1);
+        addReplace(end, end + 1);
+        start = end;
+        break;
       }
-      addReplace(idx, idx + 1);
-      addReplace(idx + len - 1, idx + len);
-    });
+    }
 
     // Highlight: ==text== — hide the opening and closing `==` markers.
     forEachMatch(HIGHLIGHT_RE, line, (m) => {

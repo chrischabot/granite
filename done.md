@@ -127,6 +127,27 @@
 
 ---
 
+## 2026-05-13 — Live Preview nested asterisk-emphasis ratchet
+
+- **Root cause** — the Live Preview helper used a content regex for
+  `*italic*`, so any italic span containing nested `**bold**` markers failed
+  to hide the outer italic delimiters even though the inner bold delimiters
+  were hidden.
+- **Decoration path** — replaced the single-asterisk regex with a delimiter
+  scan that only accepts standalone, unescaped `*` markers outside inline code
+  spans. This preserves the existing `**bold**` guard while allowing
+  `*important **nested** text*` to hide both outer italic and inner bold
+  chrome.
+- **Tracker honesty** — left the Live Preview completion item open because
+  this closes one nested marker gap in the unit ratchet, not the remaining
+  browser/manual verification.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview escaped marker and code-span ratchet
 
 - **Root cause** — the Live Preview decoration helper skipped single-backtick

@@ -24,6 +24,7 @@
     "verify:sidebar-central-browser": "node scripts/verify-sidebar-central-browser.mjs",
     "verify:sidebar-groups-browser": "node scripts/verify-sidebar-groups-browser.mjs",
     "verify:tags-browser": "node scripts/verify-tags-browser.mjs",
+    "verify:properties-browser": "node scripts/verify-properties-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

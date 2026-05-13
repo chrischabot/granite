@@ -4,6 +4,27 @@
 
 ---
 
+## 2026-05-13 — Properties browser verifier
+
+- **Root cause** — property formatting had unit coverage, but the severe-test
+  list still relied on manual browser checks to prove Reading mode displays
+  localized Date and Date & time properties while Source mode keeps canonical
+  YAML.
+- **Browser path** — added `verify:properties-browser`, which runs Chromium in
+  `en-GB`, indexes a note with date, datetime, and wikilink frontmatter,
+  renders `ReadingView`, and verifies the properties strip shows localized
+  values instead of raw ISO datetime text.
+- **Source guarantee** — the same fixture renders `MarkdownView` in Source mode
+  and verifies `date: 2024-01-05`, `meeting: 2024-01-05T10:30:00Z`, and the
+  quoted wikilink remain intact.
+
+### Tests
+- `bun run verify:properties-browser`
+- `bun run test -- src/core/metadata/property-format.test.ts src/core/metadata/frontmatter.test.ts src/ui/views/ReadingView.test.tsx`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Tags browser verifier
 
 - **Root cause** — nested tag behavior had model and metadata tests, but the

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Properties Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect, Layer } from "effect";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { extension } from "@core/fs/path";
+      import { disposeRuntime, setAppLayer } from "@core/effect/runtime";
+      import { metadataCache } from "@core/metadata/cache";
+      import { MarkdownView } from "@/ui/views/MarkdownView";
+      import { ReadingView } from "@/ui/views/ReadingView";
+
+      const TEST_PATH = "Properties.md";
+      const TEST_CONTENT = [
+        "---",
+        "date: 2024-01-05",
+        "meeting: 2024-01-05T10:30:00Z",
+        "link: \"[[2024-01-05]]\"",
+        "---",
+        "# Properties",
+        "",
+        "Body text.",
+        "",
+      ].join("\n");
+
+      function fileEntry(path, content) {
+        return {
+          type: "file",
+          path,
+          name: path.split("/").pop() ?? path,
+          size: content.length,
+          mtimeMs: 0,
+          ctimeMs: 0,
+          extension: extension(path),
+        };
+      }
+
+      function makeFs() {
+        return {
+          rootName: "properties-browser-vault",
+          list: () => Effect.succeed([]),
+          listAll: (opts) => {
+            const extensions = new Set(opts?.extensions ?? []);
+            const entry = fileEntry(TEST_PATH, TEST_CONTENT);
+            return Effect.succeed(extensions.size === 0 || extensions.has(entry.extension) ? [entry] : []);
+          },
+          readText: (path) =>
+            path === TEST_PATH
+              ? Effect.succeed(TEST_CONTENT)
+              : Effect.fail({ _tag: "FsNotFound", path }),
+          readBytes: (path) =>
+            path === TEST_PATH
+              ? Effect.succeed(new TextEncoder().encode(TEST_CONTENT))
+              : Effect.fail({ _tag: "FsNotFound", path }),
+          writeText: () => Effect.void,
+          writeBytes: () => Effect.void,
+          mkdir: () => Effect.void,
+          rename: () => Effect.void,
+          remove: () => Effect.void,
+          stat: (path) =>
+            Effect.succeed(path === TEST_PATH ? fileEntry(TEST_PATH, TEST_CONTENT) : null),
+          watch: () => () => {},
+        };
+      }
+
+      const root = createRoot(document.querySelector("#root"));
+
+      function render(element) {
+        root.render(element);
+      }
+
+      function waitFor(predicate, description) {
+        const started = performance.now();
+        return new Promise((resolve, reject) => {
+          const tick = () => {
+            if (predicate()) {
+              resolve();
+              return;
+            }
+            if (performance.now() - started > 3000) {
+              reject(new Error(`Timed out waiting for ${description}`));
+              return;
+            }
+            requestAnimationFrame(tick);
+          };
+          tick();
+        });
+      }
+
+      async function run() {
+        await disposeRuntime();
+        setAppLayer(() => Layer.succeed(FileSystem, makeFs()));
+        metadataCache.reset();
+        await metadataCache.indexVault();
+
+        render(React.createElement(ReadingView, { path: TEST_PATH }));
+        await waitFor(() => document.querySelector(".properties-strip"), "properties strip");
+        const stripText = document.querySelector(".properties-strip")?.textContent ?? "";
+        if (!stripText.includes("date") || !stripText.includes("5 Jan 2024")) {
+          throw new Error(`Reading properties strip did not localize date: ${stripText}`);
+        }
+        if (!stripText.includes("meeting") || !stripText.includes("5 Jan 2024") || !stripText.includes("10:30")) {
+          throw new Error(`Reading properties strip did not localize datetime: ${stripText}`);
+        }
+        if (stripText.includes("2024-01-05T10:30:00Z")) {
+          throw new Error(`Reading properties strip exposed raw ISO datetime: ${stripText}`);
+        }
+
+        render(
+          React.createElement(MarkdownView, {
+            leafId: "properties-source",
+            path: TEST_PATH,
+            livePreview: false,
+          }),
+        );
+        await waitFor(() => document.querySelector(".cm-content"), "source editor");
+        const sourceText = document.querySelector(".cm-content")?.textContent ?? "";
+        for (const expected of [
+          "date: 2024-01-05",
+          "meeting: 2024-01-05T10:30:00Z",
+          'link: "[[2024-01-05]]"',
+        ]) {
+          if (!sourceText.includes(expected)) {
+            throw new Error(`Source mode lost canonical YAML "${expected}": ${sourceText}`);
+          }
+        }
+
+        await disposeRuntime();
+        return { ok: true, stripText, sourceText };
+      }
+
+      window.__granitePropertiesBrowserResult = run().catch((error) => ({
+        ok: false,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }));
+    </script>
+  </body>
+</html>

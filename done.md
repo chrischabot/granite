@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Bookmarks add-menu keyboard navigation
+
+- **Root cause** — the Bookmarks sidebar used a local inline add menu instead
+  of the shared `MenuHost`, so the previous shared-menu keyboard fix did not
+  cover this surface.
+- **Keyboard path** — added roving focus, ArrowUp/ArrowDown wrapping, Home/End
+  jumps, Escape close-and-return-focus, and trigger `aria-haspopup` /
+  `aria-expanded` state for the Bookmarks add menu.
+- **Regression ratchet** — added `src/ui/views/sidebar/BookmarksView.test.tsx`
+  to prove the menu focus contract and Escape focus restoration.
+- **Tracker honesty** — recorded this as another keyboard-only improvement
+  while leaving the full browser/manual keyboard audit open.
+
+### Tests
+- `bun run test -- src/ui/views/sidebar/BookmarksView.test.tsx`
+
+---
+
 ## 2026-05-13 — Locale-aware date token formatting
 
 - **Root cause** — Daily Notes and Templates supported `MMMM`/`MMM`/`dddd`/`ddd`

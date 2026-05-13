@@ -18,7 +18,16 @@ import {
   SquareStack,
   Trash2,
 } from "lucide-react";
-import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { setSearchQuery } from "./SearchView";
 
 type BookmarkKind = "file" | "heading" | "block" | "search";
@@ -141,7 +150,10 @@ export function BookmarksView() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [activeGroup, setActiveGroup] = useState<string>(DEFAULT_GROUP);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeMenuIndex, setActiveMenuIndex] = useState(0);
+  const addMenuButtonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuItemRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const t = useI18n();
   const displayGroupName = useCallback(
     (name: string) => (name === DEFAULT_GROUP ? t("bookmarks.defaultGroup") : name),
@@ -200,6 +212,19 @@ export function BookmarksView() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) {
+      menuItemRefs.current.length = 0;
+      return;
+    }
+    setActiveMenuIndex(0);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    menuItemRefs.current[activeMenuIndex]?.focus();
+  }, [menuOpen, activeMenuIndex]);
 
   const groupedBookmarks = useMemo(() => {
     const map = new Map<string, Bookmark[]>();
@@ -356,6 +381,81 @@ export function BookmarksView() {
     return [...set];
   }, [bookmarks, extraGroups]);
 
+  const bookmarkMenuItems = useMemo(
+    () => [
+      {
+        id: "current-note",
+        icon: <BookmarkPlus size={14} />,
+        label: t("bookmarks.menu.currentNote"),
+        action: addFile,
+      },
+      {
+        id: "current-heading",
+        icon: <Heading size={14} />,
+        label: t("bookmarks.menu.currentHeading"),
+        action: addHeading,
+      },
+      {
+        id: "block",
+        icon: <SquareStack size={14} />,
+        label: t("bookmarks.menu.block"),
+        action: addBlock,
+      },
+      {
+        id: "search",
+        icon: <SearchIcon size={14} />,
+        label: t("bookmarks.menu.search"),
+        action: addSearch,
+      },
+      {
+        id: "new-group",
+        icon: <FolderPlus size={14} />,
+        label: t("bookmarks.menu.newGroup"),
+        action: addGroup,
+        separated: true,
+      },
+    ],
+    [addFile, addHeading, addBlock, addSearch, addGroup, t],
+  );
+
+  const activateMenuItem = useCallback(
+    (index: number) => {
+      const item = bookmarkMenuItems[index];
+      if (!item) return;
+      item.action();
+      setMenuOpen(false);
+      addMenuButtonRef.current?.focus();
+    },
+    [bookmarkMenuItems],
+  );
+
+  const onMenuKeyDown = useCallback(
+    (e: ReactKeyboardEvent<HTMLDivElement>) => {
+      if (bookmarkMenuItems.length === 0) return;
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMenuOpen(false);
+        addMenuButtonRef.current?.focus();
+      } else if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setActiveMenuIndex((i) => (i + 1) % bookmarkMenuItems.length);
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setActiveMenuIndex((i) => (i - 1 + bookmarkMenuItems.length) % bookmarkMenuItems.length);
+      } else if (e.key === "Home") {
+        e.preventDefault();
+        setActiveMenuIndex(0);
+      } else if (e.key === "End") {
+        e.preventDefault();
+        setActiveMenuIndex(bookmarkMenuItems.length - 1);
+      } else if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        activateMenuItem(activeMenuIndex);
+      }
+    },
+    [activateMenuItem, activeMenuIndex, bookmarkMenuItems.length],
+  );
+
   return (
     <div className="bookmark-pane">
       <div
@@ -364,7 +464,10 @@ export function BookmarksView() {
       >
         <div ref={menuRef} style={{ position: "relative", display: "flex", alignItems: "center" }}>
           <ClickableIcon
+            ref={addMenuButtonRef}
             ariaLabel={t("bookmarks.add")}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
             icon={
               <span style={{ display: "inline-flex", alignItems: "center" }}>
                 <BookmarkPlus />
@@ -377,6 +480,7 @@ export function BookmarksView() {
             <div
               className="menu"
               role="menu"
+              onKeyDown={onMenuKeyDown}
               style={{
                 position: "absolute",
                 top: "100%",
@@ -387,82 +491,26 @@ export function BookmarksView() {
               }}
             >
               <div className="menu-scroll">
-                <button
-                  type="button"
-                  className="menu-item"
-                  role="menuitem"
-                  style={MENU_BUTTON_STYLE}
-                  onClick={() => {
-                    addFile();
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="menu-item-icon">
-                    <BookmarkPlus size={14} />
-                  </span>
-                  <span className="menu-item-title">{t("bookmarks.menu.currentNote")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="menu-item"
-                  role="menuitem"
-                  style={MENU_BUTTON_STYLE}
-                  onClick={() => {
-                    addHeading();
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="menu-item-icon">
-                    <Heading size={14} />
-                  </span>
-                  <span className="menu-item-title">{t("bookmarks.menu.currentHeading")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="menu-item"
-                  role="menuitem"
-                  style={MENU_BUTTON_STYLE}
-                  onClick={() => {
-                    addBlock();
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="menu-item-icon">
-                    <SquareStack size={14} />
-                  </span>
-                  <span className="menu-item-title">{t("bookmarks.menu.block")}</span>
-                </button>
-                <button
-                  type="button"
-                  className="menu-item"
-                  role="menuitem"
-                  style={MENU_BUTTON_STYLE}
-                  onClick={() => {
-                    addSearch();
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="menu-item-icon">
-                    <SearchIcon size={14} />
-                  </span>
-                  <span className="menu-item-title">{t("bookmarks.menu.search")}</span>
-                </button>
-                <div className="menu-separator" />
-                <button
-                  type="button"
-                  className="menu-item"
-                  role="menuitem"
-                  style={MENU_BUTTON_STYLE}
-                  onClick={() => {
-                    addGroup();
-                    setMenuOpen(false);
-                  }}
-                >
-                  <span className="menu-item-icon">
-                    <FolderPlus size={14} />
-                  </span>
-                  <span className="menu-item-title">{t("bookmarks.menu.newGroup")}</span>
-                </button>
+                {bookmarkMenuItems.map((item, index) => (
+                  <Fragment key={item.id}>
+                    {item.separated && <div className="menu-separator" />}
+                    <button
+                      type="button"
+                      ref={(node) => {
+                        menuItemRefs.current[index] = node;
+                      }}
+                      className={`menu-item${activeMenuIndex === index ? " selected" : ""}`}
+                      role="menuitem"
+                      tabIndex={activeMenuIndex === index ? 0 : -1}
+                      style={MENU_BUTTON_STYLE}
+                      onMouseEnter={() => setActiveMenuIndex(index)}
+                      onClick={() => activateMenuItem(index)}
+                    >
+                      <span className="menu-item-icon">{item.icon}</span>
+                      <span className="menu-item-title">{item.label}</span>
+                    </button>
+                  </Fragment>
+                ))}
               </div>
             </div>
           )}

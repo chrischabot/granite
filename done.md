@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Locale-bound property date pickers
+
+- **Root cause** — Properties sidebar date and datetime inputs used native
+  picker controls without a `lang` attribute, so the browser could not render
+  those controls using Granite's active locale.
+- **Locale path** — subscribed `PropertiesView` to the i18n locale and passed
+  it to `type="date"` and `type="datetime-local"` inputs.
+- **Regression ratchet** — added `src/ui/views/sidebar/PropertiesView.test.tsx`
+  to prove Hebrew locale is applied to both native picker types.
+- **Tracker honesty** — recorded this as closing a concrete date-picker gap
+  while leaving the broader UI string externalization audit open.
+
+### Tests
+- `bun run test -- src/ui/views/sidebar/PropertiesView.test.tsx`
+
+---
+
 ## 2026-05-13 — Debug-info support command
 
 - **Root cause** — PLAN Phase 14 called for a `granite:show-debug-info`

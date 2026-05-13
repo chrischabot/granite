@@ -1,5 +1,6 @@
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
+import { getLocale, subscribeI18n } from "@core/i18n";
 import { removeFrontmatterValue, updateFrontmatterValue } from "@core/metadata/frontmatter";
 import {
   getRegistryVersion,
@@ -56,6 +57,7 @@ async function persist(path: string, mutate: (text: string) => string): Promise<
 
 export function PropertiesView() {
   const t = useI18n();
+  const locale = useSyncExternalStore(subscribeI18n, getLocale, getLocale);
   const { activeGroupId, groups, leaves } = useWorkspace();
   // Subscribe to type-registry changes so override edits cause a re-render.
   useSyncExternalStore(subscribeTypeRegistry, getRegistryVersion, getRegistryVersion);
@@ -132,6 +134,7 @@ export function PropertiesView() {
               onChange={(v) => void handleSetValue(key, v)}
               onRemove={() => void handleRemove(key)}
               t={t}
+              locale={locale}
             />
           ))
         )}
@@ -154,12 +157,14 @@ function PropertyRow({
   onChange,
   onRemove,
   t,
+  locale,
 }: {
   propKey: string;
   value: unknown;
   onChange: (v: unknown) => void;
   onRemove: () => void;
   t: ReturnType<typeof useI18n>;
+  locale: string;
 }) {
   const type = effectiveType(propKey, value);
   const [draft, setDraft] = useState<string>(() => stringify(value));
@@ -258,6 +263,7 @@ function PropertyRow({
         ) : type === "date" ? (
           <input
             type="date"
+            lang={locale}
             value={ISO_DATE_RE.test(draft) ? draft : ""}
             onChange={(e) => commit(e.currentTarget.value)}
             style={{ width: "100%" }}
@@ -265,6 +271,7 @@ function PropertyRow({
         ) : type === "datetime" ? (
           <input
             type="datetime-local"
+            lang={locale}
             value={toDatetimeLocal(draft)}
             onChange={(e) => commit(e.currentTarget.value)}
             style={{ width: "100%" }}

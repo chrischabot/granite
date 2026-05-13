@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Icon Accessibility Browser Fixture</title>
+    <style>
+      body {
+        margin: 0;
+      }
+
+      .fixture-grid {
+        height: 100vh;
+        display: grid;
+        grid-template-columns: 56px 260px 1fr 420px;
+        grid-template-rows: 36px 1fr;
+        overflow: hidden;
+      }
+
+      .fixture-titlebar {
+        grid-column: 1 / -1;
+      }
+
+      .fixture-ribbon {
+        grid-column: 1;
+        grid-row: 2;
+        position: relative;
+      }
+
+      .fixture-file-explorer {
+        grid-column: 2;
+        grid-row: 2;
+        min-height: 0;
+        border-right: 1px solid var(--background-modifier-border);
+        overflow: auto;
+      }
+
+      .fixture-workspace {
+        grid-column: 3;
+        grid-row: 2;
+        min-width: 0;
+        min-height: 0;
+        position: relative;
+      }
+
+      .fixture-canvas {
+        grid-column: 4;
+        grid-row: 2;
+        min-width: 0;
+        min-height: 0;
+        border-left: 1px solid var(--background-modifier-border);
+      }
+    </style>
+  </head>
+  <body class="theme-light mod-macos show-view-header show-ribbon">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { serializeCanvas } from "@core/canvas/schema";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { workspaceStore } from "@core/workspace/store";
+      import { CommandsBootstrap } from "@/ui/commands/CommandsBootstrap";
+      import { MenuHost } from "@/ui/overlay/Menu";
+      import { TooltipHost } from "@/ui/overlay/Tooltip";
+      import { VaultPicker } from "@/ui/prompts/VaultPicker";
+      import { Ribbon } from "@/ui/shell/Ribbon";
+      import { Titlebar } from "@/ui/shell/Titlebar";
+      import { Workspace } from "@/ui/shell/Workspace";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+      import { CanvasView } from "@/ui/views/CanvasView";
+      import { FileExplorerView } from "@/ui/views/file-explorer/FileExplorerView";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || `icon-a11y-${Date.now()}`;
+      const otherVaultName = `${vaultName}-secondary`;
+      const canvasPath = "Board.canvas";
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const [pickerOpen, setPickerOpen] = useState(false);
+        const bootingRef = useRef(false);
+
+        useEffect(() => {
+          if (bootingRef.current) return;
+          bootingRef.current = true;
+          void (async () => {
+            try {
+              await openOpfs(otherVaultName);
+              await openOpfs(vaultName);
+              await run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  yield* fs.writeText("A.md", "# A\n");
+                  yield* fs.writeText("B.md", "# B\n");
+                  yield* fs.writeText(
+                    canvasPath,
+                    serializeCanvas({
+                      nodes: [
+                        {
+                          id: "seed-text",
+                          type: "text",
+                          x: 120,
+                          y: 120,
+                          width: 160,
+                          height: 90,
+                          text: "Seed card",
+                        },
+                      ],
+                      edges: [],
+                    }),
+                  );
+                }),
+              );
+              workspaceStore.openFile("A.md", { mode: "source" });
+              workspaceStore.openFile("B.md", { mode: "source" });
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [openOpfs]);
+
+        window.__graniteIconA11yReady = ready;
+        window.__graniteIconA11yError = error;
+        window.__graniteIconA11yActiveVault = activeVault?.entry.name ?? null;
+
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        if (!ready) return React.createElement("div", null, "Loading");
+
+        return React.createElement(
+          React.Fragment,
+          null,
+          React.createElement(CommandsBootstrap, {
+            openPalette: () => {},
+            openSwitcher: () => {},
+            openVaultPicker: () => {},
+            openSettings: () => {},
+            openHelp: () => {},
+            openInstallPlugin: () => {},
+            openFileRecovery: () => {},
+          }),
+          React.createElement(
+            "main",
+            { className: "fixture-grid" },
+            React.createElement("div", { className: "fixture-titlebar" }, React.createElement(Titlebar)),
+            React.createElement("div", { className: "fixture-ribbon" }, React.createElement(Ribbon, {
+              onOpenPalette: () => {},
+              onOpenSwitcher: () => {},
+              onOpenVaults: () => {},
+              onOpenSettings: () => {},
+            })),
+            React.createElement("section", { className: "fixture-file-explorer", "aria-label": "File explorer" }, React.createElement(FileExplorerView)),
+            React.createElement("section", { className: "fixture-workspace", "aria-label": "Workspace" }, React.createElement(Workspace)),
+            React.createElement("section", { className: "fixture-canvas", "aria-label": "Canvas" }, React.createElement(CanvasView, { path: canvasPath })),
+          ),
+          React.createElement(VaultPicker, {
+            open: pickerOpen,
+            onClose: () => setPickerOpen(false),
+          }),
+          React.createElement("button", {
+            type: "button",
+            "aria-label": "Open fixture vault picker",
+            onClick: () => setPickerOpen(true),
+            style: { position: "fixed", right: 8, bottom: 8, zIndex: 20 },
+          }),
+          React.createElement(MenuHost),
+          React.createElement(TooltipHost),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

@@ -3088,6 +3088,24 @@
 
 ---
 
+## 2026-05-13 — Icon accessibility browser verifier
+
+- **Real-control tooltip coverage** — added a browser fixture that renders
+  actual Granite titlebar, ribbon, workspace tab, Vault Picker, File Explorer,
+  and Canvas icon controls with the shared `TooltipHost`, then verifies hover
+  tooltip text matches each control's accessible name.
+- **Keyboard focus coverage** — the verifier uses real Tab traversal, not
+  programmatic focus, to prove those enabled icon controls are keyboard
+  reachable and receive a visible `:focus-visible` ring.
+
+### Tests
+- Added `scripts/icon-a11y-browser-fixture.html` and
+  `scripts/verify-icon-a11y-browser.mjs`, exposed as
+  `bun run verify:icon-a11y-browser`.
+- Validation: `bun run verify:icon-a11y-browser` passes.
+
+---
+
 ## 2026-05-12 — Native host system-trash bridge
 
 - **Native trash bridge** — `handleAdapter()` now wires System trash mode to a

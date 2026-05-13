@@ -49,6 +49,7 @@
     "verify:external-dnd-browser": "node scripts/verify-external-dnd-browser.mjs",
     "verify:multi-window-vault-browser": "node scripts/verify-multi-window-vault-browser.mjs",
     "verify:community-plugin-browser": "node scripts/verify-community-plugin-browser.mjs",
+    "verify:icon-a11y-browser": "node scripts/verify-icon-a11y-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

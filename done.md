@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Filesystem capability error i18n ratchet
+
+- **Capability errors** — changed folder-pick, permission-denied, and OPFS
+  browser capability failures to throw coded filesystem errors from the adapter,
+  then translated them at the vault UI boundary before they reach notices or
+  vault-picker error text.
+- **Regression audit** — extended the i18n audit and adapter tests so raw
+  English browser-capability errors cannot return from the filesystem adapter.
+
+### Tests
+- Extended `src/core/fs/handle-adapter.test.ts`,
+  `src/core/i18n/index.test.ts`, and
+  `src/core/i18n/externalization.test.ts`.
+- Validation: Biome check, targeted filesystem/i18n tests, full
+  `bun run test`, `bun run build`, and `git diff --check` pass.
+
+---
+
 ## 2026-05-13 — Help shortcut-key i18n ratchet
 
 - **Help shortcut column** — routed visible Help modal shortcut/action labels

@@ -238,6 +238,12 @@ const VAULT_CONTEXT_FORBIDDEN_PATTERNS = [
   /"Read\/write permission was denied for this folder"/,
 ];
 
+const FS_HANDLE_ADAPTER_FORBIDDEN_PATTERNS = [
+  /File System Access API is not available in this browser/,
+  /Read\/write permission not granted for this folder/,
+  /Origin Private File System is not available in this browser/,
+];
+
 const HELP_MODAL_FORBIDDEN_PATTERNS = [
   /title: "Workspace"/,
   /what: "Open the command palette"/,
@@ -1177,6 +1183,10 @@ describe("UI string externalization audit", () => {
       `${process.cwd()}/src/ui/vault/VaultContext.tsx`,
       "utf8",
     );
+    const handleAdapterSource = readFileSync(
+      `${process.cwd()}/src/core/fs/handle-adapter.ts`,
+      "utf8",
+    );
     const helpSource = readFileSync(`${process.cwd()}/src/ui/prompts/HelpModal.tsx`, "utf8");
     const bookmarksSource = readFileSync(
       `${process.cwd()}/src/ui/views/sidebar/BookmarksView.tsx`,
@@ -1186,6 +1196,9 @@ describe("UI string externalization audit", () => {
       ...MODAL_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(modalSource)),
       ...VAULT_PICKER_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(vaultPickerSource)),
       ...VAULT_CONTEXT_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(vaultContextSource)),
+      ...FS_HANDLE_ADAPTER_FORBIDDEN_PATTERNS.filter((pattern) =>
+        pattern.test(handleAdapterSource),
+      ),
       ...HELP_MODAL_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(helpSource)),
       ...BOOKMARKS_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(bookmarksSource)),
     ];
@@ -1210,7 +1223,9 @@ describe("UI string externalization audit", () => {
       "vaultContext.error.reopen",
       "vaultContext.error.pluginLoader",
       "vaultContext.error.notInRegistry",
+      "vaultContext.error.fsaUnavailable",
       "vaultContext.error.lostHandle",
+      "vaultContext.error.opfsUnavailable",
       "vaultContext.error.permissionDenied",
     ]) {
       expect(vaultContextSource).toContain(requiredKey);

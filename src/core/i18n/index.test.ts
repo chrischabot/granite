@@ -67,6 +67,7 @@ describe("i18n", () => {
     expect(t("vaultContext.reopenGrant", { name: "Work" })).toBe(
       'לפתוח מחדש את "Work"? לחצו כאן כדי לאשר גישה לתיקייה.',
     );
+    expect(t("vaultContext.error.opfsUnavailable")).toBe("אחסון כספת בדפדפן אינו זמין בדפדפן הזה.");
     expect(t("help.section.workspace")).toBe("סביבת עבודה");
     expect(t("help.keys.tagAutocomplete")).toBe("# בתחילת שורה");
     expect(t("help.keys.dragTab")).toBe("גרירת לשונית");

@@ -3,6 +3,7 @@ import { FileSystem } from "@core/fs/FileSystem";
 import {
   fsaSupported,
   handleAdapter,
+  isFileSystemCapabilityError,
   openOPFS,
   opfsSupported,
   pickDirectoryFSA,
@@ -57,6 +58,15 @@ interface VaultContextValue {
 }
 
 const VaultContext = createContext<VaultContextValue | null>(null);
+
+function vaultErrorMessage(err: unknown): string {
+  if (isFileSystemCapabilityError(err)) {
+    if (err.code === "fsa-unavailable") return t("vaultContext.error.fsaUnavailable");
+    if (err.code === "fsa-permission-denied") return t("vaultContext.error.permissionDenied");
+    return t("vaultContext.error.opfsUnavailable");
+  }
+  return err instanceof Error ? err.message : String(err);
+}
 
 async function rebuildLayer(handle: FileSystemDirectoryHandle | null): Promise<void> {
   // Tear down old runtime first to avoid races where in-flight Effects see a
@@ -141,7 +151,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           } catch (err) {
             noticeManager.show(
               t("vaultContext.error.bootstrapPopout", {
-                message: err instanceof Error ? err.message : String(err),
+                message: vaultErrorMessage(err),
               }),
               { kind: "error" },
             );
@@ -170,12 +180,9 @@ export function VaultProvider({ children }: { children: ReactNode }) {
           onActivate: () => {
             noticeManager.dismiss(noticeId);
             void reopen(recent.id).catch((err) => {
-              noticeManager.show(
-                err instanceof Error ? err.message : t("vaultContext.error.reopen"),
-                {
-                  kind: "error",
-                },
-              );
+              noticeManager.show(vaultErrorMessage(err) || t("vaultContext.error.reopen"), {
+                kind: "error",
+              });
             });
           },
         });
@@ -222,33 +229,41 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   );
 
   const pickFolder = useCallback(async () => {
-    const handle = await pickDirectoryFSA();
-    const entry: VaultEntry = {
-      id: freshVaultId(),
-      name: handle.name,
-      kind: "fsa",
-      lastOpenedMs: Date.now(),
-      addedMs: Date.now(),
-    };
-    await setActive(entry, handle);
+    try {
+      const handle = await pickDirectoryFSA();
+      const entry: VaultEntry = {
+        id: freshVaultId(),
+        name: handle.name,
+        kind: "fsa",
+        lastOpenedMs: Date.now(),
+        addedMs: Date.now(),
+      };
+      await setActive(entry, handle);
+    } catch (err) {
+      throw new Error(vaultErrorMessage(err));
+    }
   }, [setActive]);
 
   const openOpfs = useCallback(
     async (name: string) => {
-      // De-duplicate by name: reuse existing OPFS entry if present.
-      const existing = (await listVaults()).find((v) => v.kind === "opfs" && v.name === name);
-      const root = await openOPFS();
-      const handle = await root.getDirectoryHandle(name, { create: true });
-      const entry: VaultEntry = existing
-        ? { ...existing, lastOpenedMs: Date.now() }
-        : {
-            id: freshVaultId(),
-            name,
-            kind: "opfs",
-            lastOpenedMs: Date.now(),
-            addedMs: Date.now(),
-          };
-      await setActive(entry, handle);
+      try {
+        // De-duplicate by name: reuse existing OPFS entry if present.
+        const existing = (await listVaults()).find((v) => v.kind === "opfs" && v.name === name);
+        const root = await openOPFS();
+        const handle = await root.getDirectoryHandle(name, { create: true });
+        const entry: VaultEntry = existing
+          ? { ...existing, lastOpenedMs: Date.now() }
+          : {
+              id: freshVaultId(),
+              name,
+              kind: "opfs",
+              lastOpenedMs: Date.now(),
+              addedMs: Date.now(),
+            };
+        await setActive(entry, handle);
+      } catch (err) {
+        throw new Error(vaultErrorMessage(err));
+      }
     },
     [setActive],
   );
@@ -257,25 +272,29 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     async (id: string) => {
       const meta = vaults.find((v) => v.id === id);
       if (!meta) throw new Error(t("vaultContext.error.notInRegistry", { id }));
-      if (meta.kind === "fsa") {
-        const handle = await loadHandle(id);
-        if (!handle) throw new Error(t("vaultContext.error.lostHandle"));
-        const h = handle as FileSystemDirectoryHandle & {
-          queryPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
-          requestPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
-        };
-        let state = (await h.queryPermission?.({ mode: "readwrite" })) ?? "granted";
-        if (state !== "granted") {
-          state = (await h.requestPermission?.({ mode: "readwrite" })) ?? "denied";
+      try {
+        if (meta.kind === "fsa") {
+          const handle = await loadHandle(id);
+          if (!handle) throw new Error(t("vaultContext.error.lostHandle"));
+          const h = handle as FileSystemDirectoryHandle & {
+            queryPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
+            requestPermission?: (d: { mode: "readwrite" }) => Promise<PermissionState>;
+          };
+          let state = (await h.queryPermission?.({ mode: "readwrite" })) ?? "granted";
+          if (state !== "granted") {
+            state = (await h.requestPermission?.({ mode: "readwrite" })) ?? "denied";
+          }
+          if (state !== "granted") {
+            throw new Error(t("vaultContext.error.permissionDenied"));
+          }
+          await setActive(meta, handle);
+        } else {
+          const root = await openOPFS();
+          const handle = await root.getDirectoryHandle(meta.name, { create: true });
+          await setActive(meta, handle);
         }
-        if (state !== "granted") {
-          throw new Error(t("vaultContext.error.permissionDenied"));
-        }
-        await setActive(meta, handle);
-      } else {
-        const root = await openOPFS();
-        const handle = await root.getDirectoryHandle(meta.name, { create: true });
-        await setActive(meta, handle);
+      } catch (err) {
+        throw new Error(vaultErrorMessage(err));
       }
     },
     [vaults, setActive],

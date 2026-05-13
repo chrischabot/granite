@@ -1,6 +1,17 @@
 import { Effect } from "effect";
-import { describe, expect, it } from "vitest";
-import { handleAdapter } from "./handle-adapter";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import {
+  FileSystemCapabilityError,
+  handleAdapter,
+  openOPFS,
+  pickDirectoryFSA,
+} from "./handle-adapter";
+
+const originalShowDirectoryPickerDescriptor = Object.getOwnPropertyDescriptor(
+  window,
+  "showDirectoryPicker",
+);
+const originalStorageDescriptor = Object.getOwnPropertyDescriptor(navigator, "storage");
 
 type MockFileRecord = {
   content: string | Uint8Array;
@@ -103,7 +114,65 @@ class MockDirectoryHandle {
   }
 }
 
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  if (originalShowDirectoryPickerDescriptor) {
+    Object.defineProperty(window, "showDirectoryPicker", originalShowDirectoryPickerDescriptor);
+  } else {
+    Reflect.deleteProperty(window, "showDirectoryPicker");
+  }
+  if (originalStorageDescriptor) {
+    Object.defineProperty(navigator, "storage", originalStorageDescriptor);
+  } else {
+    Reflect.deleteProperty(navigator, "storage");
+  }
+});
+
 describe("handleAdapter", () => {
+  it("throws coded capability errors when folder picking is unavailable", async () => {
+    Object.defineProperty(window, "showDirectoryPicker", {
+      configurable: true,
+      value: undefined,
+    });
+
+    await expect(pickDirectoryFSA()).rejects.toMatchObject({
+      name: "FileSystemCapabilityError",
+      code: "fsa-unavailable",
+    });
+  });
+
+  it("throws coded capability errors when folder permission is denied", async () => {
+    const handle = {
+      name: "Vault",
+      kind: "directory",
+      queryPermission: async () => "prompt" as PermissionState,
+      requestPermission: async () => "denied" as PermissionState,
+    };
+    Object.defineProperty(window, "showDirectoryPicker", {
+      configurable: true,
+      value: async () => handle,
+    });
+
+    await expect(pickDirectoryFSA()).rejects.toMatchObject({
+      name: "FileSystemCapabilityError",
+      code: "fsa-permission-denied",
+    });
+  });
+
+  it("throws coded capability errors when OPFS is unavailable", async () => {
+    Object.defineProperty(navigator, "storage", {
+      configurable: true,
+      value: undefined,
+    });
+
+    await expect(openOPFS()).rejects.toBeInstanceOf(FileSystemCapabilityError);
+    await expect(openOPFS()).rejects.toMatchObject({
+      name: "FileSystemCapabilityError",
+      code: "opfs-unavailable",
+    });
+  });
+
   it("wires the native system-trash bridge when the host provides one", async () => {
     const calls: Array<{ rootName: string; path: string }> = [];
     const adapter = handleAdapter({ name: "Vault" } as FileSystemDirectoryHandle, {

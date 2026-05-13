@@ -26,6 +26,25 @@ interface ResolvedDir {
   handle: FileSystemDirectoryHandle;
 }
 
+export type FileSystemCapabilityErrorCode =
+  | "fsa-unavailable"
+  | "fsa-permission-denied"
+  | "opfs-unavailable";
+
+export class FileSystemCapabilityError extends Error {
+  readonly code: FileSystemCapabilityErrorCode;
+
+  constructor(code: FileSystemCapabilityErrorCode) {
+    super(code);
+    this.name = "FileSystemCapabilityError";
+    this.code = code;
+  }
+}
+
+export function isFileSystemCapabilityError(err: unknown): err is FileSystemCapabilityError {
+  return err instanceof FileSystemCapabilityError;
+}
+
 /**
  * Walk the segments of `path` from `root`, returning the deepest existing
  * handle, or null if any segment is missing. `kind` filters the final segment.
@@ -419,7 +438,7 @@ export async function pickDirectoryFSA(): Promise<FileSystemDirectoryHandle> {
     }) => Promise<FileSystemDirectoryHandle>;
   };
   if (!w.showDirectoryPicker) {
-    throw new Error("File System Access API is not available in this browser");
+    throw new FileSystemCapabilityError("fsa-unavailable");
   }
   const handle = await w.showDirectoryPicker({ mode: "readwrite" });
   if ("queryPermission" in handle) {
@@ -432,7 +451,7 @@ export async function pickDirectoryFSA(): Promise<FileSystemDirectoryHandle> {
       state = (await h.requestPermission?.({ mode: "readwrite" })) ?? "denied";
     }
     if (state !== "granted") {
-      throw new Error("Read/write permission not granted for this folder");
+      throw new FileSystemCapabilityError("fsa-permission-denied");
     }
   }
   return handle;
@@ -440,7 +459,7 @@ export async function pickDirectoryFSA(): Promise<FileSystemDirectoryHandle> {
 
 export async function openOPFS(): Promise<FileSystemDirectoryHandle> {
   if (!navigator.storage?.getDirectory) {
-    throw new Error("Origin Private File System is not available in this browser");
+    throw new FileSystemCapabilityError("opfs-unavailable");
   }
   return await navigator.storage.getDirectory();
 }

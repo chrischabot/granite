@@ -4,6 +4,26 @@
 
 ---
 
+## 2026-05-13 — Broadened runtime i18n browser verification
+
+- **Root cause** — the i18n severe-test tracker still listed many Hebrew
+  runtime checks as manual, while `verify:i18n-browser` only covered the
+  no-vault welcome/settings/command-palette path.
+- **Browser path** — expanded the RTL fixture into a populated OPFS vault that
+  renders real file-backed views, prompts, Settings, Vault Picker, Status Bar,
+  File Explorer, Search, Tags, Backlinks, Recents, Footnotes, Outline, Local
+  Graph, Properties, All Properties, Canvas, Graph, Bases, and notices after a
+  Hebrew locale switch.
+- **Verifier** — extended `verify:i18n-browser` to assert localized visible text
+  or accessible labels across those populated surfaces using the real runtime
+  `t()` output, while keeping the original no-vault Hebrew/RTL checks.
+
+### Tests
+- `bun run verify:i18n-browser`
+- `bun run verify:rtl-browser`
+
+---
+
 ## 2026-05-13 — Populated keyboard browser verifier
 
 - **Root cause** — keyboard-only accessibility coverage still had a manual

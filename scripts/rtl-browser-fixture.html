@@ -18,13 +18,31 @@
       import { metadataCache } from "@core/metadata/cache";
       import { workspaceStore } from "@core/workspace/store";
       import { serializeCanvas } from "@core/canvas/schema";
+      import { noticeManager } from "@core/notices/notice";
+      import { CommandPalette } from "@/ui/prompts/CommandPalette";
+      import { QuickSwitcher } from "@/ui/prompts/QuickSwitcher";
       import { SettingsModal } from "@/ui/prompts/SettingsModal";
+      import { TemplatePicker } from "@/ui/prompts/TemplatePicker";
+      import { VaultPicker } from "@/ui/prompts/VaultPicker";
       import { MenuHost, openMenu } from "@/ui/overlay/Menu";
+      import { NoticeContainer } from "@/ui/overlay/NoticeContainer";
       import { StatusBar } from "@/ui/shell/StatusBar";
+      import { BasesView } from "@/ui/views/BasesView";
       import { CanvasView } from "@/ui/views/CanvasView";
+      import { FileExplorerView } from "@/ui/views/file-explorer/FileExplorerView";
+      import { GraphView } from "@/ui/views/GraphView";
       import { MarkdownView } from "@/ui/views/MarkdownView";
       import { ReadingView } from "@/ui/views/ReadingView";
+      import { AllPropertiesView } from "@/ui/views/sidebar/AllPropertiesView";
+      import { BacklinksView } from "@/ui/views/sidebar/BacklinksView";
+      import { FootnotesView } from "@/ui/views/sidebar/FootnotesView";
+      import { LocalGraphView } from "@/ui/views/sidebar/LocalGraphView";
+      import { OutlineView } from "@/ui/views/sidebar/OutlineView";
+      import { OutgoingLinksView } from "@/ui/views/sidebar/OutgoingLinksView";
       import { PropertiesView } from "@/ui/views/sidebar/PropertiesView";
+      import { RecentsView } from "@/ui/views/sidebar/RecentsView";
+      import { SearchView } from "@/ui/views/sidebar/SearchView";
+      import { TagsView } from "@/ui/views/sidebar/TagsView";
       import { Tab } from "@/ui/workspace/Tab";
       import { ThemeProvider } from "@/ui/theme/ThemeProvider";
       import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
@@ -44,6 +62,22 @@
           : null;
       }
 
+      function Pane({ label, children }) {
+        return React.createElement(
+          "section",
+          {
+            "aria-label": label,
+            style: {
+              minHeight: 180,
+              minWidth: 0,
+              overflow: "auto",
+              border: "1px solid var(--background-modifier-border)",
+            },
+          },
+          children,
+        );
+      }
+
       function Harness() {
         const { activeVault, openOpfs } = useVault();
         const [ready, setReady] = useState(false);
@@ -61,9 +95,24 @@
                   const fs = yield* FileSystem;
                   yield* fs.writeText(
                     "RTL.md",
-                    "---\ndir: rtl\ndue: 2026-05-13\nstarts: 2026-05-13T09:30:00Z\n---\n# שלום\n\nעברית English 123\n\nEnglish paragraph stays readable.\n",
+                    "---\ndir: rtl\ndue: 2026-05-13\nstarts: 2026-05-13T09:30:00Z\ntags:\n  - work/client\naliases:\n  - בית\n---\n# שלום\n\nעברית English 123 and [[LTR]].\n\n#work/internal\n\nFootnote ref[^one].\n\n[^one]: הערת שוליים\n\nEnglish paragraph stays readable.\n",
                   );
-                  yield* fs.writeText("LTR.md", "# Hello\n\nעברית English 123\n");
+                  yield* fs.writeText("LTR.md", "# Hello\n\nעברית English 123 and [[RTL]].\n");
+                  yield* fs.writeText("Templates/Daily.md", "# {{date}}\n");
+                  yield* fs.writeText(
+                    "Places.base",
+                    [
+                      "name: Places Map",
+                      'filter: ""',
+                      "columns:",
+                      "  - file.name",
+                      "  - due",
+                      "sort: file.name",
+                      "sortOrder: asc",
+                      "view: table",
+                      "",
+                    ].join("\n"),
+                  );
                   yield* fs.writeText(
                     "Board.canvas",
                     serializeCanvas({
@@ -83,6 +132,14 @@
             }
           })();
         }, [activeVault, openOpfs, ready]);
+
+        useEffect(() => {
+          if (!ready) return;
+          const id = window.setTimeout(() => {
+            window.dispatchEvent(new Event("granite:open-template-picker"));
+          }, 0);
+          return () => window.clearTimeout(id);
+        }, [ready]);
 
         window.__graniteRtlBrowserReady = ready;
         window.__graniteRtlBrowserError = error;
@@ -105,8 +162,13 @@
           openMenu({
             x: 24,
             y: 24,
-            items: [{ id: "one", label: "Menu item", callback: () => {} }],
+            items: [
+              { id: "close", label: "סגירה", callback: () => {} },
+              { id: "warning", label: "אזהרה", warning: true, callback: () => {} },
+            ],
           });
+        window.__graniteRtlBrowserShowNotice = () =>
+          noticeManager.show("התראת בדיקה", { kind: "info", timeoutMs: 0 });
 
         if (error) return React.createElement("pre", { role: "alert" }, error);
         if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
@@ -116,7 +178,12 @@
           null,
           React.createElement(LocaleDirectionBinder),
           React.createElement(MenuHost),
+          React.createElement(NoticeContainer),
           React.createElement(SettingsModal, { open: true, onClose: () => {} }),
+          React.createElement(CommandPalette, { open: true, onClose: () => {}, commands: [] }),
+          React.createElement(QuickSwitcher, { open: true, onClose: () => {}, onActivate: () => {} }),
+          React.createElement(TemplatePicker),
+          React.createElement(VaultPicker, { open: true, onClose: () => {} }),
           React.createElement(
             "div",
             { className: "status-shell", style: { position: "fixed", left: 0, right: 0, bottom: 0 } },
@@ -128,18 +195,30 @@
             {
               style: {
                 display: "grid",
-                gridTemplateColumns: "1fr 1fr",
+                gridTemplateColumns: "repeat(4, minmax(220px, 1fr))",
                 gap: 16,
-                height: "720px",
-                padding: "96px 16px 48px",
+                height: "1200px",
+                padding: "420px 16px 48px",
               },
             },
-            React.createElement("section", { "aria-label": "RTL reading" }, React.createElement(ReadingView, { path: "RTL.md" })),
-            React.createElement("section", { "aria-label": "LTR reading" }, React.createElement(ReadingView, { path: "LTR.md" })),
-            React.createElement("section", { "aria-label": "RTL source" }, React.createElement(MarkdownView, { path: "RTL.md" })),
-            React.createElement("section", { "aria-label": "LTR source" }, React.createElement(MarkdownView, { path: "LTR.md" })),
-            React.createElement("section", { "aria-label": "Properties" }, React.createElement(PropertiesView)),
-            React.createElement("section", { "aria-label": "Canvas", style: { minHeight: 240 } }, React.createElement(CanvasView, { path: "Board.canvas" })),
+            React.createElement(Pane, { label: "RTL reading" }, React.createElement(ReadingView, { path: "RTL.md" })),
+            React.createElement(Pane, { label: "LTR reading" }, React.createElement(ReadingView, { path: "LTR.md" })),
+            React.createElement(Pane, { label: "RTL source" }, React.createElement(MarkdownView, { path: "RTL.md" })),
+            React.createElement(Pane, { label: "LTR source" }, React.createElement(MarkdownView, { path: "LTR.md" })),
+            React.createElement(Pane, { label: "File explorer" }, React.createElement(FileExplorerView)),
+            React.createElement(Pane, { label: "Search" }, React.createElement(SearchView)),
+            React.createElement(Pane, { label: "Tags" }, React.createElement(TagsView)),
+            React.createElement(Pane, { label: "Backlinks" }, React.createElement(BacklinksView)),
+            React.createElement(Pane, { label: "Outgoing links" }, React.createElement(OutgoingLinksView)),
+            React.createElement(Pane, { label: "Recents" }, React.createElement(RecentsView)),
+            React.createElement(Pane, { label: "Footnotes" }, React.createElement(FootnotesView)),
+            React.createElement(Pane, { label: "Outline" }, React.createElement(OutlineView)),
+            React.createElement(Pane, { label: "Local graph" }, React.createElement(LocalGraphView)),
+            React.createElement(Pane, { label: "Properties" }, React.createElement(PropertiesView)),
+            React.createElement(Pane, { label: "All properties" }, React.createElement(AllPropertiesView)),
+            React.createElement(Pane, { label: "Canvas" }, React.createElement(CanvasView, { path: "Board.canvas" })),
+            React.createElement(Pane, { label: "Graph" }, React.createElement(GraphView)),
+            React.createElement(Pane, { label: "Bases" }, React.createElement(BasesView, { path: "Places.base" })),
           ),
         );
       }

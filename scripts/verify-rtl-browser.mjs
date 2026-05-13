@@ -98,14 +98,16 @@ async function main() {
     const rootDir = await page.evaluate(() => document.documentElement.dir);
     const bodyClasses = await page.evaluate(() => [...document.body.classList]);
     if (rootDir !== "rtl" || !bodyClasses.includes("mod-rtl") || !bodyClasses.includes("is-rtl")) {
-      throw new Error(`Locale switch did not apply RTL chrome state: dir=${rootDir}, body=${bodyClasses.join(" ")}`);
+      throw new Error(
+        `Locale switch did not apply RTL chrome state: dir=${rootDir}, body=${bodyClasses.join(" ")}`,
+      );
     }
 
     await page.evaluate(() => window.__graniteRtlBrowserOpenMenu());
     await page.locator(".menu").waitFor();
 
     const chrome = {
-      modal: await computed(page, ".modal"),
+      modal: await computed(page, ".modal.mod-settings"),
       menu: await computed(page, ".menu"),
       status: await computed(page, ".status-bar"),
       tab: await computed(page, ".workspace-tab-header-container"),
@@ -137,7 +139,9 @@ async function main() {
       datetime: document.querySelector("input[type='datetime-local']")?.getAttribute("lang"),
     }));
     if (dateLangs.date !== "he" || dateLangs.datetime !== "he") {
-      throw new Error(`Properties date inputs did not receive Hebrew lang: ${JSON.stringify(dateLangs)}`);
+      throw new Error(
+        `Properties date inputs did not receive Hebrew lang: ${JSON.stringify(dateLangs)}`,
+      );
     }
 
     const noteDirection = {
@@ -156,13 +160,19 @@ async function main() {
       noteDirection.rtlSourceContent.unicodeBidi !== "plaintext" ||
       noteDirection.ltrSource.direction !== "ltr"
     ) {
-      throw new Error(`Unexpected note direction/plaintext behavior: ${JSON.stringify(noteDirection)}`);
+      throw new Error(
+        `Unexpected note direction/plaintext behavior: ${JSON.stringify(noteDirection)}`,
+      );
     }
     const classState = await page.evaluate(() => ({
-      rtlReading: document.querySelector("[aria-label='RTL reading'] .markdown-rendered")?.className,
-      ltrReading: document.querySelector("[aria-label='LTR reading'] .markdown-rendered")?.className,
-      rtlSource: document.querySelector("[aria-label='RTL source'] .markdown-source-view")?.className,
-      ltrSource: document.querySelector("[aria-label='LTR source'] .markdown-source-view")?.className,
+      rtlReading: document.querySelector("[aria-label='RTL reading'] .markdown-rendered")
+        ?.className,
+      ltrReading: document.querySelector("[aria-label='LTR reading'] .markdown-rendered")
+        ?.className,
+      rtlSource: document.querySelector("[aria-label='RTL source'] .markdown-source-view")
+        ?.className,
+      ltrSource: document.querySelector("[aria-label='LTR source'] .markdown-source-view")
+        ?.className,
     }));
     if (
       !String(classState.rtlReading).includes("rtl") ||

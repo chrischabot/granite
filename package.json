@@ -21,6 +21,7 @@
     "verify:search-performance-browser": "node scripts/verify-search-performance-browser.mjs",
     "verify:native-formats-browser": "node scripts/verify-native-formats-browser.mjs",
     "verify:trash-settings-browser": "node scripts/verify-trash-settings-browser.mjs",
+    "verify:sidebar-central-browser": "node scripts/verify-sidebar-central-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

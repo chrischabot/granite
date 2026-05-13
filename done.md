@@ -4,6 +4,29 @@
 
 ---
 
+## 2026-05-13 — Sidebar central browser verifier and persistence fix
+
+- **Root cause** — workspace persistence skipped any single-group snapshot whose
+  first leaf was empty. Sidebar views opened in the central area with
+  `newTab: true` keep the initial empty tab before the real sidebar tabs, so
+  reload lost those central sidebar leaves.
+- **Persistence fix** — tightened the empty-workspace skip so it only applies
+  to a single group containing exactly one empty leaf.
+- **Browser path** — added `verify:sidebar-central-browser`, a Chromium fixture
+  that opens Search and Recent files from the left/right sidebars into the
+  central workspace, proves the original sidebar remains independently usable,
+  flushes workspace persistence, reloads, and verifies both central sidebar
+  tabs restore.
+- **Regression guarantee** — unit coverage now also proves real tabs persist
+  even when the first tab is the initial empty leaf.
+
+### Tests
+- `bun run verify:sidebar-central-browser`
+- `bun run test -- src/core/workspace/persist.test.ts src/core/workspace/sidebar-view.test.ts src/ui/shell/sidebar-groups.test.ts`
+- `bun run build`
+
+---
+
 ## 2026-05-13 — Trash settings browser verifier
 
 - **Root cause** — trash behavior had strong `deleteVaultPath()` and adapter

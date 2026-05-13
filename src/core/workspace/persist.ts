@@ -54,7 +54,12 @@ function snapshotState(state: WorkspaceState): SerializedColumnsSnapshot | null 
   if (columns.length === 0) return null;
   // Skip persisting a workspace that's just the initial single empty leaf.
   const onlyGroup = columns.length === 1 ? columns[0]?.[0] : null;
-  if (columns.length === 1 && columns[0]?.length === 1 && onlyGroup?.leaves[0]?.type === "empty") {
+  if (
+    columns.length === 1 &&
+    columns[0]?.length === 1 &&
+    onlyGroup?.leaves.length === 1 &&
+    onlyGroup.leaves[0]?.type === "empty"
+  ) {
     return null;
   }
   let flatIdx = 0;

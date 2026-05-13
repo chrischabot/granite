@@ -60,6 +60,28 @@ describe("workspace persistence", () => {
     unbind();
   });
 
+  it("persists real tabs even when the first tab is the initial empty leaf", async () => {
+    const unbind = bindPersistence(VAULT_ID);
+    workspaceStore.openSidebarView("left", "search", { newTab: true });
+    await flushBindDebounce();
+
+    const raw = localStorage.getItem(`granite.workspace.last.${VAULT_ID}`);
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(expectPresent(raw, "persisted workspace snapshot"));
+    expect(parsed.columns[0][0].leaves.map((leaf: LeafState) => leaf.type)).toEqual([
+      "empty",
+      "sidebar",
+    ]);
+
+    unbind();
+    workspaceStore.reset();
+    expect(restoreFor(VAULT_ID)).toBe(true);
+    const restored = [...workspaceStore.getState().leaves.values()].map((leaf) => leaf.state);
+    expect(restored.some((state) => state.type === "sidebar" && state.id === "search")).toBe(
+      true,
+    );
+  });
+
   it("round-trips a multi-column / stacked layout via restoreFor", async () => {
     const unbind = bindPersistence(VAULT_ID);
     workspaceStore.openFile("A.md" as VaultPath);

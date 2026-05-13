@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Sidebar Central Browser Fixture</title>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { flushWorkspacePersistence } from "@core/workspace/persist";
+      import { addRecent } from "@core/workspace/recents";
+      import { workspaceStore } from "@core/workspace/store";
+      import { LeftSidebar } from "@/ui/shell/LeftSidebar";
+      import { RightSidebar } from "@/ui/shell/RightSidebar";
+      import { Workspace } from "@/ui/shell/Workspace";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "sidebar-central-browser";
+      window.__graniteFlushWorkspacePersistence = flushWorkspacePersistence;
+      window.__graniteFlushWorkspacePersistenceAndRead = () => {
+        flushWorkspacePersistence();
+        const entries = [];
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i);
+          if (key?.startsWith("granite.workspace.last.")) {
+            entries.push([key, localStorage.getItem(key)]);
+          }
+        }
+        return entries;
+      };
+      window.__graniteWorkspaceSnapshotForTests = () => {
+        const state = workspaceStore.getState();
+        return {
+          columns: state.columns,
+          activeGroupId: state.activeGroupId,
+          groups: [...state.groups.values()].map((group) => ({
+            id: group.id,
+            leafIds: group.leafIds,
+            activeLeafId: group.activeLeafId,
+          })),
+          leaves: [...state.leaves.values()].map((leaf) => ({ id: leaf.id, state: leaf.state })),
+        };
+      };
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const bootingRef = useRef(false);
+
+        useEffect(() => {
+          if (ready || bootingRef.current) return;
+          bootingRef.current = true;
+          void (async () => {
+            try {
+              if (!activeVault) await openOpfs(vaultName);
+              await run(
+                Effect.gen(function* () {
+                  const fs = yield* FileSystem;
+                  yield* fs.writeText("Sidebar Note.md", "# Sidebar Note\n\n# First heading\n");
+                }),
+              );
+              addRecent("Sidebar Note.md");
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        window.__graniteSidebarCentralReady = ready;
+
+        if (error) {
+          window.__graniteSidebarCentralError = error;
+          return React.createElement("pre", { role: "alert" }, error);
+        }
+        if (!ready) return React.createElement("div", { className: "empty-state" }, "Loading");
+
+        return React.createElement(
+          "div",
+          { className: "app-container" },
+          React.createElement(
+            "div",
+            { className: "horizontal-main-container" },
+            React.createElement(LeftSidebar),
+            React.createElement(Workspace),
+            React.createElement(RightSidebar),
+          ),
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(ThemeProvider, null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+    </script>
+  </body>
+</html>

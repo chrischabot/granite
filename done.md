@@ -127,6 +127,22 @@
 
 ---
 
+## 2026-05-13 — Live Preview horizontal-rule ratchet
+
+- **Root cause** — `07_markdown_syntax.md` defines horizontal rules as block
+  syntax, but Live Preview did not hide `---`, `***`, or spaced marker lines;
+  `_ _ _` was even misclassified as two standalone underscore-italic markers.
+- **Decoration path** — added a horizontal-rule block recognizer before inline
+  emphasis decoration and replace the inactive source line as a block marker.
+- **Tracker honesty** — kept the Live Preview TODO open because this closes a
+  source-level syntax gap, not the remaining browser/manual verification.
+
+### Tests
+- `bun run test -- src/core/markdown/cm-livepreview-decorations.test.ts`
+- `bunx biome check src/core/markdown/cm-livepreview-decorations.ts src/core/markdown/cm-livepreview-decorations.test.ts`
+
+---
+
 ## 2026-05-13 — Live Preview multiline HTML no-parse ratchet
 
 - **Root cause** — the same HTML no-parse rule also applies across multiline

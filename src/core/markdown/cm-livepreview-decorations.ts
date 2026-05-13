@@ -21,6 +21,8 @@ const HEADING_RE = /^(\s{0,3})(#{1,6})(\s+)/;
 const TASK_RE = /^(\s*(?:[-*+]|\d+[.)])\s+)\[[^\]\n]\](\s+)/;
 const BLOCK_ID_RE = /(^|\s)\^([A-Za-z0-9-]+)\s*$/;
 const HTML_BLOCK_OPEN_RE = /^\s*<([A-Za-z][A-Za-z0-9-]*)(?:\s[^<>]*)?>\s*$/;
+const HORIZONTAL_RULE_RE =
+  /^\s{0,3}(?:-{3,}|\*{3,}|_{3,}|(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})\s*$/;
 
 const replaceDeco = Decoration.replace({});
 
@@ -272,6 +274,13 @@ export function computeLivePreviewRanges(
     if (taskMatch) {
       const prefixLen = taskMatch[1]?.length ?? 0;
       addReplace(prefixLen, prefixLen + 3);
+    }
+
+    if (HORIZONTAL_RULE_RE.test(line)) {
+      const firstContent = line.search(/\S/);
+      if (firstContent !== -1) addReplace(firstContent, line.length);
+      offset = lineStart + line.length + 1;
+      continue;
     }
 
     const blockIdMatch = line.match(BLOCK_ID_RE);

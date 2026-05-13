@@ -191,6 +191,10 @@ describe("computeLivePreviewRanges", () => {
     expect(hiddenSlices("### Heading", -1)).toEqual(["### "]);
   });
 
+  it("hides horizontal rule source lines", () => {
+    expect(hiddenSlices("---\n- - -\n***\n_ _ _", -1)).toEqual(["---", "- - -", "***", "_ _ _"]);
+  });
+
   it("hides task checkbox markers while keeping the list marker", () => {
     expect(hiddenSlices("- [ ] open\n1. [x] done", -1)).toEqual(["[ ]", "[x]"]);
   });

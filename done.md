@@ -4,6 +4,22 @@
 
 ---
 
+## 2026-05-13 — 10k metadata cold-start ratchet
+
+- **Root cause** — the metadata cold-start test guarded the no-restat
+  optimization, but only at 1k files and without measuring the 3 s budget named
+  in the acceptance criteria.
+- **Performance ratchet** — raised the fixture to 10k markdown files and
+  asserted `metadataCache.indexVault()` completes under 3,000 ms while still
+  making zero `stat()` calls and indexing file aliases.
+- **Tracker honesty** — recorded this as a stronger automated proxy while
+  leaving browser/profile verification open.
+
+### Tests
+- `bun run test -- src/core/metadata/cache.test.ts`
+
+---
+
 ## 2026-05-13 — Bookmarks add-menu keyboard navigation
 
 - **Root cause** — the Bookmarks sidebar used a local inline add menu instead

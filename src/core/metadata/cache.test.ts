@@ -36,10 +36,10 @@ describe("aggregateTagCounts", () => {
 });
 
 describe("metadataCache.indexVault", () => {
-  it("indexes listed files without re-statting every path during cold start", async () => {
+  it("indexes 10k listed files without re-statting every path during cold start", async () => {
     let statCalls = 0;
     let readCalls = 0;
-    const files: VaultFile[] = Array.from({ length: 1_000 }, (_, i) => ({
+    const files: VaultFile[] = Array.from({ length: 10_000 }, (_, i) => ({
       type: "file",
       path: `Note ${i}.md` as VaultPath,
       name: `Note ${i}.md`,
@@ -72,10 +72,13 @@ describe("metadataCache.indexVault", () => {
     };
     setAppLayer(() => Layer.succeed(FileSystem, fs));
 
+    const start = performance.now();
     await metadataCache.indexVault();
+    const elapsed = performance.now() - start;
 
     expect(statCalls).toBe(0);
     expect(readCalls).toBe(files.length);
     expect(metadataCache.getAllSwitcherEntries()).toHaveLength(files.length * 2);
+    expect(elapsed).toBeLessThan(3_000);
   });
 });

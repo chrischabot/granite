@@ -661,6 +661,8 @@ That's the tour — happy linking!
   "fileExplorer.trash.system": "system trash",
   "fileExplorer.trash.vault": "vault trash",
   "fileExplorer.trash.permanent": "permanent deletion",
+  "fs.trash.error.systemUnavailable":
+    "System trash is not available from the browser File System Access adapter. Choose Vault trash or Permanent deletion.",
   "fileExplorer.notice.movedVault": "Moved to vault trash.",
   "fileExplorer.notice.movedSystem": "Moved to system trash.",
   "fileExplorer.notice.deleted": "Deleted.",
@@ -1569,6 +1571,8 @@ Restricted Mode מגן עליכם. ראו את [הדוגמאות](https://github
     "fileExplorer.trash.system": "אשפת המערכת",
     "fileExplorer.trash.vault": "אשפת הכספת",
     "fileExplorer.trash.permanent": "מחיקה לצמיתות",
+    "fs.trash.error.systemUnavailable":
+      "אשפת המערכת אינה זמינה ממתאם File System Access בדפדפן. בחר באשפת הכספת או במחיקה לצמיתות.",
     "fileExplorer.notice.movedVault": "הועבר לאשפת הכספת.",
     "fileExplorer.notice.movedSystem": "הועבר לאשפת המערכת.",
     "fileExplorer.notice.deleted": "נמחק.",

@@ -244,6 +244,11 @@ const FS_HANDLE_ADAPTER_FORBIDDEN_PATTERNS = [
   /Origin Private File System is not available in this browser/,
 ];
 
+const FS_TRASH_FORBIDDEN_PATTERNS = [
+  /System trash is not available from the browser File System Access adapter/,
+  /Choose Vault trash or Permanent deletion/,
+];
+
 const HELP_MODAL_FORBIDDEN_PATTERNS = [
   /title: "Workspace"/,
   /what: "Open the command palette"/,
@@ -1188,6 +1193,7 @@ describe("UI string externalization audit", () => {
       `${process.cwd()}/src/core/fs/handle-adapter.ts`,
       "utf8",
     );
+    const trashSource = readFileSync(`${process.cwd()}/src/core/fs/trash.ts`, "utf8");
     const helpSource = readFileSync(`${process.cwd()}/src/ui/prompts/HelpModal.tsx`, "utf8");
     const bookmarksSource = readFileSync(
       `${process.cwd()}/src/ui/views/sidebar/BookmarksView.tsx`,
@@ -1200,6 +1206,7 @@ describe("UI string externalization audit", () => {
       ...FS_HANDLE_ADAPTER_FORBIDDEN_PATTERNS.filter((pattern) =>
         pattern.test(handleAdapterSource),
       ),
+      ...FS_TRASH_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(trashSource)),
       ...HELP_MODAL_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(helpSource)),
       ...BOOKMARKS_VIEW_FORBIDDEN_PATTERNS.filter((pattern) => pattern.test(bookmarksSource)),
     ];
@@ -1231,6 +1238,7 @@ describe("UI string externalization audit", () => {
     ]) {
       expect(vaultContextSource).toContain(requiredKey);
     }
+    expect(trashSource).toContain("fs.trash.error.systemUnavailable");
     for (const requiredKey of [
       "help.title",
       "help.keys.commandPalette",

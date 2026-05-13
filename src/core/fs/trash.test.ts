@@ -1,8 +1,9 @@
 import { Effect, Layer, ManagedRuntime } from "effect";
 import { describe, expect, it } from "vitest";
+import { t } from "../i18n";
 import { FileSystem, type FileSystemImpl } from "./FileSystem";
 import { deleteVaultPath } from "./trash";
-import { FsUnsupported, type VaultFile, type VaultPath } from "./types";
+import type { VaultFile, VaultPath } from "./types";
 
 function makeFs(): { fs: FileSystemImpl; calls: string[]; files: Set<string> } {
   const calls: string[] = [];
@@ -107,9 +108,10 @@ describe("deleteVaultPath", () => {
   it("does not fake system trash when the adapter lacks an OS-trash capability", async () => {
     const { fs, calls } = makeFs();
 
-    await expect(runWithFs(fs, deleteVaultPath("Notes/A.md", "system"))).rejects.toBeInstanceOf(
-      FsUnsupported,
-    );
+    await expect(runWithFs(fs, deleteVaultPath("Notes/A.md", "system"))).rejects.toMatchObject({
+      _tag: "FsUnsupported",
+      feature: t("fs.trash.error.systemUnavailable"),
+    });
     expect(calls).toEqual([]);
   });
 

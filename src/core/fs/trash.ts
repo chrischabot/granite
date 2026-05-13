@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { t } from "../i18n";
 import { FileSystem } from "./FileSystem";
 import { basename, dirname, extension, join } from "./path";
 import { type FsError, FsUnsupported, type VaultPath } from "./types";
@@ -58,22 +59,10 @@ export function deleteVaultPath(
     if (!fs.moveToSystemTrash) {
       return yield* Effect.fail(
         new FsUnsupported({
-          feature:
-            "System trash is not available from the browser File System Access adapter. Choose Vault trash or Permanent deletion.",
+          feature: t("fs.trash.error.systemUnavailable"),
         }),
       );
     }
     yield* fs.moveToSystemTrash(path);
   });
-}
-
-export function deletedFilesModeLabel(mode: DeletedFilesMode): string {
-  switch (mode) {
-    case "system":
-      return "system trash";
-    case "vault":
-      return "vault trash";
-    case "permanent":
-      return "permanent deletion";
-  }
 }

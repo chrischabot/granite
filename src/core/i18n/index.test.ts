@@ -97,6 +97,7 @@ describe("i18n", () => {
     expect(t("workspace.announce.activeTab", { title: "Projects" })).toBe("לשונית פעילה: Projects");
     expect(t("markdown.status.saving")).toBe("שומר…");
     expect(t("markdown.error.read")).toBe("לא ניתן לקרוא את הקובץ הזה.");
+    expect(t("markdown.autocomplete.aliasFor", { stem: "Projects" })).toBe("כינוי עבור Projects");
     expect(t("webViewer.urlPlaceholder")).toBe("הזנת כתובת URL...");
     expect(t("reading.embed.open")).toBe("פתיחה");
     expect(t("reading.query.noResults")).toBe("אין תוצאות.");

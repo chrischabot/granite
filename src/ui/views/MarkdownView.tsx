@@ -29,6 +29,7 @@ import { FileSystem } from "@core/fs/FileSystem";
 import { stem } from "@core/fs/path";
 import { type FsError, FsNotFound } from "@core/fs/types";
 import type { VaultPath } from "@core/fs/types";
+import { t as i18n } from "@core/i18n";
 import { noteDirectionFromFrontmatter } from "@core/i18n/direction";
 import { isSupportedAttachmentMime, saveAttachment } from "@core/markdown/attach";
 import { livePreviewDecorations } from "@core/markdown/cm-livepreview-decorations";
@@ -964,7 +965,9 @@ const wikilinkCompletionSource: CompletionSource = (context) => {
       const linkBody = entry.alias ? `${targetStem}|${entry.alias}` : targetStem;
       return {
         label: entry.displayName,
-        detail: entry.alias ? `alias for ${targetStem}` : entry.path,
+        detail: entry.alias
+          ? i18n("markdown.autocomplete.aliasFor", { stem: targetStem })
+          : entry.path,
         type: entry.alias ? "variable" : "text",
         apply: (view, _completion, from, to) => {
           const insert = `[[${linkBody}]]`;

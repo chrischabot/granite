@@ -508,6 +508,7 @@ const MARKDOWN_VIEW_FORBIDDEN_PATTERNS = [
   /\? "Saved"/,
   /\? "Editing…"/,
   /\? "Save failed"/,
+  /`alias for \$\{targetStem\}`/,
 ];
 
 const WEB_VIEWER_FORBIDDEN_PATTERNS = [
@@ -1544,6 +1545,7 @@ describe("UI string externalization audit", () => {
       "markdown.status.saved",
       "markdown.status.editing",
       "markdown.status.saveFailed",
+      "markdown.autocomplete.aliasFor",
     ]) {
       expect(markdownSource).toContain(requiredKey);
     }

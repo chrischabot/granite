@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-05-13 — Localized Markdown autocomplete alias detail
+
+- **Root cause** — the Markdown wikilink autocomplete reused switcher alias
+  data, but rendered alias suggestions with a hard-coded `alias for …` detail
+  string outside the i18n layer.
+- **Autocomplete path** — added `markdown.autocomplete.aliasFor` and routed
+  alias detail text through the locale lookup at completion creation time.
+- **Regression ratchet** — extended the Markdown/Web Viewer externalization
+  audit to reject the old template literal and added Hebrew coverage for the
+  new autocomplete detail key.
+- **Tracker honesty** — kept the broad string-externalization item open while
+  recording this as another audited UI string closure.
+
+### Tests
+- `bun run test -- src/core/i18n/externalization.test.ts src/core/i18n/index.test.ts`
+
+---
+
 ## 2026-05-13 — Localized Bookmarks default group migration
 
 - **Root cause** — the Bookmarks sidebar used the English default group label

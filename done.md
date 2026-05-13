@@ -4,6 +4,23 @@
 
 ---
 
+## 2026-05-13 — Graph pan browser FPS verifier
+
+- **Root cause** — the graph pan work had a source-level transform budget, but
+  no browser proof that a 10k-node SVG scene stays above the product's
+  30 fps panning floor.
+- **Browser path** — added a Vite-served Chromium fixture that creates 10,000
+  SVG graph nodes, applies the same shared viewport transform helpers used by
+  `GraphView`, pans continuously for 10 seconds, and fails below 30 fps.
+- **Tracker closure** — closed the §24.19 graph pan item after the browser
+  verifier reported 10k nodes at 120.1 fps with 0 long frames in headless
+  Chromium.
+
+### Tests
+- `bun run verify:graph-pan-browser`
+
+---
+
 ## 2026-05-13 — Live Preview browser verification
 
 - **Root cause** — the Live Preview TODO had strong pure-function and

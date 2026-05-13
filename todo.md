@@ -91,7 +91,7 @@
 - [ ] 10 k-note cold start < 3 s (10k Node metadata budget ratchet, no-restat guard, startup timing report, and slow-startup diagnostic notice shipped; browser/profile verification remains)
 - [x] Quick-switcher keystroke update < 16 ms ← _shipped 2026-05-12 reusable fuzzy index_
 - [x] 10 k search regex < 500 ms ← _shipped 2026-05-12 in-memory regex budget test + larger scan chunks_
-- [ ] 10 k graph pan ≥ 30 fps (imperative transform + 10k transform budget ratchet and allocation trim shipped; browser FPS verification remains)
+- [x] 10 k graph pan ≥ 30 fps ← _shipped 2026-05-13 browser 10-second FPS verifier_
 - [ ] Save round-trip < 50 ms (adapter budget test shipped; browser/host verification remains)
 
 ### §24.20 Accessibility — Phase 16

@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Graph Pan Browser Fixture</title>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background: #111;
+      }
+
+      svg {
+        display: block;
+        width: 1200px;
+        height: 800px;
+      }
+    </style>
+  </head>
+  <body>
+    <svg id="graph" width="1200" height="800" aria-label="10k graph pan fixture">
+      <g id="viewport"></g>
+    </svg>
+    <script type="module">
+      import { transformForGraphViewport, viewportForPanDrag } from "../src/core/graph/pan.ts";
+
+      const NS = "http://www.w3.org/2000/svg";
+      const NODE_COUNT = 10_000;
+      const DURATION_MS = 10_000;
+      const MIN_FPS = 30;
+      const size = { w: 1200, h: 800 };
+      const viewport = document.querySelector("#viewport");
+
+      const fragment = document.createDocumentFragment();
+      for (let i = 0; i < NODE_COUNT; i++) {
+        const angle = (i / NODE_COUNT) * Math.PI * 2;
+        const band = 80 + (i % 100) * 2.8;
+        const node = document.createElementNS(NS, "circle");
+        node.setAttribute("cx", String(Math.cos(angle) * band));
+        node.setAttribute("cy", String(Math.sin(angle) * band));
+        node.setAttribute("r", "2.5");
+        node.setAttribute("fill", i % 3 === 0 ? "#8ab4f8" : i % 3 === 1 ? "#81c995" : "#fdd663");
+        fragment.appendChild(node);
+      }
+      viewport.appendChild(fragment);
+
+      async function run() {
+        let view = { x: 0, y: 0, scale: 1 };
+        const drag = { startX: 0, startY: 0, viewX: 0, viewY: 0 };
+        const frameIntervals = [];
+        let frames = 0;
+        let previous = performance.now();
+        const start = previous;
+
+        await new Promise((resolve) => {
+          const step = (now) => {
+            frameIntervals.push(now - previous);
+            previous = now;
+            frames += 1;
+            const phase = (now - start) / 1000;
+            view = viewportForPanDrag(
+              view,
+              drag,
+              Math.sin(phase * 2.1) * 420 + phase * 18,
+              Math.cos(phase * 1.7) * 320 - phase * 11,
+            );
+            viewport.setAttribute("transform", transformForGraphViewport(view, size));
+            if (now - start >= DURATION_MS) resolve();
+            else requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        });
+
+        const elapsedMs = performance.now() - start;
+        const fps = (frames / elapsedMs) * 1000;
+        const sorted = [...frameIntervals].sort((a, b) => a - b);
+        const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+        const longFrames = frameIntervals.filter((ms) => ms > 50).length;
+        const finalTransform = viewport.getAttribute("transform");
+        if (fps < MIN_FPS) {
+          throw new Error(
+            `Graph pan FPS ${fps.toFixed(1)} fell below ${MIN_FPS} with ${NODE_COUNT} nodes`,
+          );
+        }
+
+        return {
+          ok: true,
+          nodeCount: NODE_COUNT,
+          elapsedMs,
+          frames,
+          fps,
+          p95FrameMs: p95,
+          longFrames,
+          finalTransform,
+        };
+      }
+
+      window.__graniteGraphPanResult = run().catch((error) => ({
+        ok: false,
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+      }));
+    </script>
+  </body>
+</html>

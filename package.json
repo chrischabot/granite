@@ -10,6 +10,7 @@
     "typecheck": "tsgo --noEmit",
     "audit:a11y": "vitest run src/core/a11y/icon-buttons.test.ts src/core/a11y/announcer.test.ts src/ui/A11yAnnouncer.test.tsx src/ui/overlay/Modal.test.tsx src/ui/overlay/NoticeContainer.test.tsx src/styles/contrast.test.ts",
     "docs:check": "vitest run src/core/docs/public-docs.test.ts",
+    "verify:graph-pan-browser": "node scripts/verify-graph-pan-browser.mjs",
     "verify:live-preview-browser": "node scripts/verify-live-preview-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",

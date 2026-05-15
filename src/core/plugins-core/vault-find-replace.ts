@@ -1,4 +1,4 @@
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
@@ -52,10 +52,7 @@ export function replaceInText(
 }
 
 export function registerVaultFindReplacePlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "vault:find-replace",
@@ -190,7 +187,5 @@ export function registerVaultFindReplacePlugin(): () => void {
     },
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }

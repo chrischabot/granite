@@ -1,4 +1,4 @@
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { join, normalize } from "@core/fs/path";
@@ -63,10 +63,7 @@ function formatDate(d: Date, fmt: string): string {
 }
 
 export function registerUniqueNotePlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "unique-note:create",
@@ -113,7 +110,5 @@ export function registerUniqueNotePlugin(): () => void {
     },
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }

@@ -83,3 +83,28 @@ class CommandRegistryImpl {
 }
 
 export const commandRegistry = new CommandRegistryImpl();
+
+/**
+ * Open a scoped registrar that tracks every registration into one disposer.
+ * Returns `register(cmd)` to add a command and `disposer()` to tear down
+ * every registration LIFO. Replaces the ad-hoc `registrations.push(...)`
+ * + `for fn of registrations` pattern that the plugins-core modules
+ * were duplicating 19 times.
+ */
+export function createCommandRegistrar(): {
+  register: (command: Command) => void;
+  disposer: () => void;
+} {
+  const disposers: Array<() => void> = [];
+  return {
+    register(command: Command) {
+      disposers.push(commandRegistry.register(command));
+    },
+    disposer() {
+      while (disposers.length > 0) {
+        const fn = disposers.pop();
+        if (fn) fn();
+      }
+    },
+  };
+}

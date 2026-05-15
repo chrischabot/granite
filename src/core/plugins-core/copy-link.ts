@@ -1,4 +1,4 @@
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { stem } from "@core/fs/path";
 import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
@@ -26,10 +26,7 @@ async function writeToClipboard(text: string): Promise<void> {
 }
 
 export function registerCopyLinkPlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "links:copy-wikilink",
@@ -68,7 +65,5 @@ export function registerCopyLinkPlugin(): () => void {
     },
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }

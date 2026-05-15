@@ -1,5 +1,5 @@
 import { APP_VERSION } from "@core/app/version";
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { commandRegistry, createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { t } from "@core/i18n";
@@ -105,10 +105,7 @@ export function formatDebugInfo(info: DebugInfo): string {
 }
 
 export function registerDebugInfoPlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "granite:show-debug-info",
@@ -127,7 +124,5 @@ export function registerDebugInfoPlugin(): () => void {
     },
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }

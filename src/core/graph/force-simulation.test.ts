@@ -84,16 +84,27 @@ describe("ForceSimulation", () => {
     expect(last).toBeLessThan(first);
   });
 
-  it("never produces NaN or Infinity across the integration-step sweep", () => {
+  it("never produces NaN or Infinity at any step across the integration sweep", () => {
     const { nodes, edges } = randomGraph(80, 0.05, 42);
     for (const dt of [0.01, 0.1, 0.5, 1.0]) {
       const sim = new ForceSimulation(nodes, edges, { ...PARAMS, dt });
-      for (let step = 0; step < 200; step++) sim.step();
-      for (let i = 0; i < sim.count; i++) {
-        expect(Number.isFinite(sim.x[i] ?? 0)).toBe(true);
-        expect(Number.isFinite(sim.y[i] ?? 0)).toBe(true);
-        expect(Number.isFinite(sim.vx[i] ?? 0)).toBe(true);
-        expect(Number.isFinite(sim.vy[i] ?? 0)).toBe(true);
+      for (let step = 0; step < 200; step++) {
+        sim.step();
+        // Per-step assertion: a transient NaN clamped to 0 by an internal
+        // guard would slip past a final-only check. Reading the buffers
+        // every step catches a one-frame divergence.
+        for (let i = 0; i < sim.count; i++) {
+          if (
+            !Number.isFinite(sim.x[i] ?? 0) ||
+            !Number.isFinite(sim.y[i] ?? 0) ||
+            !Number.isFinite(sim.vx[i] ?? 0) ||
+            !Number.isFinite(sim.vy[i] ?? 0)
+          ) {
+            throw new Error(
+              `Non-finite simulation state at dt=${dt}, step=${step}, node=${i}: x=${sim.x[i]} y=${sim.y[i]} vx=${sim.vx[i]} vy=${sim.vy[i]}`,
+            );
+          }
+        }
       }
     }
   });

@@ -1,4 +1,4 @@
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { t } from "@core/i18n";
@@ -232,10 +232,7 @@ export async function renameTagAcrossVault(prefilledFrom?: string): Promise<void
 }
 
 export function registerTagRenamePlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "tags:rename-across-vault",
@@ -244,7 +241,5 @@ export function registerTagRenamePlugin(): () => void {
     callback: () => renameTagAcrossVault(),
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }

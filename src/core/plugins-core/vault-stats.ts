@@ -1,4 +1,4 @@
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { t } from "@core/i18n";
@@ -22,10 +22,7 @@ function countWords(text: string): number {
 }
 
 export function registerVaultStatsPlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "vault-stats:show",
@@ -94,7 +91,5 @@ export function registerVaultStatsPlugin(): () => void {
     },
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }

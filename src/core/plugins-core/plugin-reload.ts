@@ -1,13 +1,10 @@
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { listPlugins, setPluginEnabled } from "@core/plugins/loader";
 
 export function registerPluginReloadPlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "plugins:reload-all",
@@ -33,7 +30,5 @@ export function registerPluginReloadPlugin(): () => void {
     },
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }

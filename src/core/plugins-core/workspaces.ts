@@ -1,4 +1,4 @@
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { workspaceStore } from "@core/workspace/store";
@@ -98,10 +98,7 @@ function applyLayout(layout: SerializedWorkspace): boolean {
 }
 
 export function registerWorkspacesPlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "workspaces:save",
@@ -170,7 +167,5 @@ export function registerWorkspacesPlugin(): () => void {
     },
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }

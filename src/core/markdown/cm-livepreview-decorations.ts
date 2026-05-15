@@ -632,8 +632,9 @@ function collectObsidianOverrides(
   WIKILINK_RE.lastIndex = 0;
   let m: RegExpExecArray | null = WIKILINK_RE.exec(text);
   while (m) {
-    const start = m[1] === "!" ? m.index : m.index;
-    overrides.push({ from: start, to: m.index + m[0].length });
+    // m.index already covers the optional `!` prefix because group 1 (`(!?)`)
+    // is part of the match span, not a lookbehind. No ternary required.
+    overrides.push({ from: m.index, to: m.index + m[0].length });
     m = WIKILINK_RE.exec(text);
   }
   FOOTNOTE_REF_RE.lastIndex = 0;

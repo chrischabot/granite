@@ -1,4 +1,4 @@
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { join, normalize } from "@core/fs/path";
@@ -52,10 +52,7 @@ async function openDailyNote(offsetDays: number): Promise<void> {
 }
 
 export function registerDailyNotesPlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "daily-notes:open-today",
@@ -78,9 +75,7 @@ export function registerDailyNotesPlugin(): () => void {
     callback: () => openDailyNote(1),
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }
 
 export function getDailyNotesSettings(): DailyNotesSettings {

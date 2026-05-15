@@ -1,4 +1,4 @@
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { join, normalize } from "@core/fs/path";
@@ -111,10 +111,7 @@ function stopRecording(): void {
 }
 
 export function registerAudioRecorderPlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "audio-recorder:toggle",
@@ -128,6 +125,6 @@ export function registerAudioRecorderPlugin(): () => void {
 
   return () => {
     if (active) stopRecording();
-    for (const fn of registrations) fn();
+    disposer();
   };
 }

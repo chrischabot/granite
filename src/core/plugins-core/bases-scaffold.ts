@@ -1,14 +1,11 @@
 import { scaffoldBaseFile } from "@/ui/views/BasesView";
-import { type Command, commandRegistry } from "@core/commands/CommandRegistry";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { workspaceStore } from "@core/workspace/store";
 
 export function registerBasesScaffoldPlugin(): () => void {
-  const registrations: Array<() => void> = [];
-  const register = (cmd: Command) => {
-    registrations.push(commandRegistry.register(cmd));
-  };
+  const { register, disposer } = createCommandRegistrar();
 
   register({
     id: "bases:create",
@@ -30,7 +27,5 @@ export function registerBasesScaffoldPlugin(): () => void {
     },
   });
 
-  return () => {
-    for (const fn of registrations) fn();
-  };
+  return disposer;
 }

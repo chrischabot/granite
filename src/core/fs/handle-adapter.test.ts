@@ -4,6 +4,9 @@ import { t } from "../i18n";
 import {
   DEFAULT_WATCH_POLL_INTERVAL_MS,
   FileSystemCapabilityError,
+  WATCH_BACKOFF_FACTOR,
+  WATCH_BACKOFF_IDLE_TICKS,
+  WATCH_BACKOFF_MAX_MS,
   handleAdapter,
   openOPFS,
   pickDirectoryFSA,
@@ -241,6 +244,112 @@ describe("handleAdapter", () => {
       path: "Folder",
       reason: t("fs.error.directoryRenameUnsupported"),
     });
+  });
+
+  it("exposes idle-backoff bounds that match the documented contract", () => {
+    expect(WATCH_BACKOFF_IDLE_TICKS).toBeGreaterThanOrEqual(5);
+    expect(WATCH_BACKOFF_FACTOR).toBeGreaterThan(1);
+    expect(WATCH_BACKOFF_MAX_MS).toBeGreaterThanOrEqual(2000);
+  });
+
+  it("backs off polling after consecutive idle ticks and recovers on activity", async () => {
+    // Instrument setTimeout to record the delays the watcher requests.
+    const realSetTimeout = globalThis.setTimeout;
+    const realClearTimeout = globalThis.clearTimeout;
+    const delays: number[] = [];
+    type Pending = { fn: () => void; id: number };
+    const pending = new Map<number, Pending>();
+    let nextId = 1;
+    const fakeSetTimeout = ((fn: () => void, delay?: number) => {
+      const id = nextId++;
+      pending.set(id, { fn, id });
+      delays.push(delay ?? 0);
+      // Resolve on the microtask queue so the test can pump ticks
+      // synchronously by awaiting Promise.resolve() between probes.
+      queueMicrotask(() => {
+        const job = pending.get(id);
+        if (!job) return;
+        pending.delete(id);
+        job.fn();
+      });
+      return id as unknown as ReturnType<typeof setTimeout>;
+    }) as typeof setTimeout;
+    const fakeClearTimeout = ((id: number) => {
+      pending.delete(id);
+    }) as typeof clearTimeout;
+    globalThis.setTimeout = fakeSetTimeout;
+    globalThis.clearTimeout = fakeClearTimeout;
+    try {
+      const root = new MockDirectoryHandle("Vault") as unknown as FileSystemDirectoryHandle;
+      const adapter = handleAdapter(root, { pollIntervalMs: 100, systemTrash: null });
+      const unsubscribe = adapter.watch(() => {});
+      // Pump enough ticks to exceed the idle threshold and exercise backoff.
+      // Each tick is async (walks the tree, schedules the next one), so we
+      // pump a generous number of microtasks to let every tick complete.
+      const pump = async (iterations: number) => {
+        for (let i = 0; i < iterations; i++) {
+          for (let j = 0; j < 20; j++) {
+            await Promise.resolve();
+          }
+        }
+      };
+      await pump(WATCH_BACKOFF_IDLE_TICKS + 6);
+
+      // First scheduled delay is 0 (immediate first tick). Subsequent ticks
+      // schedule at the base interval until idleCount exceeds the threshold,
+      // then the delay grows by WATCH_BACKOFF_FACTOR each tick.
+      const baseDelays = delays.filter((d) => d === 100);
+      expect(baseDelays.length).toBeGreaterThanOrEqual(WATCH_BACKOFF_IDLE_TICKS);
+      const lastDelay = delays[delays.length - 1];
+      expect(lastDelay).toBeGreaterThan(100);
+      expect(lastDelay).toBeLessThanOrEqual(WATCH_BACKOFF_MAX_MS);
+
+      // Simulate a diff: write a new file. The next tick should observe it
+      // and reset the cadence back to the base interval.
+      await Effect.runPromise(adapter.writeText("activity.md", "hello"));
+      const delaysBefore = delays.length;
+      await pump(6);
+      const newDelays = delays.slice(delaysBefore);
+      expect(newDelays.some((d) => d === 100)).toBe(true);
+
+      unsubscribe();
+    } finally {
+      globalThis.setTimeout = realSetTimeout;
+      globalThis.clearTimeout = realClearTimeout;
+    }
+  });
+
+  it("pauses and resumes the watcher via the exposed control surface", async () => {
+    const root = new MockDirectoryHandle("Vault") as unknown as FileSystemDirectoryHandle;
+    const adapter = handleAdapter(root, { pollIntervalMs: 5, systemTrash: null });
+    const events: Array<{ type: string; path: string }> = [];
+    const control = adapter.watch((event) => {
+      if ("path" in event) events.push(event);
+    }) as unknown as (() => void) & { pause?: () => void; resume?: () => void };
+    // Sanity: the watcher exposes pause/resume.
+    expect(typeof control.pause).toBe("function");
+    expect(typeof control.resume).toBe("function");
+
+    try {
+      // Let the baseline snapshot settle.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      // Pause, then mutate. We must NOT see any events while paused.
+      control.pause?.();
+      await Effect.runPromise(adapter.writeText("paused-while.md", "shh"));
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const seenWhilePaused = events.some((e) => e.path === "paused-while.md");
+      expect(seenWhilePaused).toBe(false);
+
+      // Resume — the change should now be observed.
+      control.resume?.();
+      const deadline = Date.now() + 500;
+      while (!events.some((e) => e.path === "paused-while.md")) {
+        if (Date.now() > deadline) throw new Error("Timed out waiting for resume");
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+    } finally {
+      control();
+    }
   });
 
   it("keeps .granite hidden from vault-wide listAll while still watching app-data changes", async () => {

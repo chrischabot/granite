@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { t } from "../i18n";
-import type { FileSystemImpl, FsUnsubscribe } from "./FileSystem";
+import type { FileSystemImpl, FsWatchControl } from "./FileSystem";
 import { type NativeSystemTrashBridge, detectNativeSystemTrashBridge } from "./native-trash";
 import { basename, dirname, extension } from "./path";
 import {
@@ -163,6 +163,14 @@ export interface HandleAdapterOptions {
 const DEFAULT_SKIP = [".granite", ".git", "node_modules"] as const;
 const DEFAULT_WATCH_SKIP = [".git", "node_modules"] as const;
 export const DEFAULT_WATCH_POLL_INTERVAL_MS = 200;
+/**
+ * Idle backoff parameters: after this many consecutive empty polls the
+ * watcher multiplies the next-tick delay by {@link WATCH_BACKOFF_FACTOR}
+ * up to {@link WATCH_BACKOFF_MAX_MS}. Any diff resets the interval.
+ */
+export const WATCH_BACKOFF_IDLE_TICKS = 5;
+export const WATCH_BACKOFF_FACTOR = 1.5;
+export const WATCH_BACKOFF_MAX_MS = 2000;
 
 export function handleAdapter(
   root: FileSystemDirectoryHandle,
@@ -239,9 +247,22 @@ export function handleAdapter(
     });
 
   /**
-   * Atomic write: write to `<name>.tmp~`, then copy to target and delete tmp.
-   * The tmp first guarantees we never leave a half-written target if the user
-   * closes the tab mid-save.
+   * Atomic write: never-lose-the-original protocol.
+   *
+   * 1. Write payload to a `<name>.granite-tmp~` sibling and close it (the
+   *    Writable's close() flushes durably on the FSA backing store).
+   * 2. If the underlying FileSystemFileHandle exposes `move(parent, name)`
+   *    (Chrome 110+ FSA), use it: that's an atomic rename-replace and the
+   *    original target either remains untouched or has been swapped for the
+   *    new content -- never a torn middle state.
+   * 3. Otherwise fall back to a marker-driven copy: write a small
+   *    `<name>.granite-commit~` marker that names the tmp and its expected
+   *    size, *then* copy bytes into the target. The marker lets startup
+   *    recovery (see {@link recoverPendingAtomicWrite}) replay the copy if
+   *    the process died after the marker was written but before the target
+   *    was complete. The target is only created/overwritten while the
+   *    marker is in place — so a crash leaves either the old target intact
+   *    or a marker that recovery can finish.
    */
   async function atomicWrite(path: VaultPath, payload: string | Uint8Array) {
     if (!path) throw new FsAccessDenied({ path, reason: t("fs.error.emptyPath") });
@@ -249,28 +270,61 @@ export function handleAdapter(
     const name = basename(path);
     const parent = await ensureDir(root, dir);
     const tmpName = `${name}.granite-tmp~`;
-    const tmpHandle = await parent.getFileHandle(tmpName, { create: true });
-    const tmpW = await tmpHandle.createWritable();
-    if (typeof payload === "string") {
-      await tmpW.write(payload);
-    } else {
-      // FileSystemWriteChunkType expects BufferSource | Blob | string. Cast
-      // through unknown to bypass the ArrayBuffer/SharedArrayBuffer variance
-      // strictness in the latest DOM lib types.
-      await tmpW.write(payload as unknown as BufferSource);
-    }
-    await tmpW.close();
+    const markerName = `${name}.granite-commit~`;
+    const bytes =
+      typeof payload === "string" ? new TextEncoder().encode(payload) : Uint8Array.from(payload);
+
+    // Step 1: stage payload into tmp sibling. Use a fresh handle so leftovers
+    // from a previous interrupted save are fully truncated.
     try {
-      await parent.removeEntry(name);
+      await parent.removeEntry(tmpName);
     } catch (err) {
       if (!(err instanceof DOMException && err.name === "NotFoundError")) throw err;
     }
+    const tmpHandle = await parent.getFileHandle(tmpName, { create: true });
+    const tmpW = await tmpHandle.createWritable();
+    // FileSystemWriteChunkType expects BufferSource | Blob | string. Cast
+    // through unknown to bypass the ArrayBuffer/SharedArrayBuffer variance
+    // strictness in the latest DOM lib types.
+    await tmpW.write(bytes as unknown as BufferSource);
+    await tmpW.close();
+
+    // Step 2: prefer atomic rename if the platform supports it.
+    const moveCapable = tmpHandle as FileSystemFileHandle & {
+      move?: (parent: FileSystemDirectoryHandle, name: string) => Promise<void>;
+    };
+    if (typeof moveCapable.move === "function") {
+      await moveCapable.move(parent, name);
+      // No marker was ever written in this branch; tmp is now the target.
+      return;
+    }
+
+    // Step 3: fall back to copy-with-marker. Marker is written before any
+    // mutation of the target, so recovery can finish or roll back cleanly.
+    const markerBody = JSON.stringify({
+      v: 1,
+      tmp: tmpName,
+      target: name,
+      size: bytes.byteLength,
+    });
+    const markerHandle = await parent.getFileHandle(markerName, { create: true });
+    const markerW = await markerHandle.createWritable();
+    await markerW.write(markerBody);
+    await markerW.close();
+
     const target = await parent.getFileHandle(name, { create: true });
     const targetW = await target.createWritable();
-    const tmpFile = await tmpHandle.getFile();
-    const buf = await tmpFile.arrayBuffer();
-    await targetW.write(buf);
+    await targetW.write(bytes as unknown as BufferSource);
     await targetW.close();
+
+    // Commit point: target now holds the new bytes. Remove marker first, then
+    // tmp. If we crash between these two, recovery sees no marker and treats
+    // the tmp as a harmless orphan to discard.
+    try {
+      await parent.removeEntry(markerName);
+    } catch {
+      /* marker may have been swept */
+    }
     try {
       await parent.removeEntry(tmpName);
     } catch {
@@ -374,15 +428,30 @@ export function handleAdapter(
     });
 
   /**
-   * Polling watcher. Returns an unsubscribe function. Diffs the listAll
-   * snapshot against the previous snapshot every `pollIntervalMs`.
+   * Polling watcher. Returns a disposer with `pause`/`resume` controls.
+   * Diffs the listAll snapshot against the previous snapshot every
+   * `pollIntervalMs` while active, with idle backoff: after
+   * {@link WATCH_BACKOFF_IDLE_TICKS} consecutive no-diff polls the interval
+   * grows by {@link WATCH_BACKOFF_FACTOR} up to {@link WATCH_BACKOFF_MAX_MS}.
+   * Any observed diff snaps the interval back to the base.
    */
-  const watchImpl = (handler: (e: FsEvent) => void): FsUnsubscribe => {
+  const watchImpl = (handler: (e: FsEvent) => void): FsWatchControl => {
     let cancelled = false;
+    let paused = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
     let prev: Map<string, number> | null = null;
+    let currentInterval = pollIntervalMs;
+    let idleCount = 0;
+
+    const schedule = (delay: number) => {
+      if (cancelled || paused) return;
+      timer = setTimeout(tick, delay);
+    };
 
     const tick = async () => {
-      if (cancelled) return;
+      timer = null;
+      if (cancelled || paused) return;
+      let sawDiff = false;
       try {
         const list: VaultFile[] = [];
         async function walk(handle: FileSystemDirectoryHandle, parentPath: VaultPath) {
@@ -403,24 +472,67 @@ export function handleAdapter(
         if (prev !== null) {
           for (const [p, m] of next) {
             const old = prev.get(p);
-            if (old === undefined) handler({ type: "create", path: p });
-            else if (old !== m) handler({ type: "modify", path: p });
+            if (old === undefined) {
+              handler({ type: "create", path: p });
+              sawDiff = true;
+            } else if (old !== m) {
+              handler({ type: "modify", path: p });
+              sawDiff = true;
+            }
           }
           for (const p of prev.keys()) {
-            if (!next.has(p)) handler({ type: "delete", path: p });
+            if (!next.has(p)) {
+              handler({ type: "delete", path: p });
+              sawDiff = true;
+            }
           }
         }
         prev = next;
       } catch {
         /* watcher is best-effort; swallow transient errors */
       }
-      if (!cancelled) setTimeout(tick, pollIntervalMs);
+
+      if (sawDiff) {
+        idleCount = 0;
+        currentInterval = pollIntervalMs;
+      } else {
+        idleCount += 1;
+        if (idleCount > WATCH_BACKOFF_IDLE_TICKS) {
+          currentInterval = Math.min(
+            Math.ceil(currentInterval * WATCH_BACKOFF_FACTOR),
+            WATCH_BACKOFF_MAX_MS,
+          );
+        }
+      }
+      schedule(currentInterval);
     };
 
-    void tick();
-    return () => {
+    schedule(0);
+
+    const control: FsWatchControl = () => {
       cancelled = true;
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
     };
+    control.pause = () => {
+      if (paused || cancelled) return;
+      paused = true;
+      if (timer !== null) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    };
+    control.resume = () => {
+      if (!paused || cancelled) return;
+      paused = false;
+      // Reset the cadence so a freshly-resumed tab notices changes promptly.
+      currentInterval = pollIntervalMs;
+      idleCount = 0;
+      schedule(0);
+    };
+    return control;
   };
 
   return {

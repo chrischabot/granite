@@ -4,6 +4,20 @@ import type { FsError, FsEvent, VaultEntry, VaultFile, VaultPath } from "./types
 /** Disposer returned by FileSystem.watch — call to stop receiving events. */
 export type FsUnsubscribe = () => void;
 
+/**
+ * Optional control surface for watchers that support pausing and resuming
+ * (e.g. for hidden-tab cases). All watchers expose at least the disposer
+ * call; adapters that support pause/resume attach those as properties.
+ */
+export interface FsWatchControl {
+  /** Stop receiving events permanently. */
+  (): void;
+  /** Pause polling without dropping subscription state. No-op if not paused-capable. */
+  pause?: () => void;
+  /** Resume polling after a pause. No-op if not paused. */
+  resume?: () => void;
+}
+
 export interface FileSystemImpl {
   /** Human-readable display name of the vault root (folder name on disk). */
   readonly rootName: string;

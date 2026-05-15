@@ -1,64 +1,8 @@
-import { spawn } from "node:child_process";
-import { createServer } from "node:net";
-import { setTimeout as delay } from "node:timers/promises";
-import { chromium } from "playwright";
+import { runBrowserFixture, runMain } from "./_lib/dev-server.mjs";
 
-const cwd = process.cwd();
-const INITIAL = "# External\n\nInitial content\n";
 const EXTERNAL_ONE = "# External\n\nExternally edited content\n";
 const LOCAL_DIRTY = "\nLocal unsaved text";
 const EXTERNAL_TWO = "# External\n\nSecond external edit\n";
-
-async function getOpenPort() {
-  const server = createServer();
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
-  if (!address || typeof address === "string") throw new Error("Could not allocate a local port");
-  return address.port;
-}
-
-async function waitForServer(url, processOutput) {
-  const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {
-      // Vite is still booting.
-    }
-    if (processOutput.exitCode !== null) {
-      throw new Error(`Vite exited before becoming ready:\n${processOutput.text}`);
-    }
-    await delay(100);
-  }
-  throw new Error(`Timed out waiting for Vite at ${url}\n${processOutput.text}`);
-}
-
-function startVite(port) {
-  const output = { text: "", exitCode: null };
-  const child = spawn(
-    "bunx",
-    ["vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
-    {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-  const append = (chunk) => {
-    output.text += chunk.toString();
-    if (output.text.length > 20_000) output.text = output.text.slice(-20_000);
-  };
-  child.stdout.on("data", append);
-  child.stderr.on("data", append);
-  child.on("exit", (code) => {
-    output.exitCode = code;
-  });
-  return { child, output };
-}
 
 async function waitForFixture(page) {
   await page.waitForFunction(() => window.__graniteExternalEditReady === true, null, {
@@ -77,23 +21,13 @@ async function waitForDocIncludes(page, expectedText, timeout = 800) {
   return await page.evaluate(() => window.__graniteExternalEditDoc());
 }
 
-async function main() {
-  const port = await getOpenPort();
-  const baseUrl = `http://127.0.0.1:${port}`;
-  const vault = `external-edit-browser-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const fixtureUrl = `${baseUrl}/scripts/external-edit-browser-fixture.html?vault=${vault}`;
-  const { child, output } = startVite(port);
-  let browser;
-  const consoleMessages = [];
-
+runMain(() =>
+  runBrowserFixture({
+    fixture: "scripts/external-edit-browser-fixture.html",
+    viewport: { width: 1000, height: 700 },
+    query: { vault: `external-edit-browser-${Date.now()}-${Math.random().toString(36).slice(2)}` },
+    body: async ({ page, consoleMessages }) => {
   try {
-    await waitForServer(fixtureUrl, output);
-    browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage({ viewport: { width: 1000, height: 700 } });
-    page.on("console", (message) => consoleMessages.push(`${message.type()}: ${message.text()}`));
-    page.on("pageerror", (error) => consoleMessages.push(`pageerror: ${error.message}`));
-
-    await page.goto(fixtureUrl, { waitUntil: "networkidle" });
     await waitForFixture(page);
 
     const start = performance.now();
@@ -141,20 +75,12 @@ async function main() {
     console.log(`External update elapsed: ${externalElapsed.toFixed(1)}ms`);
     console.log(`Final status: ${statusAfterOwnWatcher}`);
   } catch (error) {
-    const noisyConsole = consoleMessages.filter(
-      (message) => !message.includes("Download the React DevTools"),
+    const noisy = consoleMessages.filter(
+      (m) => !m.includes("Download the React DevTools"),
     );
-    if (noisyConsole.length > 0) console.error(noisyConsole.join("\n"));
+    if (noisy.length > 0) console.error(noisy.join("\n"));
     throw error;
-  } finally {
-    if (browser) await browser.close();
-    child.kill("SIGTERM");
-    await delay(100);
-    if (child.exitCode === null) child.kill("SIGKILL");
   }
-}
-
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+    },
+  }),
+);

@@ -1,0 +1,8 @@
+{
+  "id": "misbehaving-shim",
+  "name": "Misbehaving (shim)",
+  "version": "1.0.0",
+  "description": "Deliberately leaks via untracked api.* registrations; exercises the loader safety-net sweep.",
+  "author": "Granite fixtures",
+  "main": "main.js"
+}

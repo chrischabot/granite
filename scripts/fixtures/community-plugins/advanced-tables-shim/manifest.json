@@ -1,0 +1,8 @@
+{
+  "id": "advanced-tables-shim",
+  "name": "Advanced Tables (shim)",
+  "version": "1.0.0",
+  "description": "Realistic Obsidian-shaped fixture: command + ribbon + status item.",
+  "author": "Granite fixtures",
+  "main": "main.js"
+}

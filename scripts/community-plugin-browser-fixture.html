@@ -40,7 +40,7 @@
       import { FileSystem } from "@core/fs/FileSystem";
       import { noticeManager } from "@core/notices/notice";
       import { listSettingsTabs, listStatusBarItems } from "@core/plugins/host-registries";
-      import { listPlugins } from "@core/plugins/loader";
+      import { listPlugins, setPluginEnabled } from "@core/plugins/loader";
       import { CommandsBootstrap } from "@/ui/commands/CommandsBootstrap";
       import { NoticeContainer } from "@/ui/overlay/NoticeContainer";
       import { InstallPluginModal } from "@/ui/prompts/InstallPluginModal";
@@ -53,7 +53,12 @@
       const fetches = [];
       const updateVersions = new Map();
 
-      const entries = [
+      // Three plugins shipped as part of the original mock surface. The
+      // verifier still drives these through the InstallPluginModal UI flow to
+      // exercise the registry/install/disk-write paths — the *plugin body*
+      // served as `main.js` exercises the legacy Granite-style `onLoad`/
+      // `onUnload` path (so we keep coverage for both call shapes).
+      const legacyEntries = [
         {
           id: "advanced-tables",
           name: "Advanced Tables",
@@ -77,7 +82,41 @@
         },
       ];
 
-      const pluginByRepo = new Map(entries.map((entry) => [entry.repo, entry]));
+      // Realistic plugin fixtures served by Vite from `scripts/fixtures/...`.
+      // These exercise the *Obsidian-shape* class export + `require("obsidian")`
+      // path, including the disposer tracker.
+      const realFixtures = [
+        {
+          id: "advanced-tables-shim",
+          name: "Advanced Tables (shim)",
+          basePath: "/scripts/fixtures/community-plugins/advanced-tables-shim",
+        },
+        {
+          id: "obsidian-git-shim",
+          name: "Git (shim)",
+          basePath: "/scripts/fixtures/community-plugins/obsidian-git-shim",
+        },
+        {
+          id: "calendar-shim",
+          name: "Calendar (shim)",
+          basePath: "/scripts/fixtures/community-plugins/calendar-shim",
+        },
+        {
+          // Deliberately leaky: registers a status bar item, settings tab,
+          // and plugin event via the legacy `api.*` surface (which returns
+          // disposers but is NOT auto-tracked). Its onUnload is a no-op, so
+          // the ONLY thing that releases its registrations is the loader's
+          // safety-net sweep (removeAllStatusBarItemsForPlugin et al.).
+          // Comment out those calls in `loader.ts unloadPlugin` and the
+          // storm test will leak one status item + one settings tab per
+          // cycle.
+          id: "misbehaving-shim",
+          name: "Misbehaving (shim)",
+          basePath: "/scripts/fixtures/community-plugins/misbehaving-shim",
+        },
+      ];
+
+      const pluginByRepo = new Map(legacyEntries.map((entry) => [entry.repo, entry]));
 
       function manifestFor(entry, version) {
         return {
@@ -133,11 +172,16 @@
         });
       }
 
+      // We *only* mock the community-registry list endpoint and the legacy
+      // entries' GitHub-shape URLs. All other fetches — including those for
+      // the realistic shim fixtures — pass through to Vite, which serves the
+      // hand-written plugin files from disk.
+      const realFetch = window.fetch.bind(window);
       window.fetch = async (input, init = {}) => {
         const url = String(input);
         fetches.push({ url, credentials: init?.credentials ?? null });
         if (url.endsWith("/community-plugins.json")) {
-          return textResponse(JSON.stringify(entries));
+          return textResponse(JSON.stringify(legacyEntries));
         }
         const rawMatch = url.match(
           /^https:\/\/raw\.githubusercontent\.com\/([^/]+\/[^/]+)\/master\/manifest\.json$/,
@@ -162,7 +206,8 @@
           }
           return textResponse("missing", 404);
         }
-        return textResponse(`Unexpected fetch: ${url}`, 500);
+        // Everything else — including /scripts/fixtures/... — passes through.
+        return realFetch(input, init);
       };
 
       async function readVaultText(path) {
@@ -172,6 +217,30 @@
             return yield* fs.readText(path);
           }),
         );
+      }
+
+      // Drop a realistic Obsidian-shape plugin straight onto the vault filesystem
+      // (bypassing the install modal). The fixture's main.js and manifest.json
+      // are fetched from Vite's real file server — this is the path that
+      // actually proves we can load real-shape plugin code.
+      async function installRealFixture(fixture) {
+        const manifestRes = await realFetch(`${fixture.basePath}/manifest.json`);
+        const manifestText = await manifestRes.text();
+        const mainRes = await realFetch(`${fixture.basePath}/main.js`);
+        const mainText = await mainRes.text();
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            const dir = `.granite/plugins/${fixture.id}`;
+            yield* fs.mkdir(dir);
+            yield* fs.writeText(`${dir}/manifest.json`, manifestText);
+            yield* fs.writeText(`${dir}/main.js`, mainText);
+          }),
+        );
+      }
+
+      async function setEnabled(id, enabled) {
+        await setPluginEnabled(id, enabled);
       }
 
       function snapshot() {
@@ -195,6 +264,12 @@
           notices: noticeManager.list().map((notice) => ({
             message: notice.message,
             kind: notice.kind,
+          })),
+          ribbonIcons: Array.from(
+            document.querySelectorAll(".granite-plugin-ribbon .plugin-ribbon-icon"),
+          ).map((el) => ({
+            pluginId: el.getAttribute("data-plugin-id"),
+            title: el.getAttribute("aria-label"),
           })),
           fetches,
         };
@@ -224,6 +299,10 @@
         window.__graniteCommunityPluginError = error;
         window.__graniteCommunityPluginSnapshot = snapshot;
         window.__graniteCommunityPluginReadVaultText = readVaultText;
+        window.__graniteCommunityPluginInstallRealFixture = installRealFixture;
+        window.__graniteCommunityPluginSetEnabled = setEnabled;
+        window.__graniteCommunityPluginRealFixtures = realFixtures;
+        window.__graniteCommunityPluginCommandRegistry = commandRegistry;
         window.__graniteCommunityPluginSetUpdateVersion = (id, version) => {
           updateVersions.set(id, version);
         };

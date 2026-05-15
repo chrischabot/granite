@@ -1,0 +1,8 @@
+{
+  "id": "obsidian-git-shim",
+  "name": "Git (shim)",
+  "version": "1.0.0",
+  "description": "Realistic Obsidian-shaped fixture: persisted settings + setting tab.",
+  "author": "Granite fixtures",
+  "main": "main.js"
+}

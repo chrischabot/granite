@@ -89,7 +89,28 @@
           "indexed file count differs from manifest",
           { observed: fileEntries.length, expected: manifest.paths.length },
         );
-        return { elapsedMs, fileCount: fileEntries.length, tagCount: tags.length };
+        // Primary tag oracle: getAllTags must equal manifest.tagDistribution.
+        // Compare as JSON to surface specific drift.
+        const observedJson = JSON.stringify(tags);
+        const expectedJson = JSON.stringify(manifest.tagDistribution);
+        assert(
+          observedJson === expectedJson,
+          "getAllTags does not match manifest.tagDistribution",
+          {
+            observedLen: tags.length,
+            expectedLen: manifest.tagDistribution.length,
+            firstObserved: tags.slice(0, 3),
+            firstExpected: manifest.tagDistribution.slice(0, 3),
+          },
+        );
+        const tagOracleTotal = tags.reduce((sum, t) => sum + t.count, 0);
+        return {
+          elapsedMs,
+          fileCount: fileEntries.length,
+          tagCount: tags.length,
+          tagOracleDistinct: tags.length,
+          tagOracleTotal,
+        };
       }
 
       function runSearchPhase(manifest) {

@@ -1,60 +1,4 @@
-import { spawn } from "node:child_process";
-import { createServer } from "node:net";
-import { setTimeout as delay } from "node:timers/promises";
-import { chromium } from "playwright";
-
-const cwd = process.cwd();
-
-async function getOpenPort() {
-  const server = createServer();
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
-  if (!address || typeof address === "string") throw new Error("Could not allocate a local port");
-  return address.port;
-}
-
-async function waitForServer(url, processOutput) {
-  const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {
-      // Vite is still booting.
-    }
-    if (processOutput.exitCode !== null) {
-      throw new Error(`Vite exited before becoming ready:\n${processOutput.text}`);
-    }
-    await delay(100);
-  }
-  throw new Error(`Timed out waiting for Vite at ${url}\n${processOutput.text}`);
-}
-
-function startVite(port) {
-  const output = { text: "", exitCode: null };
-  const child = spawn(
-    "bunx",
-    ["vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
-    {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-  const append = (chunk) => {
-    output.text += chunk.toString();
-    if (output.text.length > 20_000) output.text = output.text.slice(-20_000);
-  };
-  child.stdout.on("data", append);
-  child.stderr.on("data", append);
-  child.on("exit", (code) => {
-    output.exitCode = code;
-  });
-  return { child, output };
-}
+import { runBrowserFixture, runMain } from "./_lib/dev-server.mjs";
 
 async function snapshot(page) {
   return await page.evaluate(() => window.__graniteWorkspaceRestartSnapshot());
@@ -109,53 +53,34 @@ function assertLayoutRestored(snap, label) {
   }
 }
 
-async function main() {
-  const port = await getOpenPort();
-  const baseUrl = `http://127.0.0.1:${port}`;
-  const vault = `workspace-restart-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  const fixtureUrl = `${baseUrl}/scripts/workspace-restart-browser-fixture.html?vault=${vault}`;
-  const { child, output } = startVite(port);
-  let browser;
-  const consoleMessages = [];
+runMain(() =>
+  runBrowserFixture({
+    fixture: "scripts/workspace-restart-browser-fixture.html",
+    viewport: { width: 1280, height: 820 },
+    query: { vault: `workspace-restart-${Date.now()}-${Math.random().toString(36).slice(2)}` },
+    body: async ({ page, consoleMessages }) => {
+      try {
+        await waitForFixture(page);
+        await page.evaluate(() => window.__graniteWorkspaceRestartOpenSingle());
+        assertSingleRestored(await snapshot(page), "before fast restart");
+        await page.reload({ waitUntil: "networkidle" });
+        await waitForFixture(page);
+        assertSingleRestored(await snapshot(page), "after fast restart");
 
-  try {
-    await waitForServer(fixtureUrl, output);
-    browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage({ viewport: { width: 1280, height: 820 } });
-    page.on("console", (message) => consoleMessages.push(`${message.type()}: ${message.text()}`));
-    page.on("pageerror", (error) => consoleMessages.push(`pageerror: ${error.message}`));
+        await page.evaluate(() => window.__graniteWorkspaceRestartSetupLayout());
+        assertLayoutRestored(await snapshot(page), "before layout restart");
+        await page.reload({ waitUntil: "networkidle" });
+        await waitForFixture(page);
+        assertLayoutRestored(await snapshot(page), "after layout restart");
 
-    await page.goto(fixtureUrl, { waitUntil: "networkidle" });
-    await waitForFixture(page);
-
-    await page.evaluate(() => window.__graniteWorkspaceRestartOpenSingle());
-    assertSingleRestored(await snapshot(page), "before fast restart");
-    await page.reload({ waitUntil: "networkidle" });
-    await waitForFixture(page);
-    assertSingleRestored(await snapshot(page), "after fast restart");
-
-    await page.evaluate(() => window.__graniteWorkspaceRestartSetupLayout());
-    assertLayoutRestored(await snapshot(page), "before layout restart");
-    await page.reload({ waitUntil: "networkidle" });
-    await waitForFixture(page);
-    assertLayoutRestored(await snapshot(page), "after layout restart");
-
-    console.log("Workspace restart browser verification passed.");
-  } catch (error) {
-    const noisyConsole = consoleMessages.filter(
-      (message) => !message.includes("Download the React DevTools"),
-    );
-    if (noisyConsole.length > 0) console.error(noisyConsole.join("\n"));
-    throw error;
-  } finally {
-    if (browser) await browser.close();
-    child.kill("SIGTERM");
-    await delay(100);
-    if (child.exitCode === null) child.kill("SIGKILL");
-  }
-}
-
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+        console.log("Workspace restart browser verification passed.");
+      } catch (error) {
+        const noisy = consoleMessages.filter(
+          (m) => !m.includes("Download the React DevTools"),
+        );
+        if (noisy.length > 0) console.error(noisy.join("\n"));
+        throw error;
+      }
+    },
+  }),
+);

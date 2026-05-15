@@ -50,6 +50,27 @@ export interface ChunkedSearchHooks {
 }
 
 /**
+ * Test-only chunk-emission observer. The runner notifies the observer once
+ * per chunk, BEFORE invoking the user's `onChunk` hook. This decouples the
+ * batching invariant from any state-update batching (React `act()` collapses
+ * multiple `setState` calls, hiding per-file flushes from DOM-level spies).
+ *
+ * Production code path is unaffected — the observer is `null` by default.
+ */
+export type ChunkedSearchObserver = (info: {
+  readonly chunkIndex: number;
+  readonly chunkSize: number;
+  readonly batchCount: number;
+}) => void;
+
+let chunkObserver: ChunkedSearchObserver | null = null;
+
+/** Install (or clear with `null`) a global per-chunk observer for tests. */
+export function setChunkedSearchObserver(observer: ChunkedSearchObserver | null): void {
+  chunkObserver = observer;
+}
+
+/**
  * Return only the files that survive the inverted-index pre-filter. When
  * the query has no free-text terms (e.g. just `[status:done]`) the index
  * can't help and we return the full list unchanged.
@@ -81,9 +102,11 @@ export async function runChunkedFullTextSearch(
   const signal = options.signal;
   const candidates = searchIndexedCandidatePaths(query, files, index);
   if (candidates.length === 0) {
+    chunkObserver?.({ chunkIndex: 0, chunkSize, batchCount: 0 });
     hooks.onChunk([]);
     return;
   }
+  let chunkIndex = 0;
   for (let i = 0; i < candidates.length; i += chunkSize) {
     if (signal?.cancelled) return;
     const slice = candidates.slice(i, i + chunkSize);
@@ -112,6 +135,8 @@ export async function runChunkedFullTextSearch(
         passed.push(entry);
       }
     }
+    chunkObserver?.({ chunkIndex, chunkSize, batchCount: passed.length });
+    chunkIndex += 1;
     hooks.onChunk(passed);
   }
 }

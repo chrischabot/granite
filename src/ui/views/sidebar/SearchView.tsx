@@ -4,12 +4,9 @@ import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
 import { stem } from "@core/fs/path";
 import type { VaultFile, VaultPath } from "@core/fs/types";
 import { metadataCache } from "@core/metadata/cache";
-import {
-  type ParsedQuery,
-  fileMatchesQuery,
-  findLineMatches,
-  parseQuery,
-} from "@core/search/query";
+import { runChunkedFullTextSearch } from "@core/search/chunked-search";
+import { getSearchIndex } from "@core/search/index-registry";
+import { type ParsedQuery, findLineMatches, parseQuery } from "@core/search/query";
 import { settingsStore } from "@core/settings/store";
 import { workspaceStore } from "@core/workspace/store";
 import { Effect } from "effect";
@@ -124,46 +121,41 @@ export function SearchView() {
       const eligible =
         patterns.length === 0 ? files : files.filter((f) => !isExcluded(f.path, patterns));
       const out: FileMatches[] = [];
-      const chunkSize = 128;
-      for (let i = 0; i < eligible.length; i += chunkSize) {
-        if (token.cancelled) return;
-        const chunk = eligible.slice(i, i + chunkSize);
-        await Promise.all(
-          chunk.map(async (f) => {
+      const index = getSearchIndex();
+      // Chunked progressive driver — when the inverted index has indexed any
+      // documents it pre-filters candidates by the free-text terms; otherwise
+      // it falls back to scanning every eligible file (regex / property / tag
+      // / line-only queries always fall back via the helper's null path).
+      const usableIndex = index.size() > 0 ? index : null;
+      await runChunkedFullTextSearch(
+        parsed,
+        eligible,
+        {
+          readFile: (path) =>
+            run(
+              Effect.gen(function* () {
+                const fs = yield* FileSystem;
+                return yield* fs.readText(path);
+              }),
+            ),
+          getMetadata: (path) => metadataCache.getMetadata(path),
+          onChunk: (batch) => {
             if (token.cancelled) return;
-            try {
-              const text = await run(
-                Effect.gen(function* () {
-                  const fs = yield* FileSystem;
-                  return yield* fs.readText(f.path);
-                }),
-              );
-              const meta = metadataCache.getMetadata(f.path);
-              if (
-                !fileMatchesQuery(
-                  parsed,
-                  { file: f, content: text, metadata: meta },
-                  { matchCase: mc },
-                )
-              ) {
-                return;
-              }
-              const matches = findLineMatches(text, parsed, 5, { matchCase: mc });
+            for (const entry of batch) {
+              const matches = findLineMatches(entry.content, parsed, 5, { matchCase: mc });
               if (
                 matches.length > 0 ||
                 (parsed.include.length === 0 && parsed.lineTerms.length === 0)
               ) {
-                out.push({ path: f.path, matches, mtimeMs: f.mtimeMs });
+                out.push({ path: entry.file.path, matches, mtimeMs: entry.file.mtimeMs });
               }
-            } catch {
-              /* ignore */
             }
-          }),
-        );
-        if (!token.cancelled) {
-          setResults(applySort(out, sort));
-        }
-      }
+            setResults(applySort(out, sort));
+          },
+        },
+        usableIndex,
+        { chunkSize: 128, matchOptions: { matchCase: mc }, signal: token },
+      );
     } finally {
       if (!token.cancelled) setRunning(false);
     }

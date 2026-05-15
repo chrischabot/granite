@@ -1,61 +1,5 @@
-import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createServer } from "node:net";
-import { setTimeout as delay } from "node:timers/promises";
-import { chromium } from "playwright";
-
-const cwd = process.cwd();
-
-async function getOpenPort() {
-  const server = createServer();
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
-  if (!address || typeof address === "string") throw new Error("Could not allocate a local port");
-  return address.port;
-}
-
-async function waitForServer(url, processOutput) {
-  const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {
-      // Vite is still booting.
-    }
-    if (processOutput.exitCode !== null) {
-      throw new Error(`Vite exited before becoming ready:\n${processOutput.text}`);
-    }
-    await delay(100);
-  }
-  throw new Error(`Timed out waiting for Vite at ${url}\n${processOutput.text}`);
-}
-
-function startVite(port) {
-  const output = { text: "", exitCode: null };
-  const child = spawn(
-    "bunx",
-    ["vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
-    {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-  const append = (chunk) => {
-    output.text += chunk.toString();
-    if (output.text.length > 20_000) output.text = output.text.slice(-20_000);
-  };
-  child.stdout.on("data", append);
-  child.stderr.on("data", append);
-  child.on("exit", (code) => {
-    output.exitCode = code;
-  });
-  return { child, output };
-}
+import { runBrowserFixture, runMain } from "./_lib/dev-server.mjs";
 
 function hash(buffer) {
   return createHash("sha256").update(buffer).digest("hex").slice(0, 16);
@@ -123,23 +67,11 @@ async function verifyExternalReload(page, themePath) {
   }
 }
 
-async function main() {
-  const port = await getOpenPort();
-  const baseUrl = `http://127.0.0.1:${port}`;
-  const { child, output } = startVite(port);
-  let browser;
-
-  try {
-    await waitForServer(`${baseUrl}/scripts/community-theme-browser-fixture.html`, output);
-    browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage({ viewport: { width: 1280, height: 840 } });
-    const consoleMessages = [];
-    page.on("console", (message) => consoleMessages.push(`${message.type()}: ${message.text()}`));
-    page.on("pageerror", (error) => consoleMessages.push(`pageerror: ${error.message}`));
-
-    await page.goto(`${baseUrl}/scripts/community-theme-browser-fixture.html`, {
-      waitUntil: "networkidle",
-    });
+runMain(() =>
+  runBrowserFixture({
+    fixture: "scripts/community-theme-browser-fixture.html",
+    viewport: { width: 1280, height: 840 },
+    body: async ({ page, consoleMessages }) => {
     const initial = await page.evaluate(() => window.__graniteCommunityThemeFixture.run());
     if (!initial?.ok) {
       throw new Error(
@@ -178,15 +110,6 @@ async function main() {
         `${captureResult.label}: ${captureResult.hash}, ${captureResult.bytes} bytes, ${captureResult.snapshot.backgroundPrimary}, ${captureResult.snapshot.textNormal}`,
       );
     }
-  } finally {
-    if (browser) await browser.close();
-    child.kill("SIGTERM");
-    await delay(100);
-    if (child.exitCode === null) child.kill("SIGKILL");
-  }
-}
-
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+    },
+  }),
+);

@@ -25,6 +25,7 @@ import { extension } from "@core/fs/path";
 import type { FsError, VaultEntry, VaultFile, VaultPath } from "@core/fs/types";
 import { setLocale } from "@core/i18n";
 import { metadataCache } from "@core/metadata/cache";
+import { setChunkedSearchObserver } from "@core/search/chunked-search";
 import { getSearchIndex } from "@core/search/index-registry";
 import { fileMatchesQuery, parseQuery } from "@core/search/query";
 import { resetSettingsForTests } from "@core/settings/store";
@@ -144,6 +145,7 @@ describe("SearchView indexed chunked search", () => {
   afterEach(async () => {
     await act(async () => root.unmount());
     host.remove();
+    setChunkedSearchObserver(null);
     metadataCache.reset();
     getSearchIndex().clear();
     setSearchQuery("");
@@ -206,37 +208,33 @@ describe("SearchView indexed chunked search", () => {
     expect(paths).not.toContain("distractor");
   });
 
-  it("batches setResults updates per ≥100-file chunk on a 200-file corpus", async () => {
+  it("emits exactly ⌈N/chunkSize⌉ chunk callbacks with chunkSize ≥ 100 (β: per-file flush fails)", async () => {
     // Build a 200-note corpus where every note matches the query "lorem".
-    // With chunkSize=128 we expect exactly 2 onChunk callbacks → 2 render
-    // batches. The previous per-file render would have produced ≥200.
+    // With the default chunkSize (128, clamped to a ≥100 floor) the driver
+    // MUST emit exactly Math.ceil(200/128) = 2 chunk callbacks.
+    //
+    // β-test rationale: the previous DOM-mutation count is a poor signal
+    // because React `act()` batches `setState` calls, hiding per-file
+    // flushes from the DOM. Instead we instrument the chunked-search
+    // runner directly via `setChunkedSearchObserver`. Setting
+    // `chunkSize: 1` in the runner (or removing the ≥100 clamp) would
+    // produce 200 callbacks and fail this assertion.
     const corpus = new Map<string, string>();
     for (let i = 0; i < 200; i++) {
       corpus.set(`n${i}.md`, `lorem ipsum body ${i}`);
     }
     mountWithCorpus(corpus);
 
+    const chunkCalls: Array<{ chunkIndex: number; chunkSize: number; batchCount: number }> = [];
+    setChunkedSearchObserver((info) => {
+      chunkCalls.push(info);
+    });
+
     await act(async () => {
       root.render(<SearchView />);
     });
 
     const input = host.querySelector<HTMLInputElement>("input[type='search']");
-    let renderCount = 0;
-    const observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        for (const node of Array.from(m.addedNodes)) {
-          if (
-            node instanceof Element &&
-            node.matches?.(".search-result-container, .search-result")
-          ) {
-            renderCount += 1;
-          }
-        }
-      }
-    });
-    const container = host.querySelector(".search-pane");
-    if (container) observer.observe(container, { childList: true, subtree: true });
-
     await act(async () => {
       const setter = Object.getOwnPropertyDescriptor(
         window.HTMLInputElement.prototype,
@@ -246,19 +244,63 @@ describe("SearchView indexed chunked search", () => {
       input?.dispatchEvent(new Event("input", { bubbles: true }));
     });
     await waitForDebounce();
-    observer.disconnect();
 
     const paths = readResultPaths(host);
     expect(paths).toHaveLength(200);
-    // Sanity: with 200 files and a chunk floor of 100, the driver emits
-    // ≤ 200 / 100 = 2 batches. We can't directly intercept setResults from
-    // outside the component, but we can verify the final result is complete
-    // and observe at most a small number of result-container mutations.
-    // Each chunk-flush rebuilds the result list, so two chunks → at most
-    // a handful of subtree mutations (children diffed in one commit each).
-    // The hard guarantee we assert: the driver did NOT call onChunk per file
-    // (which would balloon DOM mutations into the hundreds).
-    expect(renderCount).toBeLessThan(200);
+
+    // The runner clamps chunkSize to ≥ 100 (severe-testing §24.7 floor).
+    expect(chunkCalls.length).toBeGreaterThan(0);
+    const observedChunkSize = chunkCalls[0]?.chunkSize ?? 0;
+    expect(observedChunkSize).toBeGreaterThanOrEqual(100);
+
+    // Exact-equality assertion — the very thing the reviewer demanded.
+    // 200 files / 128 chunkSize → 2 batches. Per-file emission would be 200.
+    const expectedChunks = Math.ceil(200 / observedChunkSize);
+    expect(chunkCalls.length).toBe(expectedChunks);
+    // Independent ceiling: an N-file corpus with the ≥100 floor cannot
+    // exceed ⌈N/100⌉ chunks regardless of any future chunkSize tuning.
+    expect(chunkCalls.length).toBeLessThanOrEqual(Math.ceil(200 / 100));
+  });
+
+  it("falls back to scanning every eligible file when the index is empty (β: 0-size index ≠ 0 results)", async () => {
+    // Build a corpus where some notes match the term, but DO NOT seed the
+    // inverted index. SearchView must pass `null` to the chunked driver so
+    // it falls back to scanning the eligible set. If SearchView passed an
+    // empty index unconditionally, `prefilterCandidatesByIndex` would
+    // return an empty Set (every required term is absent from every doc)
+    // and the search would return zero results — that is the β-failure
+    // mode this test guards against.
+    const corpus = new Map<string, string>([
+      ["match-one.md", "the keyword needle appears here"],
+      ["match-two.md", "another mention of needle inside the body"],
+      ["miss.md", "no relevant words in this file"],
+    ]);
+    for (const [path, content] of corpus) {
+      files.set(path as VaultPath, content);
+      // INTENTIONALLY NOT calling getSearchIndex().add — leave size at 0.
+    }
+    expect(getSearchIndex().size()).toBe(0);
+
+    const fs = makeFs(files);
+    setAppLayer(() => Layer.succeed(FileSystem, fs) as Layer.Layer<AppServices, never, never>);
+
+    await act(async () => {
+      root.render(<SearchView />);
+    });
+
+    const input = host.querySelector<HTMLInputElement>("input[type='search']");
+    await act(async () => {
+      const setter = Object.getOwnPropertyDescriptor(
+        window.HTMLInputElement.prototype,
+        "value",
+      )?.set;
+      setter?.call(input, "needle");
+      input?.dispatchEvent(new Event("input", { bubbles: true }));
+    });
+    await waitForDebounce();
+
+    const paths = readResultPaths(host).sort();
+    expect(paths).toEqual(["match-one", "match-two"]);
   });
 
   it("returns scan-equivalent results across 50 random queries × 500 notes (β-oracle)", async () => {

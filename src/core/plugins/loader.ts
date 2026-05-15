@@ -18,6 +18,13 @@ import {
   removeAllSettingsTabsForPlugin,
   removeAllStatusBarItemsForPlugin,
 } from "./host-registries";
+import {
+  type ObsidianModule,
+  type PluginRegistrationTracker,
+  Plugin as ShimPluginBase,
+  attachShimVaultImpl,
+  createObsidianShim,
+} from "./obsidian-shim";
 import type {
   LoadedPlugin,
   PluginApi,
@@ -31,11 +38,48 @@ import type {
 const PLUGINS_DIR = ".granite/plugins";
 const STORAGE_KEY = "granite.plugins.enabled.v1";
 const DISK_CONFIG_NAME = "plugins-enabled";
+
+/** Ribbon container the obsidian-shim mounts plugin-supplied icons into.
+ *  Hosted UI may relocate or restyle this element, but the loader treats it
+ *  as owned by the shim (the loader removes children + the element itself
+ *  on plugin unload). Tests can swap it via `_setRibbonContainerForTesting`. */
+let ribbonRoot: HTMLElement | null = null;
+function ensureRibbonRoot(): HTMLElement {
+  if (ribbonRoot) return ribbonRoot;
+  if (typeof document === "undefined") {
+    return {
+      appendChild: () => null,
+      removeChild: () => null,
+      querySelectorAll: () => [] as unknown as NodeListOf<Element>,
+      children: [] as unknown as HTMLCollection,
+    } as unknown as HTMLElement;
+  }
+  const existing = document.querySelector<HTMLElement>(".granite-plugin-ribbon");
+  if (existing) {
+    ribbonRoot = existing;
+    return existing;
+  }
+  const el = document.createElement("div");
+  el.className = "granite-plugin-ribbon";
+  el.setAttribute("data-role", "plugin-ribbon");
+  document.body.appendChild(el);
+  ribbonRoot = el;
+  return el;
+}
+
+export function _setRibbonContainerForTesting(el: HTMLElement | null): void {
+  ribbonRoot = el;
+}
+
 interface PluginEntry {
   manifest: PluginManifest;
   enabled: boolean;
   loaded: boolean;
   cleanup?: (() => void | Promise<void>) | undefined;
+  /** Serializes load/unload calls per entry. Two concurrent `loadPlugin`
+   *  invocations would otherwise each create a fresh tracker and clobber
+   *  `entry.cleanup`, orphaning the first load's disposers. */
+  inflight: Promise<void> | null;
 }
 
 const entries = new Map<string, PluginEntry>();
@@ -183,7 +227,126 @@ async function readManifest(id: string): Promise<PluginManifest | null> {
   }
 }
 
+/** Build a vault helper bundle the obsidian-shim's Vault class can call into.
+ *  Kept inline here so the shim file doesn't need to import the Effect runtime
+ *  (we want the shim to stay easily unit-testable). */
+function attachShimVault(): void {
+  attachShimVaultImpl({
+    read: (path) =>
+      run(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem;
+          return yield* fs.readText(path as VaultPath);
+        }),
+      ),
+    write: (path, content) =>
+      run(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem;
+          yield* fs.writeText(path as VaultPath, content);
+        }),
+      ),
+    delete: (path) =>
+      run(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem;
+          yield* fs.remove(path as VaultPath);
+        }),
+      ),
+    rename: (from, to) =>
+      run(
+        Effect.gen(function* () {
+          const fs = yield* FileSystem;
+          yield* fs.rename(from as VaultPath, to as VaultPath);
+        }),
+      ),
+    listMarkdownSync: () => markdownListCache,
+    statSync: (path) => statCache.get(path) ?? null,
+  });
+}
+
+// Synchronous caches the Obsidian-shim Vault uses (its API is sync). The loader
+// refreshes them right before/after plugin loads — good enough for the read-
+// only access patterns the reference plugins exercise.
+let markdownListCache: ReadonlyArray<{ path: string; size: number; mtimeMs: number }> = [];
+const statCache = new Map<
+  string,
+  { type: "file" | "directory"; size?: number; mtimeMs?: number }
+>();
+
+async function refreshShimVaultCaches(): Promise<void> {
+  try {
+    markdownListCache = await run(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem;
+        const all = yield* fs.listAll({ extensions: ["md"] });
+        return all.map((f) => ({ path: f.path, size: f.size, mtimeMs: f.mtimeMs }));
+      }),
+    );
+    statCache.clear();
+    for (const entry of markdownListCache) {
+      statCache.set(entry.path, { type: "file", size: entry.size, mtimeMs: entry.mtimeMs });
+    }
+  } catch {
+    markdownListCache = [];
+    statCache.clear();
+  }
+}
+
+function makeRequireForPlugin(shim: ObsidianModule): (id: string) => unknown {
+  return (id: string) => {
+    if (id === "obsidian") return shim;
+    throw new Error(`Cannot find module "${id}" in plugin sandbox`);
+  };
+}
+
+function pickPluginClass(modExports: unknown): typeof ShimPluginBase | null {
+  // Direct class export: `module.exports = class extends Plugin { … }`.
+  if (typeof modExports === "function" && isPluginClass(modExports)) {
+    return modExports as typeof ShimPluginBase;
+  }
+  // ESM-emulated default: `module.exports.default = class extends Plugin {}`.
+  if (modExports && typeof modExports === "object") {
+    const def = (modExports as { default?: unknown }).default;
+    if (typeof def === "function" && isPluginClass(def)) return def as typeof ShimPluginBase;
+  }
+  return null;
+}
+
+function isPluginClass(fn: unknown): boolean {
+  if (typeof fn !== "function") return false;
+  // Walk the prototype chain. The shim's Plugin base is the marker.
+  let proto: unknown = fn;
+  let depth = 0;
+  while (proto && depth < 32) {
+    if (proto === ShimPluginBase) return true;
+    proto = Object.getPrototypeOf(proto);
+    depth += 1;
+  }
+  return false;
+}
+
+/** Run `op` after any in-flight load/unload for this entry has settled. */
+async function serializeEntry(entry: PluginEntry, op: () => Promise<void>): Promise<void> {
+  const prior = entry.inflight ?? Promise.resolve();
+  const next = prior
+    .catch(() => {
+      /* swallow — the prior op already logged */
+    })
+    .then(op);
+  entry.inflight = next;
+  try {
+    await next;
+  } finally {
+    if (entry.inflight === next) entry.inflight = null;
+  }
+}
+
 async function loadPlugin(entry: PluginEntry): Promise<void> {
+  return serializeEntry(entry, () => loadPluginInner(entry));
+}
+
+async function loadPluginInner(entry: PluginEntry): Promise<void> {
   if (entry.loaded) return;
   const main = entry.manifest.main ?? "main.js";
   let code: string;
@@ -191,7 +354,7 @@ async function loadPlugin(entry: PluginEntry): Promise<void> {
     code = await run(
       Effect.gen(function* () {
         const fs = yield* FileSystem;
-        return yield* fs.readText(`${PLUGINS_DIR}/${entry.manifest.id}/${main}`);
+        return yield* fs.readText(`${PLUGINS_DIR}/${entry.manifest.id}/${main}` as VaultPath);
       }),
     );
   } catch {
@@ -200,19 +363,117 @@ async function loadPlugin(entry: PluginEntry): Promise<void> {
     });
     return;
   }
+  attachShimVault();
+  await refreshShimVaultCaches();
   const api = makeApi(entry.manifest.id);
-  const moduleObj: { exports: PluginExports } = { exports: {} };
+  const moduleObj: { exports: PluginExports | unknown } = { exports: {} };
+
+  const disposers: Array<() => void | Promise<void>> = [];
+  // `disposed` is a real lifecycle flag, not a constant. It flips to `true`
+  // once the loader has drained the tracker on unload. A push after that
+  // point can't reach a real disposer-run, so we log loudly and drop it.
+  const trackerState = { disposed: false };
+  const pluginIdForLog = entry.manifest.id;
+  const tracker: PluginRegistrationTracker = {
+    push: (d) => {
+      if (trackerState.disposed) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[granite] Plugin "${pluginIdForLog}" pushed a disposer after unload — the registration will leak. Move registrations into onload(), not async callbacks that resolve after the host has disposed the plugin.`,
+        );
+        return;
+      }
+      disposers.push(d);
+    },
+    get disposed() {
+      return trackerState.disposed;
+    },
+  };
+
+  async function drainTrackedDisposers(): Promise<void> {
+    while (disposers.length > 0) {
+      const d = disposers.pop();
+      if (!d) continue;
+      try {
+        await Promise.resolve(d());
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(`[granite] Plugin "${pluginIdForLog}" disposer threw:`, err);
+      }
+    }
+    trackerState.disposed = true;
+  }
+  const ribbonContainer = ensureRibbonRoot();
+  const shim = createObsidianShim({
+    pluginId: entry.manifest.id,
+    manifest: entry.manifest,
+    tracker,
+    ribbonContainer,
+  });
+  const pluginRequire = makeRequireForPlugin(shim);
+
   try {
-    const fn = new Function("module", "exports", "api", `${code}\n;return module.exports;`);
-    const exports = (fn(moduleObj, moduleObj.exports, api) as PluginExports) ?? moduleObj.exports;
-    if (typeof exports.onLoad === "function") {
-      await Promise.resolve(exports.onLoad(api));
+    const fn = new Function(
+      "module",
+      "exports",
+      "api",
+      "require",
+      `${code}\n;return module.exports;`,
+    );
+    const exports = fn(moduleObj, moduleObj.exports, api, pluginRequire) ?? moduleObj.exports;
+
+    // Style B: Obsidian-shape `module.exports = class extends Plugin`.
+    const PluginClass = pickPluginClass(exports);
+    if (PluginClass) {
+      const instance = new (
+        PluginClass as unknown as new () => InstanceType<typeof ShimPluginBase>
+      )();
+      const onload = (instance as { onload?: () => void | Promise<void> }).onload;
+      if (typeof onload === "function") {
+        await Promise.resolve(onload.call(instance));
+      }
+      entry.loaded = true;
+      entry.cleanup = async () => {
+        const onunload = (instance as { onunload?: () => void | Promise<void> }).onunload;
+        if (typeof onunload === "function") {
+          try {
+            await Promise.resolve(onunload.call(instance));
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error(
+              `[granite] Plugin "${entry.manifest.id}" onunload threw — running tracked disposers anyway:`,
+              err,
+            );
+          }
+        }
+        // Run every tracked registration's disposer in LIFO order. We swallow
+        // and log any failures so one buggy disposer can't block the rest.
+        await drainTrackedDisposers();
+      };
+      return;
+    }
+
+    // Style A: Granite-style `module.exports = { onLoad, onUnload }` (fallback).
+    const granite = exports as PluginExports;
+    if (typeof granite?.onLoad === "function") {
+      await Promise.resolve(granite.onLoad(api));
     }
     entry.loaded = true;
-    if (typeof exports.onUnload === "function") {
-      const onUnload = exports.onUnload;
-      entry.cleanup = () => Promise.resolve(onUnload(api));
-    }
+    const graniteOnUnload = granite?.onUnload;
+    entry.cleanup = async () => {
+      if (typeof graniteOnUnload === "function") {
+        try {
+          await Promise.resolve(graniteOnUnload(api));
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error(`[granite] Plugin "${entry.manifest.id}" onUnload threw:`, err);
+        }
+      }
+      // Flip the tracker's `disposed` flag even for Granite-style plugins so
+      // a late `push` is still rejected (and so the lifecycle invariant is
+      // identical across both code paths).
+      await drainTrackedDisposers();
+    };
   } catch (err) {
     noticeManager.show(
       t("plugin.loader.error.load", {
@@ -225,6 +486,10 @@ async function loadPlugin(entry: PluginEntry): Promise<void> {
 }
 
 async function unloadPlugin(entry: PluginEntry): Promise<void> {
+  return serializeEntry(entry, () => unloadPluginInner(entry));
+}
+
+async function unloadPluginInner(entry: PluginEntry): Promise<void> {
   if (!entry.loaded) return;
   entry.loaded = false;
   if (entry.cleanup) {
@@ -238,6 +503,12 @@ async function unloadPlugin(entry: PluginEntry): Promise<void> {
   }
   // Safety net: blast any residual host registry entries / event listeners
   // even if the plugin forgot to call the disposers we returned to it.
+  // This is load-bearing — the `misbehaving-shim` fixture in
+  // `scripts/fixtures/community-plugins/` registers a status item and a
+  // settings tab via the legacy `api.statusBar.add()` / `api.addSettingsTab()`
+  // surface (which returns disposers but is NOT auto-tracked by the obsidian-
+  // shim Plugin base). Without these sweeps the verifier's leak storm fails
+  // on the very first `after-initial-disable` snapshot.
   removeAllStatusBarItemsForPlugin(entry.manifest.id);
   removeAllSettingsTabsForPlugin(entry.manifest.id);
   removeAllListenersForPlugin(entry.manifest.id);
@@ -245,7 +516,6 @@ async function unloadPlugin(entry: PluginEntry): Promise<void> {
 
 async function refreshAll(): Promise<void> {
   if (!activeVaultId) return;
-  const enabledSet = loadEnabledSet(activeVaultId);
   let pluginIds: ReadonlyArray<string> = [];
   try {
     const pluginDirs = await run(
@@ -265,12 +535,18 @@ async function refreshAll(): Promise<void> {
     if (!manifest) continue;
     let entry = entries.get(id);
     if (!entry) {
-      entry = { manifest, enabled: false, loaded: false };
+      entry = { manifest, enabled: false, loaded: false, inflight: null };
       entries.set(id, entry);
     } else {
       entry.manifest = manifest;
     }
-    const shouldBeEnabled = enabledSet.has(id);
+    // Re-read the enabled snapshot per iteration. `refreshAll` is async and
+    // can interleave with `setPluginEnabled` calls; using a snapshot captured
+    // at the top of the function would cause a stale `shouldBeEnabled` read
+    // to *reverse* a fresh user toggle (e.g. the storm test enables a plugin
+    // while refreshAll is mid-iteration, then refreshAll would unload it).
+    const freshEnabledSet = activeVaultId ? loadEnabledSet(activeVaultId) : new Set<string>();
+    const shouldBeEnabled = freshEnabledSet.has(id);
     if (shouldBeEnabled && !entry.loaded) {
       entry.enabled = true;
       await loadPlugin(entry);

@@ -1,0 +1,8 @@
+{
+  "id": "calendar-shim",
+  "name": "Calendar (shim)",
+  "version": "1.0.0",
+  "description": "Realistic Obsidian-shaped fixture: ribbon icon + interval + dom event.",
+  "author": "Granite fixtures",
+  "main": "main.js"
+}

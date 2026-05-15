@@ -1,60 +1,4 @@
-import { spawn } from "node:child_process";
-import { createServer } from "node:net";
-import { setTimeout as delay } from "node:timers/promises";
-import { chromium } from "playwright";
-
-const cwd = process.cwd();
-
-async function getOpenPort() {
-  const server = createServer();
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
-  if (!address || typeof address === "string") throw new Error("Could not allocate a local port");
-  return address.port;
-}
-
-async function waitForServer(url, processOutput) {
-  const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {
-      // Vite is still booting.
-    }
-    if (processOutput.exitCode !== null) {
-      throw new Error(`Vite exited before becoming ready:\n${processOutput.text}`);
-    }
-    await delay(100);
-  }
-  throw new Error(`Timed out waiting for Vite at ${url}\n${processOutput.text}`);
-}
-
-function startVite(port) {
-  const output = { text: "", exitCode: null };
-  const child = spawn(
-    "bunx",
-    ["vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
-    {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-  const append = (chunk) => {
-    output.text += chunk.toString();
-    if (output.text.length > 20_000) output.text = output.text.slice(-20_000);
-  };
-  child.stdout.on("data", append);
-  child.stderr.on("data", append);
-  child.on("exit", (code) => {
-    output.exitCode = code;
-  });
-  return { child, output };
-}
+import { withBrowser, withDevServer, runMain } from "./_lib/dev-server.mjs";
 
 async function assertVisibleText(page, text, label) {
   const locator = page.getByText(text, { exact: true }).first();
@@ -216,20 +160,11 @@ async function verifyPopulatedRuntimeI18n(page, baseUrl) {
   return checks;
 }
 
-async function main() {
-  const port = await getOpenPort();
-  const baseUrl = `http://127.0.0.1:${port}`;
-  const { child, output } = startVite(port);
-  let browser;
-
+runMain(() =>
+  withDevServer(async ({ baseUrl }) =>
+    withBrowser(
+      async ({ page }) => {
   try {
-    await waitForServer(baseUrl, output);
-    browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage({ viewport: { width: 1280, height: 840 } });
-    const consoleMessages = [];
-    page.on("console", (message) => consoleMessages.push(`${message.type()}: ${message.text()}`));
-    page.on("pageerror", (error) => consoleMessages.push(`pageerror: ${error.message}`));
-
     await page.goto(baseUrl, { waitUntil: "networkidle" });
     await page.locator(".app-container").waitFor({ state: "visible", timeout: 5000 });
     await assertVisibleText(page, "Welcome to Granite", "English welcome");
@@ -300,15 +235,11 @@ async function main() {
 
     const populatedChecks = await verifyPopulatedRuntimeI18n(page, baseUrl);
     console.log(`Populated checks: ${populatedChecks.join("; ")}`);
-  } finally {
-    if (browser) await browser.close();
-    child.kill("SIGTERM");
-    await delay(100);
-    if (child.exitCode === null) child.kill("SIGKILL");
+  } catch (error) {
+    throw error;
   }
-}
-
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+      },
+      { viewport: { width: 1280, height: 840 } },
+    ),
+  ),
+);

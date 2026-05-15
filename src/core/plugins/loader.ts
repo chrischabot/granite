@@ -6,6 +6,7 @@ import type { VaultPath } from "@core/fs/types";
 import { t } from "@core/i18n";
 import { metadataCache } from "@core/metadata/cache";
 import { noticeManager } from "@core/notices/notice";
+import { settingsStore } from "@core/settings/store";
 import { activeThemePath } from "@core/themes/loader";
 import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
 import { workspaceStore } from "@core/workspace/store";
@@ -348,6 +349,16 @@ async function loadPlugin(entry: PluginEntry): Promise<void> {
 
 async function loadPluginInner(entry: PluginEntry): Promise<void> {
   if (entry.loaded) return;
+  // Restricted mode (spec §24.17): refuse to instantiate untrusted community
+  // plugins. Default-on for new vaults; existing vaults without the key also
+  // default to `true` (see settings store normalization). Core/in-process
+  // plugins don't go through this loader, so they're unaffected.
+  if (settingsStore.getState().pluginRestrictedMode) {
+    noticeManager.show(t("plugin.loader.error.restricted", { name: entry.manifest.name }), {
+      kind: "warning",
+    });
+    return;
+  }
   const main = entry.manifest.main ?? "main.js";
   let code: string;
   try {

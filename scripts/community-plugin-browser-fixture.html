@@ -41,6 +41,7 @@
       import { noticeManager } from "@core/notices/notice";
       import { listSettingsTabs, listStatusBarItems } from "@core/plugins/host-registries";
       import { listPlugins, setPluginEnabled } from "@core/plugins/loader";
+      import { settingsStore } from "@core/settings/store";
       import { CommandsBootstrap } from "@/ui/commands/CommandsBootstrap";
       import { NoticeContainer } from "@/ui/overlay/NoticeContainer";
       import { InstallPluginModal } from "@/ui/prompts/InstallPluginModal";
@@ -292,7 +293,15 @@
         }, [openOpfs]);
 
         useEffect(() => {
-          if (activeVault) setReady(true);
+          if (!activeVault) return;
+          // Restricted mode is default-on for new vaults (spec §24.17), but
+          // the verifier deliberately exercises the community-plugin loader.
+          // VaultContext.setActive awaits `bindSettings()` before dispatching
+          // `activeVault`, so flipping the flag here is safe: any later
+          // `setPluginEnabled(...true)` call from the verifier UI will see
+          // the override.
+          settingsStore.update({ pluginRestrictedMode: false });
+          setReady(true);
         }, [activeVault]);
 
         window.__graniteCommunityPluginReady = ready;

@@ -3,6 +3,7 @@ import { disposeRuntime, setAppLayer } from "@core/effect/runtime";
 import { FileSystem, type FileSystemImpl } from "@core/fs/FileSystem";
 import type { VaultEntry, VaultFile, VaultPath } from "@core/fs/types";
 import { noticeManager } from "@core/notices/notice";
+import { DEFAULT_SETTINGS, resetSettingsForTests } from "@core/settings/store";
 import { Effect, Layer } from "effect";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { _resetEventsForTesting } from "./events";
@@ -108,6 +109,10 @@ beforeEach(async () => {
   _resetObsidianShimForTesting();
   for (const cmd of commandRegistry.list()) commandRegistry.unregister(cmd.id);
   for (const n of [...noticeManager.list()]) noticeManager.dismiss(n.id);
+  // Most loader tests exercise the actual loading path; restricted mode is
+  // default-on so we opt the legacy suites out. The dedicated restricted-mode
+  // block re-enables it inside each test.
+  resetSettingsForTests({ ...DEFAULT_SETTINGS, pluginRestrictedMode: false });
   await disposeRuntime();
   const { fs, files } = makeMemoryFs();
   pluginsDir = files;
@@ -342,4 +347,69 @@ describe("loader — both plugin styles load and unload", () => {
       expect(listSettingsTabs().length).toBe(baseTabs);
     }
   });
+});
+
+describe("loader — restricted mode gating (spec §24.17)", () => {
+  // The fixture is identical across both branches; only `pluginRestrictedMode`
+  // differs. We register a command so we can detect whether the plugin body
+  // executed (a passing β: stub the check and the first test starts failing
+  // because the plugin runs anyway).
+  function seedSimplePlugin(): void {
+    pluginsDir.set(
+      ".granite/plugins/community/manifest.json",
+      JSON.stringify({ id: "community", name: "Community", version: "1.0.0" }),
+    );
+    pluginsDir.set(
+      ".granite/plugins/community/main.js",
+      `
+        module.exports = {
+          onLoad(api) {
+            api.commands.register({
+              id: "community:cmd",
+              name: "Community cmd",
+              callback: () => {},
+            });
+          },
+          onUnload() {}
+        };
+      `,
+    );
+  }
+
+  it("refuses to load community plugins when restricted mode is on, and surfaces a notice", async () => {
+    resetSettingsForTests({ ...DEFAULT_SETTINGS, pluginRestrictedMode: true });
+    seedSimplePlugin();
+    await bind();
+    await setPluginEnabled("community", true);
+    // The plugin body must not have executed — its registered command stays
+    // absent from the command registry.
+    expect(commandRegistry.list().some((c) => c.id === "community:cmd")).toBe(false);
+    // listPlugins() still reports the plugin as enabled (the toggle was
+    // accepted), but `loaded` is false. We use the loaded flag via the
+    // command-side-effect check above; we additionally assert a notice was
+    // shown so the user understands why the plugin was inert.
+    const notices = noticeManager.list();
+    expect(
+      notices.some((n) => n.message.includes("Restricted mode") && n.message.includes("Community")),
+    ).toBe(true);
+  });
+
+  it("loads the same community plugin when restricted mode is off", async () => {
+    resetSettingsForTests({ ...DEFAULT_SETTINGS, pluginRestrictedMode: false });
+    seedSimplePlugin();
+    await bind();
+    await setPluginEnabled("community", true);
+    expect(commandRegistry.list().some((c) => c.id === "community:cmd")).toBe(true);
+    expect(
+      noticeManager
+        .list()
+        .every((n) => !(n.message.includes("Restricted mode") && n.message.includes("Community"))),
+    ).toBe(true);
+  });
+
+  // β / severe-testing inversion: if the restricted-mode check is removed from
+  // loadPluginInner (or made always-false), the first test above will fail
+  // because the plugin's `onLoad` body executes and registers `community:cmd`.
+  // We don't need a separate test for this — the assertion `false ===
+  // commandRegistry.list().some(...)` IS the β-detector.
 });

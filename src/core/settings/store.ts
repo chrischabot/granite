@@ -45,6 +45,11 @@ export interface UserSettings {
   translucent: boolean;
   /** Show a diagnostic notice when measured startup exceeds the cold-start budget. */
   notifySlowStartup: boolean;
+  /** When true, community plugins under `.granite/plugins/<id>/` are refused
+   *  at load time. The default is `true` (safe-by-default) — and a missing key
+   *  in an existing settings.json is also treated as `true`. Core plugins
+   *  registered in-process (e.g. via CommandsBootstrap) are NOT gated. */
+  pluginRestrictedMode: boolean;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -67,6 +72,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   fileExplorerSort: "name-asc",
   translucent: false,
   notifySlowStartup: true,
+  pluginRestrictedMode: true,
 };
 
 function loadFromStorage(): UserSettings {

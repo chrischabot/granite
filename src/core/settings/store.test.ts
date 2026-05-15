@@ -128,4 +128,31 @@ describe("settingsStore disk persistence", () => {
 
     expect(JSON.parse(files.get(".granite/settings.json") ?? "{}").readableLineWidth).toBe(false);
   });
+
+  // Restricted-mode default (spec §24.17): new vaults must boot with the flag
+  // ON; existing vaults whose settings.json predates the field must also see
+  // it as ON. Both branches funnel through `normalizeSettings`, which spreads
+  // DEFAULT_SETTINGS first — so the default value is the load-bearing fact.
+  it("defaults pluginRestrictedMode to true in DEFAULT_SETTINGS (new vaults)", () => {
+    expect(DEFAULT_SETTINGS.pluginRestrictedMode).toBe(true);
+  });
+
+  it("defaults pluginRestrictedMode to true on bind when no settings.json exists", async () => {
+    await bindSettings();
+    expect(settingsStore.getState().pluginRestrictedMode).toBe(true);
+    expect(JSON.parse(files.get(".granite/settings.json") ?? "{}").pluginRestrictedMode).toBe(true);
+  });
+
+  it("defaults pluginRestrictedMode to true when an existing settings.json lacks the key", async () => {
+    // Simulate an upgrade from a pre-restricted-mode build: every other key
+    // is present, but `pluginRestrictedMode` is missing. We build the legacy
+    // object by destructuring the field out, which avoids the `delete`
+    // operator and stays compatible with biome's noDelete rule.
+    const { pluginRestrictedMode: _omitted, ...legacyOnDisk } = DEFAULT_SETTINGS;
+    void _omitted;
+    files.set(".granite/settings.json", JSON.stringify(legacyOnDisk));
+
+    await bindSettings();
+    expect(settingsStore.getState().pluginRestrictedMode).toBe(true);
+  });
 });

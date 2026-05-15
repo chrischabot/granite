@@ -587,6 +587,16 @@ export function SettingsModal({ open, onClose }: SettingsModalProps) {
                   {t("settings.plugins.desc.afterMain")} <code>onUnload</code>{" "}
                   {t("settings.plugins.desc.afterUnload")}
                 </p>
+                <SettingItem
+                  name={t("settings.plugins.restrictedMode")}
+                  desc={t("settings.plugins.restrictedModeDesc")}
+                  control={
+                    <Toggle
+                      checked={settings.pluginRestrictedMode}
+                      onChange={(v) => settingsStore.update({ pluginRestrictedMode: v })}
+                    />
+                  }
+                />
                 <div
                   style={{
                     marginBottom: "var(--size-4-3)",

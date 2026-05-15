@@ -87,6 +87,68 @@ function setState(
   emit();
 }
 
+const DEFAULT_REPLACEABLE: ReadonlyArray<LeafState["type"]> = ["empty"];
+
+/**
+ * Centralised "open or focus" used by every open* method.
+ * Focus matching dedupe (optionally mutating via onFocus); else replace the
+ * active leaf if its type is in `replaceableTypes` (pinned markdown is never
+ * replaceable); else append a new leaf carrying `desired`.
+ */
+function openOrFocusLeaf(
+  desired: LeafState,
+  opts: { newTab?: boolean; replaceableTypes?: ReadonlyArray<LeafState["type"]> },
+  dedupe?: (existing: LeafState) => boolean,
+  onFocus?: (existing: Leaf) => LeafState,
+): LeafId {
+  const groupId = state.activeGroupId;
+  if (!groupId) throw new Error("Workspace has no active group");
+  const group = state.groups.get(groupId);
+  if (!group) throw new Error(`Active group ${groupId} not in workspace`);
+
+  if (dedupe) {
+    for (const id of group.leafIds) {
+      const leaf = state.leaves.get(id);
+      if (!leaf || !dedupe(leaf.state)) continue;
+      const groups = new Map(state.groups);
+      groups.set(group.id, { ...group, activeLeafId: id });
+      if (onFocus) {
+        const leaves = new Map(state.leaves);
+        leaves.set(id, { ...leaf, state: onFocus(leaf) });
+        setState({ ...state, leaves, groups });
+      } else {
+        setState({ ...state, groups });
+      }
+      return id;
+    }
+  }
+
+  const replaceable = opts.replaceableTypes ?? DEFAULT_REPLACEABLE;
+  const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
+  const canReplace =
+    !opts.newTab &&
+    activeLeaf &&
+    replaceable.includes(activeLeaf.state.type) &&
+    // Pinned markdown is never replaceable.
+    !(activeLeaf.state.type === "markdown" && activeLeaf.state.pinned);
+
+  if (canReplace && activeLeaf) {
+    const updated: Leaf = { id: activeLeaf.id, state: desired };
+    setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
+    return updated.id;
+  }
+
+  const id = newId("l");
+  const leaves = new Map(state.leaves);
+  leaves.set(id, { id, state: desired });
+  const groups = new Map(state.groups);
+  groups.set(group.id, { ...group, leafIds: [...group.leafIds, id], activeLeafId: id });
+  setState({ ...state, leaves, groups });
+  return id;
+}
+
+const MARKDOWN_REPLACEABLE: ReadonlyArray<LeafState["type"]> = ["empty", "markdown"];
+
 export const workspaceStore = {
   getState(): WorkspaceState {
     return state;
@@ -128,26 +190,26 @@ export const workspaceStore = {
     path: VaultPath,
     opts: { newTab?: boolean; mode?: MarkdownViewMode; fragment?: string } = {},
   ): LeafId {
-    const groupId = state.activeGroupId;
-    if (!groupId) throw new Error("Workspace has no active group");
-    const group = state.groups.get(groupId);
-    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
-
     const settings = settingsStore.getState();
     const mode: MarkdownViewMode =
       opts.mode ??
       (settings.defaultViewMode === "reading" ? "reading" : settings.defaultEditingMode);
-    const desired: LeafState = {
-      type: "markdown",
-      path,
-      mode,
-      ...(opts.fragment ? { fragment: opts.fragment } : {}),
-    };
+    const fragmentField = opts.fragment ? { fragment: opts.fragment } : {};
+    const desired: LeafState = { type: "markdown", path, mode, ...fragmentField };
 
-    for (const id of group.leafIds) {
-      const leaf = state.leaves.get(id);
-      if (leaf?.state.type === "markdown" && leaf.state.path === path) {
-        const baseState: LeafState = {
+    // openOrFocusLeaf's `onFocus` callback fires only when an existing leaf
+    // matches dedupe — track that so we can skip history-push on re-focus
+    // (we still push on first-open and replace).
+    let didFocus = false;
+    const id = openOrFocusLeaf(
+      desired,
+      { ...opts, replaceableTypes: MARKDOWN_REPLACEABLE },
+      (existing) => existing.type === "markdown" && existing.path === path,
+      (leaf) => {
+        didFocus = true;
+        if (leaf.state.type !== "markdown") return leaf.state;
+        // Preserve cursor/folds/pinned/mode, refresh fragment.
+        return {
           type: "markdown",
           path: leaf.state.path,
           mode: leaf.state.mode,
@@ -156,339 +218,71 @@ export const workspaceStore = {
             : {}),
           ...(leaf.state.folds !== undefined ? { folds: leaf.state.folds } : {}),
           ...(leaf.state.pinned !== undefined ? { pinned: leaf.state.pinned } : {}),
-          ...(opts.fragment ? { fragment: opts.fragment } : {}),
+          ...fragmentField,
         };
-        const updated: Leaf = { ...leaf, state: baseState };
-        const groups = new Map(state.groups);
-        const leaves = new Map(state.leaves);
-        leaves.set(id, updated);
-        groups.set(group.id, { ...group, activeLeafId: id });
-        setState({ ...state, leaves, groups });
-        addRecent(path);
-        return id;
-      }
+      },
+    );
+
+    if (!didFocus) {
+      pushHistory(id, { path, ...fragmentField });
     }
-
-    const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
-    const canReplace =
-      !opts.newTab &&
-      activeLeaf &&
-      (activeLeaf.state.type === "empty" ||
-        (activeLeaf.state.type === "markdown" && !activeLeaf.state.pinned));
-
-    if (canReplace && activeLeaf) {
-      const updated: Leaf = { id: activeLeaf.id, state: desired };
-      setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
-      pushHistory(updated.id, { path, ...(opts.fragment ? { fragment: opts.fragment } : {}) });
-      addRecent(path);
-      return updated.id;
-    }
-
-    const id = newId("l");
-    const leaf: Leaf = { id, state: desired };
-    const groupNext: TabGroup = {
-      ...group,
-      leafIds: [...group.leafIds, id],
-      activeLeafId: id,
-    };
-    const leaves = new Map(state.leaves);
-    leaves.set(id, leaf);
-    const groups = new Map(state.groups);
-    groups.set(group.id, groupNext);
-    setState({ ...state, leaves, groups });
-    pushHistory(id, { path, ...(opts.fragment ? { fragment: opts.fragment } : {}) });
     addRecent(path);
     return id;
   },
 
   newTab(): LeafId {
-    const groupId = state.activeGroupId;
-    if (!groupId) throw new Error("Workspace has no active group");
-    const group = state.groups.get(groupId);
-    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
-    const id = newId("l");
-    const leaf: Leaf = { id, state: { type: "empty" } };
-    const leaves = new Map(state.leaves);
-    leaves.set(id, leaf);
-    const groups = new Map(state.groups);
-    groups.set(group.id, {
-      ...group,
-      leafIds: [...group.leafIds, id],
-      activeLeafId: id,
-    });
-    setState({ ...state, leaves, groups });
-    return id;
+    // Always append — pass newTab so the empty-leaf replacement path is skipped.
+    return openOrFocusLeaf({ type: "empty" }, { newTab: true });
   },
 
   openWebviewer(url: string, opts: { newTab?: boolean } = {}): LeafId {
-    const groupId = state.activeGroupId;
-    if (!groupId) throw new Error("Workspace has no active group");
-    const group = state.groups.get(groupId);
-    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
-    const desired: LeafState = { type: "webviewer", url };
-
-    for (const id of group.leafIds) {
-      const leaf = state.leaves.get(id);
-      if (leaf?.state.type === "webviewer" && leaf.state.url === url) {
-        setState({
-          ...state,
-          groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
-        });
-        return id;
-      }
-    }
-
-    const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
-    const canReplace =
-      !opts.newTab &&
-      activeLeaf &&
-      (activeLeaf.state.type === "empty" ||
-        (activeLeaf.state.type === "markdown" && !activeLeaf.state.pinned));
-
-    if (canReplace && activeLeaf) {
-      const updated: Leaf = { id: activeLeaf.id, state: desired };
-      setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
-      return updated.id;
-    }
-
-    const id = newId("l");
-    const leaf: Leaf = { id, state: desired };
-    const leaves = new Map(state.leaves);
-    leaves.set(id, leaf);
-    const groups = new Map(state.groups);
-    groups.set(group.id, {
-      ...group,
-      leafIds: [...group.leafIds, id],
-      activeLeafId: id,
-    });
-    setState({ ...state, leaves, groups });
-    return id;
+    return openOrFocusLeaf(
+      { type: "webviewer", url },
+      { ...opts, replaceableTypes: MARKDOWN_REPLACEABLE },
+      (existing) => existing.type === "webviewer" && existing.url === url,
+    );
   },
 
   openGraph(opts: { newTab?: boolean } = {}): LeafId {
-    const groupId = state.activeGroupId;
-    if (!groupId) throw new Error("Workspace has no active group");
-    const group = state.groups.get(groupId);
-    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
-    const desired: LeafState = { type: "graph" };
-
-    for (const id of group.leafIds) {
-      const leaf = state.leaves.get(id);
-      if (leaf?.state.type === "graph") {
-        setState({
-          ...state,
-          groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
-        });
-        return id;
-      }
-    }
-
-    const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
-    const canReplace =
-      !opts.newTab &&
-      activeLeaf &&
-      (activeLeaf.state.type === "empty" ||
-        (activeLeaf.state.type === "markdown" && !activeLeaf.state.pinned));
-
-    if (canReplace && activeLeaf) {
-      const updated: Leaf = { id: activeLeaf.id, state: desired };
-      setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
-      return updated.id;
-    }
-
-    const id = newId("l");
-    const leaf: Leaf = { id, state: desired };
-    const leaves = new Map(state.leaves);
-    leaves.set(id, leaf);
-    const groups = new Map(state.groups);
-    groups.set(group.id, {
-      ...group,
-      leafIds: [...group.leafIds, id],
-      activeLeafId: id,
-    });
-    setState({ ...state, leaves, groups });
-    return id;
+    return openOrFocusLeaf(
+      { type: "graph" },
+      { ...opts, replaceableTypes: MARKDOWN_REPLACEABLE },
+      (existing) => existing.type === "graph",
+    );
   },
 
   openSidebarView(side: "left" | "right", tabId: string, opts: { newTab?: boolean } = {}): LeafId {
-    const groupId = state.activeGroupId;
-    if (!groupId) throw new Error("Workspace has no active group");
-    const group = state.groups.get(groupId);
-    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
-    const desired: LeafState = { type: "sidebar", side, id: tabId };
-
-    for (const id of group.leafIds) {
-      const leaf = state.leaves.get(id);
-      if (leaf?.state.type === "sidebar" && leaf.state.side === side && leaf.state.id === tabId) {
-        setState({
-          ...state,
-          groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
-        });
-        return id;
-      }
-    }
-
-    const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
-    const canReplace = !opts.newTab && activeLeaf?.state.type === "empty";
-    if (canReplace && activeLeaf) {
-      const updated: Leaf = { id: activeLeaf.id, state: desired };
-      setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
-      return updated.id;
-    }
-
-    const id = newId("l");
-    const leaf: Leaf = { id, state: desired };
-    const leaves = new Map(state.leaves);
-    leaves.set(id, leaf);
-    const groups = new Map(state.groups);
-    groups.set(group.id, {
-      ...group,
-      leafIds: [...group.leafIds, id],
-      activeLeafId: id,
-    });
-    setState({ ...state, leaves, groups });
-    return id;
+    return openOrFocusLeaf(
+      { type: "sidebar", side, id: tabId },
+      opts,
+      (existing) => existing.type === "sidebar" && existing.side === side && existing.id === tabId,
+    );
   },
 
   openCanvas(opts: { newTab?: boolean; path?: string } = {}): LeafId {
-    const groupId = state.activeGroupId;
-    if (!groupId) throw new Error("Workspace has no active group");
-    const group = state.groups.get(groupId);
-    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
     const desired: LeafState = opts.path ? { type: "canvas", path: opts.path } : { type: "canvas" };
-
-    if (opts.path) {
-      for (const id of group.leafIds) {
-        const leaf = state.leaves.get(id);
-        if (leaf?.state.type === "canvas" && leaf.state.path === opts.path) {
-          setState({
-            ...state,
-            groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
-          });
-          return id;
-        }
-      }
-    }
-
-    const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
-    const canReplace =
-      !opts.newTab &&
-      activeLeaf &&
-      (activeLeaf.state.type === "empty" ||
-        (activeLeaf.state.type === "markdown" && !activeLeaf.state.pinned));
-
-    if (canReplace && activeLeaf) {
-      const updated: Leaf = { id: activeLeaf.id, state: desired };
-      setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
-      return updated.id;
-    }
-
-    const id = newId("l");
-    const leaf: Leaf = { id, state: desired };
-    const leaves = new Map(state.leaves);
-    leaves.set(id, leaf);
-    const groups = new Map(state.groups);
-    groups.set(group.id, {
-      ...group,
-      leafIds: [...group.leafIds, id],
-      activeLeafId: id,
-    });
-    setState({ ...state, leaves, groups });
-    return id;
+    const dedupe = opts.path
+      ? (existing: LeafState) => existing.type === "canvas" && existing.path === opts.path
+      : undefined;
+    return openOrFocusLeaf(desired, { ...opts, replaceableTypes: MARKDOWN_REPLACEABLE }, dedupe);
   },
 
   /** Open or focus a bases (database) leaf. Currently a placeholder type —
    *  the full bases editor is on the roadmap. Same semantics as openCanvas. */
   openBase(opts: { newTab?: boolean; path?: string } = {}): LeafId {
-    const groupId = state.activeGroupId;
-    if (!groupId) throw new Error("Workspace has no active group");
-    const group = state.groups.get(groupId);
-    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
     const desired: LeafState = opts.path ? { type: "bases", path: opts.path } : { type: "bases" };
-
-    if (opts.path) {
-      for (const id of group.leafIds) {
-        const leaf = state.leaves.get(id);
-        if (leaf?.state.type === "bases" && leaf.state.path === opts.path) {
-          setState({
-            ...state,
-            groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
-          });
-          return id;
-        }
-      }
-    }
-
-    const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
-    const canReplace =
-      !opts.newTab &&
-      activeLeaf &&
-      (activeLeaf.state.type === "empty" ||
-        (activeLeaf.state.type === "markdown" && !activeLeaf.state.pinned));
-
-    if (canReplace && activeLeaf) {
-      const updated: Leaf = { id: activeLeaf.id, state: desired };
-      setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
-      return updated.id;
-    }
-
-    const id = newId("l");
-    const leaf: Leaf = { id, state: desired };
-    const leaves = new Map(state.leaves);
-    leaves.set(id, leaf);
-    const groups = new Map(state.groups);
-    groups.set(group.id, {
-      ...group,
-      leafIds: [...group.leafIds, id],
-      activeLeafId: id,
-    });
-    setState({ ...state, leaves, groups });
-    return id;
+    const dedupe = opts.path
+      ? (existing: LeafState) => existing.type === "bases" && existing.path === opts.path
+      : undefined;
+    return openOrFocusLeaf(desired, { ...opts, replaceableTypes: MARKDOWN_REPLACEABLE }, dedupe);
   },
 
   openAsset(opts: { newTab?: boolean; path: VaultPath; kind: NativeFileKind }): LeafId {
-    const groupId = state.activeGroupId;
-    if (!groupId) throw new Error("Workspace has no active group");
-    const group = state.groups.get(groupId);
-    if (!group) throw new Error(`Active group ${groupId} not in workspace`);
-    const desired: LeafState = { type: "asset", path: opts.path, kind: opts.kind };
-
-    for (const id of group.leafIds) {
-      const leaf = state.leaves.get(id);
-      if (leaf?.state.type === "asset" && leaf.state.path === opts.path) {
-        setState({
-          ...state,
-          groups: new Map(state.groups).set(group.id, { ...group, activeLeafId: id }),
-        });
-        return id;
-      }
-    }
-
-    const activeLeaf = group.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
-    const canReplace =
-      !opts.newTab &&
-      activeLeaf &&
-      (activeLeaf.state.type === "empty" ||
-        (activeLeaf.state.type === "markdown" && !activeLeaf.state.pinned));
-
-    if (canReplace && activeLeaf) {
-      const updated: Leaf = { id: activeLeaf.id, state: desired };
-      setState({ ...state, leaves: new Map(state.leaves).set(updated.id, updated) });
-      return updated.id;
-    }
-
-    const id = newId("l");
-    const leaf: Leaf = { id, state: desired };
-    const leaves = new Map(state.leaves);
-    leaves.set(id, leaf);
-    const groups = new Map(state.groups);
-    groups.set(group.id, {
-      ...group,
-      leafIds: [...group.leafIds, id],
-      activeLeafId: id,
-    });
-    setState({ ...state, leaves, groups });
-    return id;
+    return openOrFocusLeaf(
+      { type: "asset", path: opts.path, kind: opts.kind },
+      { ...opts, replaceableTypes: MARKDOWN_REPLACEABLE },
+      (existing) => existing.type === "asset" && existing.path === opts.path,
+    );
   },
 
   closeTab(leafId: LeafId): void {
@@ -929,3 +723,6 @@ export const workspaceStore = {
 };
 
 export type { TabGroupId };
+
+/** Internal helper exposed for unit tests only — not part of the public API. */
+export const __testOnly = { openOrFocusLeaf };

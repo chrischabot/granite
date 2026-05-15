@@ -1,7 +1,7 @@
 import type { VaultPath } from "@core/fs/types";
 import { DEFAULT_SETTINGS, resetSettingsForTests, settingsStore } from "@core/settings/store";
 import { beforeEach, describe, expect, it } from "vitest";
-import { workspaceStore } from "./store";
+import { __testOnly, workspaceStore } from "./store";
 import type { LeafState } from "./types";
 
 beforeEach(() => {
@@ -368,5 +368,98 @@ describe("workspaceStore.closeActiveTab", () => {
     workspaceStore.reset();
     workspaceStore.closeActiveTab();
     expect(activeGroupLeaves().length).toBe(1);
+  });
+});
+
+describe("workspaceStore — open/focus dedupe + replace semantics", () => {
+  it("opening the same canvas path twice focuses, never duplicates", () => {
+    workspaceStore.openCanvas({ path: "Board.canvas" });
+    const firstId = activeLeafIdAt(0);
+    expect(activeGroupLeaves().length).toBe(1);
+
+    // Force a second tab to exist so the dedupe lookup actually has to scan.
+    workspaceStore.openFile("Note.md" as VaultPath, { newTab: true });
+    expect(activeGroupLeaves().length).toBe(2);
+
+    workspaceStore.openCanvas({ path: "Board.canvas" });
+    const ids = activeGroupLeaves();
+    expect(ids.length).toBe(2);
+    expect(groupById(activeGroupId()).activeLeafId).toBe(firstId);
+  });
+
+  it("newTab:true always appends, never replaces — even when active leaf is empty", () => {
+    // Active leaf is the initial empty leaf; with newTab:true we must append.
+    workspaceStore.openCanvas({ path: "A.canvas", newTab: true });
+    expect(activeGroupLeaves().length).toBe(2);
+    workspaceStore.openGraph({ newTab: true });
+    expect(activeGroupLeaves().length).toBe(3);
+    workspaceStore.openWebviewer("https://example.test", { newTab: true });
+    expect(activeGroupLeaves().length).toBe(4);
+  });
+
+  it("replaces the initial empty leaf for every open* kind", () => {
+    const kinds: Array<[() => void, string]> = [
+      [() => workspaceStore.openCanvas({ path: "X.canvas" }), "canvas"],
+      [() => workspaceStore.openBase({ path: "Y.base" }), "bases"],
+      [() => workspaceStore.openGraph(), "graph"],
+      [() => workspaceStore.openWebviewer("https://example.test"), "webviewer"],
+      [
+        () =>
+          workspaceStore.openAsset({
+            path: "Pic.png" as VaultPath,
+            kind: "image",
+          }),
+        "asset",
+      ],
+      [() => workspaceStore.openSidebarView("left", "files"), "sidebar"],
+    ];
+    for (const [open, expected] of kinds) {
+      workspaceStore.reset();
+      open();
+      const ids = activeGroupLeaves();
+      expect(ids.length, expected).toBe(1);
+      expect(leafById(must(ids[0])).state.type, expected).toBe(expected);
+    }
+  });
+
+  it("never replaces a pinned markdown leaf — appends instead", () => {
+    workspaceStore.openFile("Pinned.md" as VaultPath);
+    const pinnedId = activeLeafIdAt(0);
+    workspaceStore.togglePinned(pinnedId);
+    const before = activeGroupLeaves().length;
+    workspaceStore.openCanvas({ path: "New.canvas" });
+    const after = activeGroupLeaves();
+    expect(after.length).toBe(before + 1);
+    // Pinned markdown still around, unchanged.
+    expect(leafById(pinnedId).state.type).toBe("markdown");
+  });
+
+  it("β-mutation: a corrupted (always-false) dedupe predicate creates duplicate canvas leaves", () => {
+    // Sanity that the dedupe path is what prevents duplication. We drive the
+    // helper directly with a predicate that *always returns false* — mirroring
+    // what would happen if the predicate were broken in openCanvas — and
+    // assert the same-canvas-twice scenario then DOES create a duplicate.
+    workspaceStore.openCanvas({ path: "Board.canvas" });
+    expect(activeGroupLeaves().length).toBe(1);
+
+    // Force a second tab so the helper has to append (rather than replace the
+    // active canvas leaf — which is replaceable for non-pinned types).
+    workspaceStore.openFile("Note.md" as VaultPath, { newTab: true });
+    workspaceStore.togglePinned(activeLeafIdAt(1));
+    expect(activeGroupLeaves().length).toBe(2);
+
+    // Now invoke the helper with a corrupted predicate.
+    __testOnly.openOrFocusLeaf(
+      { type: "canvas", path: "Board.canvas" },
+      { newTab: false, replaceableTypes: ["empty", "markdown"] },
+      () => false, // CORRUPTED dedupe — never matches.
+    );
+
+    // Duplicate created — proves the dedupe predicate is load-bearing.
+    expect(activeGroupLeaves().length).toBe(3);
+    const canvasLeaves = activeGroupLeaves()
+      .map((id) => leafById(id))
+      .filter((l) => l.state.type === "canvas");
+    expect(canvasLeaves.length).toBe(2);
   });
 });

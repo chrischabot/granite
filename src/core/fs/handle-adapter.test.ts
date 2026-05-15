@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n";
 import {
+  _peekActiveWatchControls,
   DEFAULT_WATCH_POLL_INTERVAL_MS,
   FileSystemCapabilityError,
   WATCH_BACKOFF_FACTOR,
@@ -349,6 +350,71 @@ describe("handleAdapter", () => {
       }
     } finally {
       control();
+    }
+  });
+
+  it("registers and unregisters watch controls in the global visibility registry", async () => {
+    const root = new MockDirectoryHandle("Vault") as unknown as FileSystemDirectoryHandle;
+    const adapter = handleAdapter(root, { pollIntervalMs: 50, systemTrash: null });
+
+    const initialSize = _peekActiveWatchControls().size;
+    const ctrlA = adapter.watch(() => {});
+    const ctrlB = adapter.watch(() => {});
+    try {
+      expect(_peekActiveWatchControls().size).toBe(initialSize + 2);
+      expect(_peekActiveWatchControls().has(ctrlA)).toBe(true);
+      expect(_peekActiveWatchControls().has(ctrlB)).toBe(true);
+    } finally {
+      ctrlA();
+      ctrlB();
+    }
+    expect(_peekActiveWatchControls().size).toBe(initialSize);
+    expect(_peekActiveWatchControls().has(ctrlA)).toBe(false);
+    expect(_peekActiveWatchControls().has(ctrlB)).toBe(false);
+  });
+
+  it("pauses all active watchers when the document goes hidden and resumes them on visible", async () => {
+    const root = new MockDirectoryHandle("Vault") as unknown as FileSystemDirectoryHandle;
+    const adapter = handleAdapter(root, { pollIntervalMs: 20, systemTrash: null });
+    const eventsA: Array<{ type: string; path?: string }> = [];
+    const eventsB: Array<{ type: string; path?: string }> = [];
+    const ctrlA = adapter.watch((e) => {
+      if ("path" in e) eventsA.push({ type: e.type, path: e.path });
+    });
+    const ctrlB = adapter.watch((e) => {
+      if ("path" in e) eventsB.push({ type: e.type, path: e.path });
+    });
+    try {
+      // Both watchers warmed up.
+      await new Promise((r) => setTimeout(r, 40));
+      // Hide the tab via the same DOM event the production code listens to.
+      Object.defineProperty(document, "hidden", { configurable: true, value: true });
+      document.dispatchEvent(new Event("visibilitychange"));
+      // While hidden, this change must not surface in either handler.
+      await Effect.runPromise(adapter.writeText("hidden-while.md", "hidden"));
+      await new Promise((r) => setTimeout(r, 80));
+      expect(eventsA.some((e) => e.path === "hidden-while.md")).toBe(false);
+      expect(eventsB.some((e) => e.path === "hidden-while.md")).toBe(false);
+
+      // Show the tab; both watchers must observe the change after resume.
+      Object.defineProperty(document, "hidden", { configurable: true, value: false });
+      document.dispatchEvent(new Event("visibilitychange"));
+      const deadline = Date.now() + 500;
+      while (
+        !eventsA.some((e) => e.path === "hidden-while.md") ||
+        !eventsB.some((e) => e.path === "hidden-while.md")
+      ) {
+        if (Date.now() > deadline) {
+          throw new Error(
+            `Timed out waiting for resume; A=${eventsA.length}, B=${eventsB.length}`,
+          );
+        }
+        await new Promise((r) => setTimeout(r, 10));
+      }
+    } finally {
+      ctrlA();
+      ctrlB();
+      Object.defineProperty(document, "hidden", { configurable: true, value: false });
     }
   });
 

@@ -172,6 +172,44 @@ export const WATCH_BACKOFF_IDLE_TICKS = 5;
 export const WATCH_BACKOFF_FACTOR = 1.5;
 export const WATCH_BACKOFF_MAX_MS = 2000;
 
+/**
+ * Module-wide registry of active watch controls. A single
+ * `document.visibilitychange` listener pauses every active watcher when the
+ * tab is hidden and resumes them all when it becomes visible again. This
+ * keeps idle-tab CPU at zero without each consumer wiring its own listener.
+ *
+ * The listener installs lazily on the first registration and is left in
+ * place — adding/removing handles is O(1) and the listener cost is one
+ * boolean check per visibility transition.
+ */
+const activeWatchControls = new Set<FsWatchControl>();
+let visibilityListenerInstalled = false;
+
+function pauseAllWatchers(): void {
+  for (const c of activeWatchControls) c.pause?.();
+}
+
+function resumeAllWatchers(): void {
+  for (const c of activeWatchControls) c.resume?.();
+}
+
+function ensureVisibilityListener(): void {
+  if (visibilityListenerInstalled) return;
+  if (typeof document === "undefined" || typeof document.addEventListener !== "function") return;
+  visibilityListenerInstalled = true;
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) pauseAllWatchers();
+    else resumeAllWatchers();
+  });
+}
+
+/** Test helper — returns the live registry so unit tests can assert
+ *  pause/resume behaviour without simulating real DOM events. Exported only
+ *  because the registry would otherwise be wholly module-private. */
+export function _peekActiveWatchControls(): ReadonlySet<FsWatchControl> {
+  return activeWatchControls;
+}
+
 export function handleAdapter(
   root: FileSystemDirectoryHandle,
   opts: HandleAdapterOptions = {},
@@ -511,6 +549,7 @@ export function handleAdapter(
 
     const control: FsWatchControl = () => {
       cancelled = true;
+      activeWatchControls.delete(control);
       if (timer !== null) {
         clearTimeout(timer);
         timer = null;
@@ -532,6 +571,13 @@ export function handleAdapter(
       idleCount = 0;
       schedule(0);
     };
+
+    // Enrol in the global visibility registry. If the tab is already hidden,
+    // immediately pause so we don't burn a poll on a hidden tab.
+    activeWatchControls.add(control);
+    ensureVisibilityListener();
+    if (typeof document !== "undefined" && document.hidden) control.pause?.();
+
     return control;
   };
 

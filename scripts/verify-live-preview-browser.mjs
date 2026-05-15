@@ -83,6 +83,9 @@ async function main() {
     console.log(`Inactive Live Preview text: ${result.liveInactive}`);
     console.log(`Active Live Preview text: ${result.liveActive}`);
     console.log(`Source text: ${result.sourceText}`);
+    if (typeof result.perfElapsed === "number") {
+      console.log(`5000-line decoration: ${result.perfElapsed.toFixed(2)}ms`);
+    }
   } finally {
     if (browser) await browser.close();
     child.kill("SIGTERM");

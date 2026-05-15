@@ -30,7 +30,10 @@
     <script type="module">
       import { EditorSelection, EditorState } from "@codemirror/state";
       import { EditorView } from "@codemirror/view";
-      import { livePreviewDecorations } from "../src/core/markdown/cm-livepreview-decorations.ts";
+      import {
+        computeLivePreviewRanges,
+        livePreviewDecorations,
+      } from "../src/core/markdown/cm-livepreview-decorations.ts";
 
       const doc = [
         "Cursor line stays raw",
@@ -107,7 +110,26 @@
 
         live.destroy();
         source.destroy();
-        return { ok: true, liveInactive, liveActive, sourceText };
+
+        // Perf assertion: AST-driven decoration on a 5000-line document
+        // should complete in well under 100ms in real browser environments.
+        const perfLines = [];
+        for (let i = 0; i < 5000; i++) {
+          if (i % 7 === 0) perfLines.push(`## Heading ${i}`);
+          else if (i % 5 === 0) perfLines.push(`- [ ] task **bold** ${i}`);
+          else if (i % 3 === 0) perfLines.push(`paragraph [[Note ${i}|alias]] ==hi==`);
+          else perfLines.push(`plain ${i} *em* \`code\` ~~strike~~`);
+        }
+        const perfText = perfLines.join("\n");
+        computeLivePreviewRanges(perfText, -1); // warmup
+        const perfStart = performance.now();
+        computeLivePreviewRanges(perfText, -1);
+        const perfElapsed = performance.now() - perfStart;
+        assert(perfElapsed < 100, "5000-line decoration completes in under 100ms", {
+          perfElapsed,
+        });
+
+        return { ok: true, liveInactive, liveActive, sourceText, perfElapsed };
       }
 
       window.__graniteLivePreviewResult = run().catch((error) => ({

@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { getLocale, registerLocale, setLocale, subscribeI18n, t } from "./index";
+import {
+  PSEUDO_LOCALE,
+  getLocale,
+  registerLocale,
+  setLocale,
+  subscribeI18n,
+  t,
+  transformPseudo,
+  verifyLocaleSync,
+} from "./index";
 
 beforeEach(() => {
   // Reset to English between tests so registrations from earlier tests don't
@@ -185,5 +194,102 @@ describe("i18n", () => {
     expect(t("plugin.communityRegistry.error.http", { status: "404" })).toBe(
       "HTTP 404 בעת טעינת רישום התוספים הקהילתיים",
     );
+  });
+});
+
+describe("pseudo-locale", () => {
+  beforeEach(() => {
+    setLocale("en");
+  });
+
+  it("activates via setLocale(PSEUDO_LOCALE) and wraps values in []", () => {
+    setLocale(PSEUDO_LOCALE);
+    const out = t("workspace.leaf.settings");
+    expect(out.startsWith("[")).toBe(true);
+    expect(out.endsWith("]")).toBe(true);
+    // "Settings" -> "Şéțțıngş" after substitutions
+    expect(out).toBe("[Şéțțıngş]");
+  });
+
+  it("transforms ASCII letters with the deterministic substitution map", () => {
+    expect(transformPseudo("k", "Save")).toBe("[Şávé]");
+    expect(transformPseudo("k", "Open")).toBe("[Ópén]");
+    expect(transformPseudo("k", "Edit")).toBe("[Édıț]");
+  });
+
+  it("preserves {placeholder} segments untouched", () => {
+    const out = transformPseudo("k", "Hello {name}, you have {count} items");
+    // The placeholders themselves must be intact and not transformed.
+    expect(out).toContain("{name}");
+    expect(out).toContain("{count}");
+    // Surrounding words must be transformed.
+    expect(out).not.toContain("Hello");
+    expect(out).not.toContain("items");
+    expect(out.startsWith("[")).toBe(true);
+    expect(out.endsWith("]")).toBe(true);
+  });
+
+  it("preserves punctuation, digits, and whitespace", () => {
+    const out = transformPseudo("k", "3 of 12 — done.");
+    // Digits and punctuation pass through unchanged.
+    expect(out).toContain("3");
+    expect(out).toContain("12");
+    expect(out).toContain("—");
+    expect(out).toContain(".");
+    expect(out).toContain(" ");
+  });
+
+  it("parameter substitution still works in pseudo-locale", () => {
+    setLocale(PSEUDO_LOCALE);
+    registerLocale("en", { "test.psg": "Hello {name}" });
+    const out = t("test.psg", { name: "World" });
+    // Placeholder substituted with raw param value (not pseudo-transformed).
+    expect(out).toContain("World");
+    expect(out).toBe("[Hélló World]");
+  });
+
+  it("does not pseudo-transform allowlisted brand values", () => {
+    registerLocale("en", { "test.brand": "Granite" });
+    setLocale(PSEUDO_LOCALE);
+    // Allowlisted brand values are bracketed but not character-substituted.
+    expect(t("test.brand")).toBe("[Granite]");
+  });
+
+  it("skips single-token ASCII code values (e.g. Ctrl+P, YYYY-MM-DD)", () => {
+    registerLocale("en", {
+      "test.shortcut": "Ctrl+P",
+      "test.format": "YYYY-MM-DD",
+    });
+    setLocale(PSEUDO_LOCALE);
+    expect(t("test.shortcut")).toBe("[Ctrl+P]");
+    expect(t("test.format")).toBe("[YYYY-MM-DD]");
+  });
+
+  it("returns the key itself when the English source is missing", () => {
+    setLocale(PSEUDO_LOCALE);
+    expect(t("nope.unknown.psg.key")).toBe("nope.unknown.psg.key");
+  });
+
+  it("verifyLocaleSync reports zero missing/extras for built-in he", () => {
+    const report = verifyLocaleSync();
+    expect(report.enKeys).toBeGreaterThan(800);
+    expect(Object.keys(report.missingPerLocale)).toContain("he");
+    expect(Reflect.get(report.missingPerLocale, "he")).toEqual([]);
+    expect(Reflect.get(report.extrasPerLocale, "he")).toEqual([]);
+  });
+
+  it("verifyLocaleSync detects missing and extra keys in a registered locale", () => {
+    registerLocale("zz", { "app.welcome.title": "x", "totally.bogus.zz": "x" });
+    const report = verifyLocaleSync();
+    const missingZz = Reflect.get(report.missingPerLocale, "zz") as string[] | undefined;
+    expect(missingZz?.length).toBeGreaterThan(10);
+    const extrasZz = Reflect.get(report.extrasPerLocale, "zz") as string[] | undefined;
+    expect(extrasZz).toContain("totally.bogus.zz");
+  });
+
+  it("excludes the pseudo-locale from coverage reports", () => {
+    const report = verifyLocaleSync();
+    expect(Object.keys(report.missingPerLocale)).not.toContain(PSEUDO_LOCALE);
+    expect(Object.keys(report.extrasPerLocale)).not.toContain(PSEUDO_LOCALE);
   });
 });

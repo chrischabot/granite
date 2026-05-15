@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Typing Perf Browser Fixture</title>
+    <style>
+      body {
+        margin: 0;
+      }
+
+      #root {
+        height: 100vh;
+      }
+
+      .fixture-shell {
+        height: 100vh;
+        display: grid;
+        grid-template-rows: auto 1fr;
+      }
+
+      .fixture-status {
+        padding: 6px 12px;
+        border-bottom: 1px solid var(--background-modifier-border);
+        background: var(--background-secondary);
+        color: var(--text-muted);
+        font: 12px var(--font-interface);
+      }
+    </style>
+  </head>
+  <body class="theme-light mod-macos show-view-header">
+    <div id="root"></div>
+    <script type="module">
+      import "../src/styles/index.css";
+      import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
+      import { createRoot } from "react-dom/client";
+      import { Effect } from "effect";
+      import { run } from "@core/effect/runtime";
+      import { FileSystem } from "@core/fs/FileSystem";
+      import { workspaceStore } from "@core/workspace/store";
+      import { TYPING_CORPUS_CHARS } from "@core/perf/typing-budget";
+      import { MarkdownView } from "@/ui/views/MarkdownView";
+      import { ThemeProvider } from "@/ui/theme/ThemeProvider";
+      import { useVault, VaultProvider } from "@/ui/vault/VaultContext";
+
+      const params = new URLSearchParams(window.location.search);
+      const vaultName = params.get("vault") || "typing-perf-browser";
+      const notePath = "Big.md";
+
+      // --- Deterministic Lorem-ipsum-ish 100k-char generator ----------------
+      // The corpus mixes paragraphs, headings, code blocks, wikilinks, and
+      // callouts so the live-preview decoration cost is realistic (not a flat
+      // wall of plain text). Seeded with a small lookup so two runs produce
+      // the same bytes.
+
+      const LOREM = [
+        "lorem", "ipsum", "dolor", "sit", "amet", "consectetur", "adipiscing",
+        "elit", "sed", "do", "eiusmod", "tempor", "incididunt", "ut", "labore",
+        "et", "dolore", "magna", "aliqua", "enim", "ad", "minim", "veniam",
+        "quis", "nostrud", "exercitation", "ullamco", "laboris", "nisi", "ut",
+        "aliquip", "ex", "ea", "commodo", "consequat", "duis", "aute", "irure",
+        "in", "reprehenderit", "voluptate", "velit", "esse", "cillum",
+        "fugiat", "nulla", "pariatur",
+      ];
+
+      function makeRng(seed) {
+        // Mulberry32 — small, deterministic, good enough for fixture data.
+        let s = seed >>> 0;
+        return () => {
+          s = (s + 0x6d2b79f5) >>> 0;
+          let t = s;
+          t = Math.imul(t ^ (t >>> 15), t | 1);
+          t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function buildCorpus(targetChars) {
+        const rand = makeRng(0x1234abcd);
+        const pick = (arr) => arr[Math.floor(rand() * arr.length)];
+        const words = (n) => {
+          const out = [];
+          for (let i = 0; i < n; i++) out.push(pick(LOREM));
+          return out.join(" ");
+        };
+        const parts = [];
+        let len = 0;
+        let heading = 0;
+        while (len < targetChars) {
+          const r = rand();
+          let chunk;
+          if (r < 0.08) {
+            heading += 1;
+            chunk = `\n## Section ${heading} — ${words(3)}\n\n`;
+          } else if (r < 0.14) {
+            chunk = `\n> [!note] ${words(2)}\n> ${words(20)}\n\n`;
+          } else if (r < 0.20) {
+            chunk = `\n\`\`\`ts\nconst ${pick(LOREM)} = ${Math.floor(rand() * 1000)};\nfor (let i = 0; i < ${Math.floor(rand() * 100)}; i++) {\n  console.log("${pick(LOREM)}", i);\n}\n\`\`\`\n\n`;
+          } else if (r < 0.30) {
+            chunk = `- ${words(6)} [[Target ${Math.floor(rand() * 200)}|alias]]\n`;
+          } else {
+            // Paragraph with inline emphasis, code, and a wikilink so the
+            // live-preview marker pass has work to do per recompute.
+            chunk = `${words(8)} **${pick(LOREM)}** ${words(6)} \`${pick(LOREM)}\` [[Note ${Math.floor(rand() * 500)}]] ${words(10)}.\n\n`;
+          }
+          parts.push(chunk);
+          len += chunk.length;
+        }
+        const joined = parts.join("");
+        // Trim to exactly the target so the size is deterministic.
+        return joined.length > targetChars ? joined.slice(0, targetChars) : joined;
+      }
+
+      async function writeCorpus(text) {
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            yield* fs.writeText(notePath, text);
+          }),
+        );
+      }
+
+      function activeMarkdownLeaf(state) {
+        const group = state.activeGroupId ? state.groups.get(state.activeGroupId) : null;
+        const leaf = group?.activeLeafId ? state.leaves.get(group.activeLeafId) : null;
+        return leaf?.state?.type === "markdown" ? leaf : null;
+      }
+
+      function Harness() {
+        const { activeVault, openOpfs } = useVault();
+        const workspace = useSyncExternalStore(
+          workspaceStore.subscribe,
+          workspaceStore.getState,
+          workspaceStore.getServerSnapshot,
+        );
+        const [ready, setReady] = useState(false);
+        const [error, setError] = useState(null);
+        const openingRef = useRef(false);
+        const seededRef = useRef(false);
+        const corpusLenRef = useRef(0);
+
+        useEffect(() => {
+          if (ready || openingRef.current) return;
+          openingRef.current = true;
+          void (async () => {
+            try {
+              if (activeVault?.entry.name !== vaultName) await openOpfs(vaultName);
+              if (!seededRef.current) {
+                seededRef.current = true;
+                const corpus = buildCorpus(TYPING_CORPUS_CHARS);
+                corpusLenRef.current = corpus.length;
+                await writeCorpus(corpus);
+              }
+              workspaceStore.openFile(notePath, { mode: "live-preview" });
+              setReady(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : String(err));
+            }
+          })();
+        }, [activeVault, openOpfs, ready]);
+
+        const leaf = activeMarkdownLeaf(workspace);
+        const editorReady = ready && leaf !== null;
+
+        window.__graniteTypingPerfReady = editorReady;
+        window.__graniteTypingPerfError = error;
+        window.__graniteTypingPerfState = () => ({
+          activeVaultName: activeVault?.entry.name ?? null,
+          ready,
+          error,
+          editorMounted: document.querySelector(".cm-editor") !== null,
+          corpusLen: corpusLenRef.current,
+          docLen: document.querySelector(".cm-content")?.textContent?.length ?? 0,
+        });
+
+        if (error) return React.createElement("pre", { role: "alert" }, error);
+        return React.createElement(
+          "div",
+          { className: "fixture-shell" },
+          React.createElement(
+            "div",
+            { className: "fixture-status" },
+            editorReady
+              ? `Typing-perf fixture ready (${corpusLenRef.current.toLocaleString()} chars)`
+              : "Loading",
+          ),
+          leaf?.state.type === "markdown"
+            ? React.createElement(MarkdownView, {
+                key: leaf.id,
+                leafId: leaf.id,
+                path: leaf.state.path,
+                livePreview: leaf.state.mode === "live-preview",
+                fragment: leaf.state.fragment,
+                folds: leaf.state.folds,
+              })
+            : null,
+        );
+      }
+
+      createRoot(document.querySelector("#root")).render(
+        React.createElement(
+          ThemeProvider,
+          null,
+          React.createElement(VaultProvider, null, React.createElement(Harness)),
+        ),
+      );
+
+      // --- rAF-frame sampling hooks ----------------------------------------
+      // The verifier drives these from outside the page: it starts the
+      // sampler, presses keys via playwright, then stops the sampler and
+      // reads the frame array. Using rAF (not setInterval) measures *actual*
+      // browser paint cadence — the metric that matches the §24.19 budget.
+
+      const sampler = { running: false, deltas: [], rafId: 0, lastT: 0 };
+
+      window.__graniteTypingPerfStartSampler = () => {
+        sampler.running = true;
+        sampler.deltas = [];
+        sampler.lastT = performance.now();
+        const tick = (t) => {
+          if (!sampler.running) return;
+          sampler.deltas.push(t - sampler.lastT);
+          sampler.lastT = t;
+          sampler.rafId = requestAnimationFrame(tick);
+        };
+        sampler.rafId = requestAnimationFrame(tick);
+      };
+
+      window.__graniteTypingPerfStopSampler = () => {
+        sampler.running = false;
+        if (sampler.rafId) cancelAnimationFrame(sampler.rafId);
+        // Drop the first sample — it includes the gap between start and the
+        // first rAF fire, which isn't a "frame time" in any meaningful sense.
+        return sampler.deltas.slice(1);
+      };
+    </script>
+  </body>
+</html>

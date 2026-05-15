@@ -54,6 +54,7 @@
     "verify:keyboard-populated-browser": "node scripts/verify-keyboard-populated-browser.mjs",
     "verify:renderer-visual-browser": "node scripts/verify-renderer-visual-browser.mjs",
     "verify:severe-vault-browser": "node scripts/verify-severe-vault-browser.mjs",
+    "verify:typing-perf-browser": "node scripts/verify-typing-perf-browser.mjs",
     "lint": "biome check src",
     "format": "biome format --write src",
     "test": "vitest run",

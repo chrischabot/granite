@@ -79,11 +79,15 @@ async function main() {
         `Graph pan browser verification failed:\n${JSON.stringify(result, null, 2)}\n${consoleMessages.join("\n")}`,
       );
     }
+    if (consoleMessages.length > 0) {
+      console.log("Console:\n" + consoleMessages.join("\n"));
+    }
     console.log("Graph pan browser verification passed.");
     console.log(
-      `Nodes: ${result.nodeCount}; frames: ${result.frames}; fps: ${result.fps.toFixed(
-        1,
-      )}; p95 frame: ${result.p95FrameMs.toFixed(1)} ms; long frames: ${result.longFrames}`,
+      `Nodes: ${result.nodeCount}; edges: ${result.edgeCount ?? "?"}; frames: ${result.frames}; ` +
+        `fps: ${result.fps.toFixed(1)}; p95 frame: ${result.p95FrameMs.toFixed(1)} ms; ` +
+        `p95 render cost: ${(result.p95RenderCostMs ?? 0).toFixed(1)} ms; ` +
+        `Barnes-Hut step: ${(result.simStepMs ?? 0).toFixed(1)} ms; long frames: ${result.longFrames}`,
     );
     console.log(`Final transform: ${result.finalTransform}`);
   } finally {

@@ -164,6 +164,8 @@ export const EN_LOCALE: Readonly<Record<string, string>> = {
   "command.category.graph": "Graph",
   "command.category.file": "File",
   "command.category.canvas": "Canvas",
+  "command.category.navigation": "Navigation",
+  "command.category.search": "Search",
   "command.openCommandPalette": "Open command palette",
   "command.openQuickSwitcher": "Open quick switcher",
   "command.openVaultSwitcher": "Open vault switcher",

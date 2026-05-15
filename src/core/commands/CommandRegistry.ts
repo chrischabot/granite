@@ -63,6 +63,13 @@ class CommandRegistryImpl {
     return this.listCache;
   }
 
+  /** Every registered command regardless of `hidden` / `checkCallback` state.
+   *  Intended for audits (e.g. the default-hotkey spec audit) — the palette
+   *  should keep using `list()`. */
+  listAll(): ReadonlyArray<Command> {
+    return [...this.commands.values()];
+  }
+
   /** Run a command by id. */
   async run(id: string): Promise<void> {
     const cmd = this.commands.get(id);

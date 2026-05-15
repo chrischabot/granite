@@ -67,6 +67,16 @@
 ### §24.14 Hotkeys
 - [x] Multi-binding per command ← _shipped 2026-05-12 hotkeys sweep_
 - [x] US-layout normalization with physical-key trigger ← _shipped 2026-05-12 hotkeys sweep_
+- [x] Spec §17.1 default-hotkey audit (parses spec at test time, asserts every bound row resolves to a registered command) ← _shipped 2026-05-15 default-hotkeys-audit.test.ts_
+- [ ] Wire up the stub commands registered in `src/core/commands/core-commands.ts` for spec §17.1 defaults whose underlying feature does not yet exist. Each currently shows a "not yet implemented" notice while reserving the canonical hotkey:
+  - `file:new-note` (`Mod+N`)
+  - `file:new-note-in-new-tab` (`Mod+Shift+N`)
+  - `file:save` (`Mod+S`, currently shows the cached "Saved" status — autosave already handles persistence)
+  - `file:reopen-closed-tab` (`Mod+Shift+T`) — requires a closed-tab history in `workspaceStore`
+  - `file:rename` (`F2`) — fires `granite:rename-file`; explorer must listen
+  - `editor:toggle-bold` / `toggle-italic` / `toggle-code` / `insert-link` (`Mod+B`/`I`/`` ` ``/`K`) — CodeMirror's `defaultKeymap` handles these inside the editor; commands fire `granite:editor-action` for non-editor focus or palette use
+  - `editor:add-file-property` (`Mod+;`) — fires `granite:add-file-property`; properties view must listen
+  - `search:current-file` / `search:replace-in-current-file` (`Mod+F`/`Mod+H`) — fire `granite:search-current-file` / `granite:search-replace-current-file`; MarkdownView must listen
 
 ### §24.15 Settings — Phase 16
 - [x] Live filter input ← _shipped 2026-05-12 settings sweep_

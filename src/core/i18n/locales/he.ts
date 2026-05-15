@@ -161,6 +161,8 @@ export const HE_LOCALE: Readonly<Record<string, string>> = {
   "command.category.graph": "גרף",
   "command.category.file": "קובץ",
   "command.category.canvas": "קנבס",
+  "command.category.navigation": "ניווט",
+  "command.category.search": "חיפוש",
   "command.openCommandPalette": "פתיחת פלטת הפקודות",
   "command.openQuickSwitcher": "פתיחת מחליף מהיר",
   "command.openVaultSwitcher": "פתיחת מחליף כספות",

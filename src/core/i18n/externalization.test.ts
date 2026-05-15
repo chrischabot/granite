@@ -1746,7 +1746,14 @@ describe("UI string externalization audit", () => {
   });
 
   it("keeps built-in command registrations routed through i18n keys", () => {
-    const source = readFileSync(`${process.cwd()}/src/ui/commands/CommandsBootstrap.tsx`, "utf8");
+    // CommandsBootstrap.tsx now delegates the bulk of the registrations to
+    // `core-commands.ts`; scan both so we catch hard-coded labels in either.
+    const bootstrap = readFileSync(
+      `${process.cwd()}/src/ui/commands/CommandsBootstrap.tsx`,
+      "utf8",
+    );
+    const core = readFileSync(`${process.cwd()}/src/core/commands/core-commands.ts`, "utf8");
+    const source = `${bootstrap}\n${core}`;
     const violations = COMMAND_BOOTSTRAP_FORBIDDEN_PATTERNS.filter((pattern) =>
       pattern.test(source),
     );
@@ -1776,8 +1783,8 @@ describe("UI string externalization audit", () => {
     ]) {
       expect(source).toContain(requiredKey);
     }
-    expect(source).toContain("subscribeI18n");
-    expect(source).toContain("getLocale");
+    expect(bootstrap).toContain("subscribeI18n");
+    expect(bootstrap).toContain("getLocale");
 
     expect(violations.map(String), violations.map(String).join("\n")).toEqual([]);
   });

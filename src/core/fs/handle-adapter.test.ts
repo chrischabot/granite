@@ -2,12 +2,12 @@ import { Effect } from "effect";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { t } from "../i18n";
 import {
-  _peekActiveWatchControls,
   DEFAULT_WATCH_POLL_INTERVAL_MS,
   FileSystemCapabilityError,
   WATCH_BACKOFF_FACTOR,
   WATCH_BACKOFF_IDLE_TICKS,
   WATCH_BACKOFF_MAX_MS,
+  _peekActiveWatchControls,
   handleAdapter,
   openOPFS,
   pickDirectoryFSA,
@@ -405,9 +405,7 @@ describe("handleAdapter", () => {
         !eventsB.some((e) => e.path === "hidden-while.md")
       ) {
         if (Date.now() > deadline) {
-          throw new Error(
-            `Timed out waiting for resume; A=${eventsA.length}, B=${eventsB.length}`,
-          );
+          throw new Error(`Timed out waiting for resume; A=${eventsA.length}, B=${eventsB.length}`);
         }
         await new Promise((r) => setTimeout(r, 10));
       }

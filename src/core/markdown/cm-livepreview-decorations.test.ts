@@ -459,6 +459,70 @@ describe("computeLivePreviewRanges", () => {
     expect(astInline.length).toBeLessThan(oracleInline.length);
   });
 
+  // --- Adversarial: Obsidian-specific regex inside raw regions ------------
+  //
+  // The hybrid AST+regex design uses regex for Obsidian-specific syntax
+  // (wikilinks, callouts, block-ids, custom tasks, inline math, comments).
+  // The post-filter step is supposed to drop any regex hit whose range
+  // overlaps a pre-detected raw region (frontmatter, fenced code, inline
+  // code, HTMLBlock, $$math$$, %%block comments%%, inline <tag>...</tag>).
+  // These tests catch a stubbed/broken filter that would let the regex
+  // misfire through into the decoration set.
+
+  it("(AST) leaves callout markers inside a fenced code block raw", () => {
+    const text = "```md\n> [!note]+ inside code\nbody\n```";
+    const slices = hiddenSlices(text, -1);
+    expect(slices.some((s) => s.startsWith("[!note]"))).toBe(false);
+    expect(slices.some((s) => s.startsWith("> "))).toBe(false);
+  });
+
+  it("(AST) leaves block-id markers inside a fenced code block raw", () => {
+    const text = "```md\nThis is a paragraph ^block-id\n```";
+    const slices = hiddenSlices(text, -1);
+    expect(slices.some((s) => s.includes("^block-id"))).toBe(false);
+  });
+
+  it("(AST) leaves custom task markers inside a fenced code block raw", () => {
+    const text = "```md\n- [?] waiting task\n```";
+    const slices = hiddenSlices(text, -1);
+    expect(slices.some((s) => s.includes("[?]"))).toBe(false);
+  });
+
+  it("(AST) leaves $variable inline-code inside fenced shell snippet raw", () => {
+    // INLINE_MATH_RE could misfire on shell-like `$variable` content.
+    const text = "```sh\necho $name and $home\n```";
+    const slices = hiddenSlices(text, -1);
+    expect(slices).not.toContain("$");
+  });
+
+  it("(AST) leaves wikilinks inside an HTMLBlock raw", () => {
+    const text = "<div>\n[[link inside html]]\nmore\n</div>";
+    const slices = hiddenSlices(text, -1);
+    expect(slices.some((s) => s === "[[")).toBe(false);
+    expect(slices.some((s) => s === "]]")).toBe(false);
+  });
+
+  it("(AST) leaves footnote refs inside fenced code raw", () => {
+    const text = "```md\nA paragraph[^ref] in code.\n```";
+    const slices = hiddenSlices(text, -1);
+    expect(slices.some((s) => s.startsWith("[^"))).toBe(false);
+  });
+
+  it("(AST) leaves %% comments %% inside fenced code raw", () => {
+    const text = "```md\nbefore %% comment %% after\n```";
+    const slices = hiddenSlices(text, -1);
+    expect(slices.some((s) => s.startsWith("%%"))).toBe(false);
+  });
+
+  it("(AST) leaves inline math inside an inline code span raw", () => {
+    const text = "`$2+2$` plus real $1+1$";
+    const slices = hiddenSlices(text, -1);
+    // The inline-math regex must NOT decorate inside the backticks, only
+    // outside.
+    const dollarHides = slices.filter((s) => s === "$");
+    expect(dollarHides.length).toBe(2); // open + close of the REAL math only
+  });
+
   // --- Performance --------------------------------------------------------
 
   it("(AST perf) decorates a 1000-line markdown document quickly in vitest", () => {

@@ -778,6 +778,12 @@ function collectObsidianHides(
 
   // Inline math, per non-cursor line, skipping raw regions. Lines containing
   // only `$$` are block fences and don't host inline math.
+  //
+  // The early bail must check FULL CONTAINMENT (the line is entirely inside
+  // some raw region), not overlap — a line that mixes an inline code span
+  // with real `$math$` outside it would lose its real math if we skipped on
+  // overlap. The per-match `inRaw(idx, idx+len)` check below still filters
+  // out math hits inside an inline code span on a mixed line.
   for (let lineIdx = 0; lineIdx < lineStartByIndex.length; lineIdx++) {
     if (lineIdx === cursorLineIndex) continue;
     const ls = lineStartByIndex[lineIdx];
@@ -785,7 +791,7 @@ function collectObsidianHides(
     const le = lineEndOfLine(lineIdx, lineStartByIndex, text.length);
     const line = text.slice(ls, le);
     if (line.trim() === "$$") continue;
-    if (inRaw(ls, le)) continue;
+    if (rangesContain(rawRegions, ls, le)) continue;
     INLINE_MATH_RE.lastIndex = 0;
     let mm: RegExpExecArray | null = INLINE_MATH_RE.exec(line);
     while (mm) {

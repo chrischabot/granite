@@ -7,6 +7,10 @@ import type { VaultPath } from "@core/fs/types";
 import { Effect } from "effect";
 import { useEffect, useState } from "react";
 import { useI18n } from "../i18n/useI18n";
+import { AudioView } from "./asset/AudioView";
+import { ImageView } from "./asset/ImageView";
+import { PdfView } from "./asset/PdfView";
+import { VideoView } from "./asset/VideoView";
 
 export function AssetView({ path, kind }: { path: VaultPath; kind: NativeFileKind }) {
   const t = useI18n();
@@ -45,32 +49,17 @@ export function AssetView({ path, kind }: { path: VaultPath; kind: NativeFileKin
   if (error) return <div className="empty-state">{error}</div>;
   if (!url) return <div className="empty-state">{t("asset.loading")}</div>;
 
-  if (kind === "image") {
-    return (
-      <div className="asset-view mod-image">
-        <img src={url} alt={path} />
-      </div>
-    );
+  switch (kind) {
+    case "image":
+      return <ImageView path={path} url={url} />;
+    case "audio":
+      return <AudioView url={url} />;
+    case "video":
+      return <VideoView url={url} />;
+    case "pdf":
+      return <PdfView url={url} title={path} />;
+    default:
+      // Markdown/canvas/base have dedicated views; never routed through AssetView.
+      return <div className="empty-state">{path}</div>;
   }
-  if (kind === "audio") {
-    return (
-      <div className="asset-view mod-audio">
-        {/* biome-ignore lint/a11y/useMediaCaption: Vault audio files do not necessarily ship caption tracks. */}
-        <audio src={url} controls />
-      </div>
-    );
-  }
-  if (kind === "video") {
-    return (
-      <div className="asset-view mod-video">
-        {/* biome-ignore lint/a11y/useMediaCaption: Vault video files do not necessarily ship caption tracks. */}
-        <video src={url} controls />
-      </div>
-    );
-  }
-  return (
-    <div className="asset-view mod-pdf">
-      <iframe src={url} title={path} />
-    </div>
-  );
 }

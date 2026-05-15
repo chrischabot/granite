@@ -10,6 +10,7 @@ import {
 } from "@core/fs/handle-adapter";
 import { scanOrphanAtomicWriteTemps } from "@core/fs/orphan-temp";
 import { t } from "@core/i18n";
+import { metadataCache } from "@core/metadata/cache";
 import { bindTypeRegistry, unbindTypeRegistry } from "@core/metadata/type-registry";
 import { noticeManager } from "@core/notices/notice";
 import { maybeShowSlowStartupNotice } from "@core/perf/startup";
@@ -29,6 +30,7 @@ import {
 import { buildVaultWindowUrl, parseVaultWindowRequest } from "@core/vault/window-url";
 import { bindPersistence, restoreFor, restoreForAsync } from "@core/workspace/persist";
 import { workspaceStore } from "@core/workspace/store";
+import { type WorkspaceSync, createWorkspaceSync } from "@core/workspace/sync";
 import { Layer } from "effect";
 import {
   type ReactNode,
@@ -93,6 +95,7 @@ export function VaultProvider({ children }: { children: ReactNode }) {
   const initialized = useRef(false);
   const persistUnbindRef = useRef<(() => void) | null>(null);
   const slowStartupCheckedRef = useRef(false);
+  const crossWindowSyncRef = useRef<WorkspaceSync | null>(null);
 
   const refreshList = useCallback(async () => {
     setVaults(await listVaults());
@@ -224,6 +227,19 @@ export function VaultProvider({ children }: { children: ReactNode }) {
       const restoredFromSnapshot = await restoreForAsync(entry.id).catch(() => false);
       if (!restoredFromSnapshot) restoreFor(entry.id);
       persistUnbindRef.current = bindPersistence(entry.id);
+      // Thin cross-window listener: persist.ts handles workspaceUpdated on
+      // its own channel; this side-channel reacts to metadataInvalidated so
+      // backlinks/tags/properties stay in sync when peer windows write notes.
+      crossWindowSyncRef.current?.close();
+      const sync = createWorkspaceSync(entry.id);
+      sync.subscribe((message) => {
+        if (message.type === "metadataInvalidated") {
+          // refreshPaths validates each entry before treating it as a vault
+          // path — the BC payload arrives as plain strings.
+          void metadataCache.refreshPaths(message.paths);
+        }
+      });
+      crossWindowSyncRef.current = sync;
       bindSnippets(entry.id);
       bindThemes(entry.id);
       void bindTypeRegistry(entry.id).catch(() => {
@@ -318,6 +334,10 @@ export function VaultProvider({ children }: { children: ReactNode }) {
     if (persistUnbindRef.current) {
       persistUnbindRef.current();
       persistUnbindRef.current = null;
+    }
+    if (crossWindowSyncRef.current) {
+      crossWindowSyncRef.current.close();
+      crossWindowSyncRef.current = null;
     }
     unbindSnippets();
     unbindThemes();

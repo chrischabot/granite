@@ -1,10 +1,12 @@
 import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
 import { workspaceStore } from "./store";
+import { type CreateWorkspaceSyncOptions, type WorkspaceSync, createWorkspaceSync } from "./sync";
 import type { LeafState, WorkspaceState } from "./types";
 
 const KEY_PREFIX = "granite.workspace.last.";
 const SAVE_DEBOUNCE_MS = 500;
 const DISK_CONFIG_NAME = "workspace";
+const DISK_SCHEMA_VERSION = 2;
 
 interface SerializedGroup {
   leaves: ReadonlyArray<LeafState>;
@@ -25,6 +27,46 @@ interface SerializedLegacySnapshot {
 }
 
 type SerializedSnapshot = SerializedColumnsSnapshot | SerializedLegacySnapshot;
+
+/**
+ * Disk-format envelope for `.granite/workspace.json`. The envelope adds a
+ * version field and an `updatedMs` timestamp used by the cross-window sync
+ * layer to reconcile concurrent writes ("disk wins if newer").
+ *
+ * The bare `SerializedSnapshot` is still accepted on read for backward
+ * compatibility with any older disk files written before v2.
+ */
+interface DiskEnvelopeV2 {
+  readonly version: 2;
+  readonly updatedMs: number;
+  /** Writer id of the window that produced this snapshot (for diagnostics). */
+  readonly writerId?: string;
+  readonly snapshot: SerializedSnapshot;
+}
+
+type DiskPayload = DiskEnvelopeV2 | SerializedSnapshot;
+
+function isEnvelope(value: unknown): value is DiskEnvelopeV2 {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    (value as { version?: unknown }).version === DISK_SCHEMA_VERSION &&
+    typeof (value as { updatedMs?: unknown }).updatedMs === "number" &&
+    typeof (value as { snapshot?: unknown }).snapshot === "object"
+  );
+}
+
+function extractSnapshot(payload: DiskPayload | null): {
+  snapshot: SerializedSnapshot | null;
+  updatedMs: number;
+} {
+  if (!payload) return { snapshot: null, updatedMs: 0 };
+  if (isEnvelope(payload)) {
+    return { snapshot: payload.snapshot, updatedMs: payload.updatedMs };
+  }
+  // Legacy bare-snapshot file (pre-envelope).
+  return { snapshot: payload as SerializedSnapshot, updatedMs: 0 };
+}
 
 function snapshotState(state: WorkspaceState): SerializedColumnsSnapshot | null {
   const columns: SerializedGroup[][] = [];
@@ -77,6 +119,28 @@ let activeVaultId: string | null = null;
 let unsub: (() => void) | null = null;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let beforeUnloadBound = false;
+let activeSync: WorkspaceSync | null = null;
+/**
+ * Timestamp of the most-recent snapshot we either wrote or accepted from a
+ * peer window. Used by the cross-window reconciliation: inbound updates with
+ * an older timestamp are ignored (out-of-order delivery is harmless).
+ */
+let lastKnownUpdatedMs = 0;
+/**
+ * Suppress writing back the snapshot we just hydrated from a peer broadcast.
+ * Without this guard, applying a peer snapshot would itself trigger our
+ * subscriber, debounce a save, and re-broadcast — a feedback loop.
+ */
+let suppressPersistOnce = false;
+/**
+ * Set whenever the workspace store changes locally (i.e. NOT as a result of
+ * applying a peer broadcast). Cleared on every `flushSave`. The flag is the
+ * second leg of the loop-suppression guarantee: even if `flushSave` is
+ * invoked manually (e.g. from `beforeunload` immediately after we just
+ * applied a peer snapshot), it must NOT echo unless there's an actual
+ * locally-originating change to broadcast.
+ */
+let dirtyForBroadcast = false;
 
 function flushSave(): void {
   saveTimer = null;
@@ -89,13 +153,31 @@ function flushSave(): void {
   } catch {
     /* ignore (private mode etc.) */
   }
-  // Disk write — best-effort; failures (e.g. no active vault yet) are ignored.
   if (snap === null) {
     // Leave any existing disk snapshot in place — clearing on transient
     // single-empty-leaf state risks losing a workspace mid-reset.
+    dirtyForBroadcast = false;
     return;
   }
-  void writeConfigJson(DISK_CONFIG_NAME, snap).catch(() => {});
+  if (!dirtyForBroadcast) {
+    // No local change since the last broadcast — skip disk + broadcast to
+    // avoid echoing a snapshot we just hydrated from a peer window.
+    return;
+  }
+  const updatedMs = Date.now();
+  lastKnownUpdatedMs = updatedMs;
+  dirtyForBroadcast = false;
+  const envelope: DiskEnvelopeV2 = {
+    version: DISK_SCHEMA_VERSION,
+    updatedMs,
+    ...(activeSync ? { writerId: activeSync.writerId } : {}),
+    snapshot: snap,
+  };
+  // Best-effort disk write. The FileSystem layer handles atomicity; failures
+  // (e.g. no active vault yet, FS errors) are tolerable — the in-memory store
+  // and localStorage cover the gap.
+  void writeConfigJson(DISK_CONFIG_NAME, envelope).catch(() => {});
+  if (activeSync) activeSync.postWorkspaceUpdated(snap, updatedMs);
 }
 
 export function flushWorkspacePersistence(): void {
@@ -118,27 +200,87 @@ function unbindBeforeUnload(): void {
   beforeUnloadBound = false;
 }
 
+export interface BindPersistenceOptions {
+  /**
+   * Channel factory / writer-id / clock overrides for the cross-window
+   * sync. Tests inject an in-process channel hub here so the feedback-loop
+   * suppression can be exercised without a real `BroadcastChannel`.
+   */
+  readonly syncOptions?: CreateWorkspaceSyncOptions;
+}
+
 /**
  * Begin persisting the workspace for the given vault id. Subsequent calls
  * replace the previous binding. Returns a function that stops persistence.
+ *
+ * `options.syncOptions` lets callers (tests) inject a deterministic channel
+ * factory; defaults to the real `BroadcastChannel`-backed implementation.
  */
-export function bindPersistence(vaultId: string): () => void {
+export function bindPersistence(vaultId: string, options: BindPersistenceOptions = {}): () => void {
   if (unsub) unsub();
   if (saveTimer) clearTimeout(saveTimer);
+  if (activeSync) {
+    activeSync.close();
+    activeSync = null;
+  }
   saveTimer = null;
   activeVaultId = vaultId;
+  lastKnownUpdatedMs = 0;
+  dirtyForBroadcast = false;
   bindBeforeUnload();
-  unsub = workspaceStore.subscribe(() => {
-    if (!activeVaultId) return;
-    if (saveTimer) clearTimeout(saveTimer);
-    saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
+
+  // Open the cross-window bus for this vault. Even if no listener is attached
+  // we still broadcast workspace updates so other windows can react.
+  activeSync = createWorkspaceSync(vaultId, options.syncOptions);
+  // React to peer workspace updates: re-hydrate if newer than what we have.
+  const unsubSync = activeSync.subscribe((message) => {
+    if (message.type !== "workspaceUpdated") return;
+    if (message.updatedMs <= lastKnownUpdatedMs) return;
+    const snap = message.snapshot as SerializedSnapshot | null;
+    if (!snap) return;
+    lastKnownUpdatedMs = message.updatedMs;
+    suppressPersistOnce = true;
+    try {
+      applySnapshot(snap);
+    } finally {
+      // The store.subscribe callback will run synchronously below this; the
+      // flag is cleared there. As a safety net, also clear after a microtask.
+      queueMicrotask(() => {
+        suppressPersistOnce = false;
+      });
+    }
   });
+
+  unsub = (() => {
+    const storeUnsub = workspaceStore.subscribe(() => {
+      if (!activeVaultId) return;
+      if (suppressPersistOnce) {
+        // Peer-broadcast apply: do NOT mark dirty, do NOT schedule a save.
+        suppressPersistOnce = false;
+        return;
+      }
+      dirtyForBroadcast = true;
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(flushSave, SAVE_DEBOUNCE_MS);
+    });
+    return () => {
+      storeUnsub();
+      unsubSync();
+    };
+  })();
+
   return () => {
     flushWorkspacePersistence();
     if (unsub) unsub();
     unsub = null;
+    if (activeSync) {
+      activeSync.close();
+      activeSync = null;
+    }
     unbindBeforeUnload();
     activeVaultId = null;
+    lastKnownUpdatedMs = 0;
+    dirtyForBroadcast = false;
   };
 }
 
@@ -164,22 +306,51 @@ export function restoreFor(vaultId: string): boolean {
 }
 
 /**
- * Restore from the synchronous localStorage snapshot first, then mirror it to
- * disk. The local copy is the most reliable source immediately after
- * `beforeunload`, where the disk write is necessarily best-effort and may lag.
- * If there is no local snapshot, fall back to `.granite/workspace.json`.
+ * Restore workspace state for `vaultId`. Disk is the authoritative source —
+ * if a workspace.json envelope exists, we apply it and disregard localStorage
+ * (because the envelope's `updatedMs` is by definition the most recent
+ * persisted state across windows). localStorage stays as the synchronous fast
+ * path used by `restoreFor` and as the migration source on first run.
+ *
+ * Migration semantics: when disk is missing but localStorage has content, we
+ * write the localStorage snapshot to disk with `updatedMs = 0` so any
+ * subsequent in-window edit (which stamps `Date.now()`) trumps it.
+ *
  * Returns true if a snapshot was applied.
  */
 export async function restoreForAsync(vaultId: string): Promise<boolean> {
-  const legacy = readLocalStorage(vaultId);
-  if (legacy) {
-    const ok = applySnapshot(legacy);
-    if (!ok) return false;
-    await writeConfigJson(DISK_CONFIG_NAME, legacy).catch(() => {});
+  const local = readLocalStorage(vaultId);
+  const onDisk = await readConfigJson<DiskPayload>(DISK_CONFIG_NAME);
+  const { snapshot: diskSnap, updatedMs: diskMs } = extractSnapshot(onDisk);
+
+  if (diskSnap) {
+    lastKnownUpdatedMs = diskMs;
+    const applied = applySnapshot(diskSnap);
+    // Also mirror to localStorage so the next sync `restoreFor` shows the
+    // disk content immediately.
+    try {
+      localStorage.setItem(KEY_PREFIX + vaultId, JSON.stringify(diskSnap));
+    } catch {
+      /* ignore */
+    }
+    return applied;
+  }
+
+  if (local) {
+    const applied = applySnapshot(local);
+    if (!applied) return false;
+    // Migrate: stamp updatedMs=0 so a real in-window save will overwrite it.
+    const envelope: DiskEnvelopeV2 = {
+      version: DISK_SCHEMA_VERSION,
+      updatedMs: 0,
+      snapshot: local,
+    };
+    await writeConfigJson(DISK_CONFIG_NAME, envelope).catch(() => {});
+    lastKnownUpdatedMs = 0;
     return true;
   }
-  const onDisk = await readConfigJson<SerializedSnapshot>(DISK_CONFIG_NAME);
-  return onDisk ? applySnapshot(onDisk) : false;
+
+  return false;
 }
 
 function applySnapshot(snap: SerializedSnapshot): boolean {

@@ -1,4 +1,4 @@
-import { RangeSetBuilder } from "@codemirror/state";
+import { type EditorState, RangeSetBuilder } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -7,557 +7,83 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { parseWikilink } from "@core/markdown/renderer";
+import type { SyntaxNodeRef } from "@lezer/common";
+import { GFM, parser as baseMarkdownParser } from "@lezer/markdown";
 import yaml from "js-yaml";
 
-const BOLD_ITALIC_STAR_RE = /\*\*\*([^*\n]+)\*\*\*/g;
-const BOLD_ITALIC_UNDERSCORE_RE = /___([^_\n]+)___/g;
-const HIGHLIGHT_RE = /==([^=\n]+)==/g;
-const STRIKE_RE = /~~([^~\n]+)~~/g;
-const WIKILINK_RE = /(!?)\[\[([^\]\n]+)\]\]/g;
-const MARKDOWN_LINK_RE = /(!?)\[([^\]\n]+)\]\(([^)\n]+)\)/g;
-const FOOTNOTE_REF_RE = /\[\^([^\]\n]+)\](?!:)/g;
-const COMMENT_RE = /%%([^%\n]+)%%/g;
-const INLINE_MATH_RE = /(?<!\$)\$([^$\n]+)\$(?!\$)/g;
-const CALLOUT_RE = /^(\s*>+\s*)\[!([^\]\n]+)\]([+-])?/;
-const HEADING_RE = /^(\s{0,3})(#{1,6})(\s+)/;
-const TASK_RE = /^(\s*(?:[-*+]|\d+[.)])\s+)\[[^\]\n]\](\s+)/;
-const BLOCK_ID_RE = /(^|\s)\^([A-Za-z0-9-]+)\s*$/;
-const HTML_BLOCK_OPEN_RE = /^\s*<([A-Za-z][A-Za-z0-9-]*)(?:\s[^<>]*)?>\s*$/;
-const HORIZONTAL_RULE_RE =
-  /^\s{0,3}(?:-{3,}|\*{3,}|_{3,}|(?:-\s*){3,}|(?:\*\s*){3,}|(?:_\s*){3,})\s*$/;
+/**
+ * Live Preview marker hiding.
+ *
+ * The implementation uses two layers:
+ *
+ * 1. The Lezer markdown AST (via `@lezer/markdown` `parser.configure([GFM])`).
+ *    The AST is the authority for *block structure*: fenced/indented code
+ *    blocks, inline code spans, HTML blocks, headings, lists, tables,
+ *    blockquotes, emphasis runs, strikethrough, links, and images. Walking the
+ *    tree lets us hide these markers without misfiring inside code blocks,
+ *    HTML, or escaped sequences.
+ *
+ * 2. A regex pass for *Obsidian-specific* syntax that vanilla CommonMark/GFM
+ *    has no concept of: YAML frontmatter, callouts (`> [!type]+`), wikilinks
+ *    (`[[…]]`), embeds (`![[…]]`), highlights (`==…==`), Obsidian comments
+ *    (`%%…%%`), inline math (`$…$`), block math (`$$ … $$`), footnote refs
+ *    (`[^id]`), block IDs (`^id`), and Obsidian's custom task markers
+ *    (`[?]`/`[-]`/etc.).
+ *
+ * Raw regions (code blocks, HTML, frontmatter, block math, block comments,
+ * inline code spans, inline HTML elements) are computed first. The AST pass
+ * and the regex pass both filter their outputs against the raw regions, so
+ * markers inside protected ranges are *never* decorated.
+ */
+
+// Markdown parser configured with GFM extensions (matches the editor's
+// `markdownLanguage` for the block constructs that matter to us).
+const markdownTreeParser = baseMarkdownParser.configure([GFM]);
 
 const replaceDeco = Decoration.replace({});
 
-function forEachMatch(re: RegExp, line: string, visit: (match: RegExpExecArray) => void): void {
-  re.lastIndex = 0;
-  let match = re.exec(line);
-  while (match) {
-    visit(match);
-    match = re.exec(line);
+// --- Regex constants -------------------------------------------------------
+
+const WIKILINK_RE = /(!?)\[\[([^\]\n]+)\]\]/g;
+const HIGHLIGHT_RE = /==([^=\n]+)==/g;
+const COMMENT_INLINE_RE = /%%([^%\n]+)%%/g;
+const INLINE_MATH_RE = /(?<!\$)\$([^$\n]+)\$(?!\$)/g;
+const FOOTNOTE_REF_RE = /\[\^([^\]\n]+)\](?!:)/g;
+const BLOCK_ID_RE = /(^|\s)\^([A-Za-z0-9-]+)\s*$/;
+const CALLOUT_RE = /^(\s*>+\s*)\[!([^\]\n]+)\]([+-])?/;
+const CUSTOM_TASK_RE = /^(\s*(?:[-*+]|\d+[.)])\s+)\[([^\]\n])\](\s+)/;
+const INLINE_HTML_ELEMENT_RE = /<([A-Za-z][A-Za-z0-9-]*)(?:\s[^<>]*)?>[^<]*?<\/\1>/g;
+
+// --- Range helpers ---------------------------------------------------------
+
+interface Range {
+  from: number;
+  to: number;
+}
+
+function rangesOverlap(ranges: ReadonlyArray<Range>, from: number, to: number): boolean {
+  for (const r of ranges) {
+    if (from < r.to && to > r.from) return true;
   }
+  return false;
 }
 
-function unescapedPipeIndexes(line: string): number[] {
-  const indexes: number[] = [];
-  for (let i = 0; i < line.length; i++) {
-    if (line[i] !== "|") continue;
-    let slashCount = 0;
-    for (let j = i - 1; j >= 0 && line[j] === "\\"; j--) slashCount += 1;
-    if (slashCount % 2 === 0) indexes.push(i);
+function rangesContain(ranges: ReadonlyArray<Range>, from: number, to: number): boolean {
+  for (const r of ranges) {
+    if (from >= r.from && to <= r.to) return true;
   }
-  return indexes;
+  return false;
 }
 
-function tableCells(line: string): string[] {
-  const pipeIndexes = unescapedPipeIndexes(line);
-  if (pipeIndexes.length === 0) return [];
-  const cells: string[] = [];
-  let start = 0;
-  for (const pipeIndex of pipeIndexes) {
-    cells.push(line.slice(start, pipeIndex));
-    start = pipeIndex + 1;
-  }
-  cells.push(line.slice(start));
-  if (cells[0]?.trim() === "") cells.shift();
-  if (cells[cells.length - 1]?.trim() === "") cells.pop();
-  return cells;
-}
-
-function isTableSeparatorLine(line: string): boolean {
-  const cells = tableCells(line);
-  return cells.length >= 2 && cells.every((cell) => /^:?-{2,}:?$/.test(cell.trim()));
-}
-
-function isTableRow(lines: ReadonlyArray<string>, lineIndex: number): boolean {
-  const line = lines[lineIndex] ?? "";
-  if (unescapedPipeIndexes(line).length === 0) return false;
-  if (isTableSeparatorLine(line)) return true;
-  const prev = lineIndex > 0 ? lines[lineIndex - 1] : undefined;
-  const next = lineIndex < lines.length - 1 ? lines[lineIndex + 1] : undefined;
-  return (
-    (prev !== undefined && isTableSeparatorLine(prev)) ||
-    (next !== undefined && isTableSeparatorLine(next))
-  );
-}
-
-function isEscaped(line: string, index: number): boolean {
-  let slashCount = 0;
-  for (let i = index - 1; i >= 0 && line[i] === "\\"; i--) slashCount += 1;
-  return slashCount % 2 === 1;
-}
-
-function isSingleAsteriskMarker(line: string, index: number): boolean {
-  return (
-    line[index] === "*" &&
-    line[index - 1] !== "*" &&
-    line[index + 1] !== "*" &&
-    !isEscaped(line, index)
-  );
-}
-
-function asteriskRunLengthAt(line: string, index: number): number {
-  let len = 0;
-  while (line[index + len] === "*") len += 1;
-  return len;
-}
-
-function isDoubleAsteriskMarker(line: string, index: number): boolean {
-  return (
-    asteriskRunLengthAt(line, index) === 2 && line[index - 1] !== "*" && !isEscaped(line, index)
-  );
-}
-
-function underscoreRunLengthAt(line: string, index: number): number {
-  let len = 0;
-  while (line[index + len] === "_") len += 1;
-  return len;
-}
-
-function isDoubleUnderscoreMarker(line: string, index: number): boolean {
-  return (
-    underscoreRunLengthAt(line, index) === 2 && line[index - 1] !== "_" && !isEscaped(line, index)
-  );
-}
-
-function isWordChar(char: string | undefined): boolean {
-  return char !== undefined && /[A-Za-z0-9_]/.test(char);
-}
-
-function isSingleUnderscoreCandidate(line: string, index: number): boolean {
-  return (
-    line[index] === "_" &&
-    line[index - 1] !== "_" &&
-    line[index + 1] !== "_" &&
-    !isEscaped(line, index)
-  );
-}
-
-function codeSpanRanges(line: string): Array<[number, number]> {
-  const ranges: Array<[number, number]> = [];
-  let i = 0;
-  while (i < line.length) {
-    if (line[i] !== "`") {
-      i += 1;
-      continue;
-    }
-    const start = i;
-    while (i < line.length && line[i] === "`") i += 1;
-    const tickCount = i - start;
-    let j = i;
-    while (j < line.length) {
-      const close = line.indexOf("`", j);
-      if (close === -1) return ranges;
-      let closeEnd = close;
-      while (closeEnd < line.length && line[closeEnd] === "`") closeEnd += 1;
-      if (closeEnd - close === tickCount) {
-        ranges.push([start, closeEnd]);
-        i = closeEnd;
-        break;
-      }
-      j = closeEnd;
-    }
-  }
-  return ranges;
-}
-
-function htmlElementRanges(line: string): Array<[number, number]> {
-  const ranges: Array<[number, number]> = [];
-  const re = /<([A-Za-z][A-Za-z0-9-]*)(?:\s[^<>]*)?>.*?<\/\1>/g;
-  forEachMatch(re, line, (m) => {
-    ranges.push([m.index, m.index + m[0].length]);
-  });
-  return ranges;
-}
-
-function frontmatterEndLineIndex(lines: ReadonlyArray<string>): number | null {
-  if ((lines[0] ?? "").trim() !== "---") return null;
-  for (let i = 1; i < lines.length; i++) {
-    if ((lines[i] ?? "").trim() !== "---") continue;
-    try {
-      const parsed = yaml.load(lines.slice(1, i).join("\n"));
-      if (parsed === undefined || (typeof parsed === "object" && !Array.isArray(parsed))) return i;
-    } catch {
-      return null;
-    }
-    return null;
-  }
-  return null;
-}
-
-/**
- * Compute which character ranges should be hidden on each non-cursor line.
- * Exported pure function for test coverage. Positions are 0-based document
- * offsets, ascending.
- */
-export function computeLivePreviewRanges(
-  text: string,
-  cursorLineIndex: number,
-): Array<{ from: number; to: number }> {
-  const ranges: Array<{ from: number; to: number }> = [];
-  const lines = text.split("\n");
-  const frontmatterEnd = frontmatterEndLineIndex(lines);
-  let offset = 0;
-  let inFence = false;
-  let fenceMarker = "";
-  let inBlockComment = false;
-  let inBlockMath = false;
-  let inHtmlBlockTag: string | null = null;
-
-  for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-    const line = lines[lineIdx] ?? "";
-    const lineStart = offset;
-    const addReplace = (start: number, end: number) => {
-      ranges.push({ from: lineStart + start, to: lineStart + end });
-    };
-
-    // Top-of-file frontmatter is metadata, not Markdown body. Keep it raw
-    // until a dedicated properties widget owns the inactive rendering.
-    if (frontmatterEnd !== null && lineIdx <= frontmatterEnd) {
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    // Track fenced code blocks. Lines starting with ``` or ~~~ flip the state.
-    const fenceOpen = line.match(/^(\s{0,3})(```+|~~~+)/);
-    if (fenceOpen) {
-      const prefixLen = fenceOpen[1]?.length ?? 0;
-      if (!inFence) {
-        inFence = true;
-        fenceMarker = fenceOpen[2] ?? fenceOpen[0] ?? "";
-        if (lineIdx !== cursorLineIndex) addReplace(prefixLen, line.length);
-      } else if (line.slice(prefixLen).startsWith(fenceMarker)) {
-        inFence = false;
-        fenceMarker = "";
-        if (lineIdx !== cursorLineIndex) addReplace(prefixLen, line.length);
-      }
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    // Skip lines inside fences AND the cursor's own line (raw view).
-    if (inFence || lineIdx === cursorLineIndex) {
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    if (inHtmlBlockTag) {
-      if (line.includes(`</${inHtmlBlockTag}>`)) inHtmlBlockTag = null;
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    const htmlBlockOpen = line.match(HTML_BLOCK_OPEN_RE);
-    if (htmlBlockOpen?.[1]) {
-      inHtmlBlockTag = htmlBlockOpen[1];
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    const trimmed = line.trim();
-
-    if (trimmed === "$$") {
-      const start = line.indexOf("$$");
-      addReplace(start, start + 2);
-      inBlockMath = !inBlockMath;
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    if (trimmed === "%%") {
-      const start = line.indexOf("%%");
-      addReplace(start, start + 2);
-      inBlockComment = !inBlockComment;
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    if (inBlockMath || inBlockComment) {
-      if (inBlockComment) {
-        const commentEnd = line.indexOf("%%");
-        if (commentEnd !== -1) {
-          addReplace(commentEnd, commentEnd + 2);
-          inBlockComment = false;
-        }
-      }
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    // Inline-code spans on this line — record their (start, end) pairs so we
-    // can skip formatting inside them.
-    const ignoredInlineSpans = [...codeSpanRanges(line), ...htmlElementRanges(line)];
-    const overlapsIgnoredInline = (start: number, end: number): boolean =>
-      ignoredInlineSpans.some(([s, e]) => start < e && end > s);
-
-    const headingMatch = line.match(HEADING_RE);
-    if (headingMatch) {
-      const prefixLen = headingMatch[1]?.length ?? 0;
-      const markerLen = headingMatch[2]?.length ?? 0;
-      const spaceLen = headingMatch[3]?.length ?? 0;
-      addReplace(prefixLen, prefixLen + markerLen + spaceLen);
-    }
-
-    const taskMatch = line.match(TASK_RE);
-    if (taskMatch) {
-      const prefixLen = taskMatch[1]?.length ?? 0;
-      addReplace(prefixLen, prefixLen + 3);
-    }
-
-    if (HORIZONTAL_RULE_RE.test(line)) {
-      const firstContent = line.search(/\S/);
-      if (firstContent !== -1) addReplace(firstContent, line.length);
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    const blockIdMatch = line.match(BLOCK_ID_RE);
-    if (blockIdMatch?.index !== undefined) {
-      addReplace(blockIdMatch.index, line.length);
-    }
-
-    // Callouts: > [!note]+ Title — hide the Obsidian type marker/fold sign,
-    // keeping the blockquote marker and human title visible.
-    const calloutMatch = line.match(CALLOUT_RE);
-    if (calloutMatch) {
-      const prefixLen = calloutMatch[1]?.length ?? 0;
-      const markerLen = calloutMatch[0].length - prefixLen;
-      addReplace(prefixLen, prefixLen + markerLen);
-    }
-
-    if (isTableRow(lines, lineIdx)) {
-      if (isTableSeparatorLine(line)) {
-        const firstContent = line.search(/\S/);
-        if (firstContent !== -1) addReplace(firstContent, line.length);
-        offset = lineStart + line.length + 1;
-        continue;
-      }
-      for (const pipeIndex of unescapedPipeIndexes(line)) addReplace(pipeIndex, pipeIndex + 1);
-    }
-
-    const blockCommentStart = line.indexOf("%%");
-    if (blockCommentStart !== -1 && line.indexOf("%%", blockCommentStart + 2) === -1) {
-      addReplace(blockCommentStart, blockCommentStart + 2);
-      inBlockComment = true;
-      offset = lineStart + line.length + 1;
-      continue;
-    }
-
-    // Bold+italic: ***text*** / ___text___ — hide the combined markers.
-    forEachMatch(BOLD_ITALIC_STAR_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (
-        overlapsIgnoredInline(idx, idx + len) ||
-        isEscaped(line, idx) ||
-        isEscaped(line, idx + len - 3)
-      ) {
-        return;
-      }
-      addReplace(idx, idx + 3);
-      addReplace(idx + len - 3, idx + len);
-    });
-
-    forEachMatch(BOLD_ITALIC_UNDERSCORE_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (
-        overlapsIgnoredInline(idx, idx + len) ||
-        isEscaped(line, idx) ||
-        isEscaped(line, idx + len - 3)
-      ) {
-        return;
-      }
-      addReplace(idx, idx + 3);
-      addReplace(idx + len - 3, idx + len);
-    });
-
-    // Bold: **text** / __text__ — hide the opening and closing markers.
-    // A delimiter scan is used for asterisk bold so nested italic like
-    // `**strong *em* text**` still hides the outer bold markers.
-    for (let start = 0; start < line.length; start++) {
-      if (!isDoubleAsteriskMarker(line, start) || overlapsIgnoredInline(start, start + 2)) continue;
-      for (let end = start + 2; end < line.length; end++) {
-        if (!isDoubleAsteriskMarker(line, end) || overlapsIgnoredInline(end, end + 2)) continue;
-        addReplace(start, start + 2);
-        addReplace(end, end + 2);
-        start = end + 1;
-        break;
-      }
-    }
-
-    for (let start = 0; start < line.length; start++) {
-      if (!isDoubleUnderscoreMarker(line, start) || overlapsIgnoredInline(start, start + 2))
-        continue;
-      for (let end = start + 2; end < line.length; end++) {
-        if (!isDoubleUnderscoreMarker(line, end) || overlapsIgnoredInline(end, end + 2)) continue;
-        addReplace(start, start + 2);
-        addReplace(end, end + 2);
-        start = end + 1;
-        break;
-      }
-    }
-
-    // Asterisk italic: *word* — hide the single `*` markers without matching
-    // the markers inside `**bold**`. A delimiter scan is used instead of a
-    // content regex so nested bold like `*em **strong** text*` still hides the
-    // outer italic markers.
-    for (let start = 0; start < line.length; start++) {
-      if (!isSingleAsteriskMarker(line, start) || overlapsIgnoredInline(start, start + 1)) continue;
-      for (let end = start + 1; end < line.length; end++) {
-        if (!isSingleAsteriskMarker(line, end) || overlapsIgnoredInline(end, end + 1)) continue;
-        addReplace(start, start + 1);
-        addReplace(end, end + 1);
-        start = end;
-        break;
-      }
-    }
-
-    // Highlight: ==text== — hide the opening and closing `==` markers.
-    forEachMatch(HIGHLIGHT_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (
-        overlapsIgnoredInline(idx, idx + len) ||
-        isEscaped(line, idx) ||
-        isEscaped(line, idx + len - 2)
-      ) {
-        return;
-      }
-      addReplace(idx, idx + 2);
-      addReplace(idx + len - 2, idx + len);
-    });
-
-    // Strikethrough: ~~text~~ — hide the opening and closing `~~` markers.
-    forEachMatch(STRIKE_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (
-        overlapsIgnoredInline(idx, idx + len) ||
-        isEscaped(line, idx) ||
-        isEscaped(line, idx + len - 2)
-      ) {
-        return;
-      }
-      addReplace(idx, idx + 2);
-      addReplace(idx + len - 2, idx + len);
-    });
-
-    // Underscore italic: _word_ — hide single `_` markers at word
-    // boundaries without matching underscores inside identifiers. A delimiter
-    // scan preserves nested bold such as `_em __strong__ text_`.
-    for (let start = 0; start < line.length; start++) {
-      if (
-        !isSingleUnderscoreCandidate(line, start) ||
-        isWordChar(line[start - 1]) ||
-        overlapsIgnoredInline(start, start + 1)
-      ) {
-        continue;
-      }
-      for (let end = start + 1; end < line.length; end++) {
-        if (
-          !isSingleUnderscoreCandidate(line, end) ||
-          isWordChar(line[end + 1]) ||
-          overlapsIgnoredInline(end, end + 1)
-        ) {
-          continue;
-        }
-        addReplace(start, start + 1);
-        addReplace(end, end + 1);
-        start = end;
-        break;
-      }
-    }
-
-    // Wikilinks: hide `[[`, `]]`, and (if alias) the `Target|` prefix.
-    forEachMatch(WIKILINK_RE, line, (m) => {
-      const isEmbed = m[1] === "!";
-      const innerStr = m[2];
-      if (!innerStr) return;
-      const parts = parseWikilink(innerStr);
-      if (!parts.target) return;
-      const fullStart = m.index;
-      const fullEnd = fullStart + m[0].length;
-      if (overlapsIgnoredInline(fullStart, fullEnd)) return;
-      const openLen = isEmbed ? 3 : 2;
-      // Opening `[[` (preceded by optional `!`).
-      addReplace(fullStart, fullStart + openLen);
-      // Alias case: hide `Target|` so only the display remains.
-      if (parts.display) {
-        const pipeIdx = innerStr.indexOf("|");
-        if (pipeIdx !== -1) {
-          addReplace(fullStart + openLen, fullStart + openLen + pipeIdx + 1);
-        }
-      }
-      // Closing `]]`.
-      addReplace(fullEnd - 2, fullEnd);
-    });
-
-    // Markdown links and images: [label](path) / ![alt](path) — leave only
-    // the label/alt text visible.
-    forEachMatch(MARKDOWN_LINK_RE, line, (m) => {
-      const isEmbed = m[1] === "!";
-      const fullStart = m.index;
-      const fullEnd = fullStart + m[0].length;
-      if (overlapsIgnoredInline(fullStart, fullEnd)) return;
-      const label = m[2];
-      if (!label) return;
-      const openLen = isEmbed ? 2 : 1;
-      const labelStart = fullStart + openLen;
-      const labelEnd = labelStart + label.length;
-      addReplace(fullStart, labelStart);
-      addReplace(labelEnd, fullEnd);
-    });
-
-    // Footnote references: [^id] renders as a [id] marker in preview. Keep
-    // definition lines (`[^id]: ...`) source-like until a full widget owns them.
-    forEachMatch(FOOTNOTE_REF_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (overlapsIgnoredInline(idx, idx + len) || isEscaped(line, idx)) return;
-      addReplace(idx + 1, idx + 2);
-    });
-
-    // Obsidian comments and inline math keep their content visible while
-    // hiding the delimiter characters on non-cursor lines.
-    forEachMatch(COMMENT_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (overlapsIgnoredInline(idx, idx + len)) return;
-      addReplace(idx, idx + 2);
-      addReplace(idx + len - 2, idx + len);
-    });
-
-    forEachMatch(INLINE_MATH_RE, line, (m) => {
-      const idx = m.index;
-      const len = m[0].length;
-      if (
-        overlapsIgnoredInline(idx, idx + len) ||
-        isEscaped(line, idx) ||
-        isEscaped(line, idx + len - 1)
-      ) {
-        return;
-      }
-      addReplace(idx, idx + 1);
-      addReplace(idx + len - 1, idx + len);
-    });
-
-    offset = lineStart + line.length + 1;
-  }
-
-  ranges.sort((a, b) => a.from - b.from || a.to - b.to);
-  return mergeOverlapping(ranges);
-}
-
-function mergeOverlapping(
-  ranges: ReadonlyArray<{ from: number; to: number }>,
-): Array<{ from: number; to: number }> {
+function mergeOverlapping(ranges: ReadonlyArray<Range>): Range[] {
   if (ranges.length === 0) return [];
-  const first = ranges[0];
+  const sorted = ranges.slice().sort((a, b) => a.from - b.from || a.to - b.to);
+  const first = sorted[0];
   if (!first) return [];
-  const merged: Array<{ from: number; to: number }> = [{ from: first.from, to: first.to }];
-  for (let i = 1; i < ranges.length; i++) {
+  const merged: Range[] = [{ from: first.from, to: first.to }];
+  for (let i = 1; i < sorted.length; i++) {
     const last = merged[merged.length - 1];
-    const curr = ranges[i];
+    const curr = sorted[i];
     if (!last || !curr) continue;
     if (curr.from < last.to) {
       if (curr.to > last.to) last.to = curr.to;
@@ -568,15 +94,784 @@ function mergeOverlapping(
   return merged;
 }
 
-function buildDecorations(view: EditorView): DecorationSet {
-  const text = view.state.doc.toString();
-  const cursorPos = view.state.selection.main.head;
-  const cursorLine = view.state.doc.lineAt(cursorPos);
-  const cursorLineIndex = cursorLine.number - 1; // doc lines are 1-based; we use 0-based.
+function isEscaped(text: string, index: number): boolean {
+  let slashCount = 0;
+  for (let i = index - 1; i >= 0 && text[i] === "\\"; i--) slashCount += 1;
+  return slashCount % 2 === 1;
+}
+
+// --- Document line index helpers -------------------------------------------
+
+function buildLineStarts(text: string): number[] {
+  const starts: number[] = [0];
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10 /* \n */) starts.push(i + 1);
+  }
+  return starts;
+}
+
+function offsetLineIndex(offset: number, lineStartByIndex: ReadonlyArray<number>): number {
+  let lo = 0;
+  let hi = lineStartByIndex.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1;
+    const start = lineStartByIndex[mid] ?? 0;
+    if (start <= offset) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo;
+}
+
+function lineEndOfLine(
+  lineIdx: number,
+  lineStartByIndex: ReadonlyArray<number>,
+  textLen: number,
+): number {
+  if (lineIdx + 1 < lineStartByIndex.length) {
+    return (lineStartByIndex[lineIdx + 1] as number) - 1;
+  }
+  return textLen;
+}
+
+// --- Frontmatter -----------------------------------------------------------
+
+/**
+ * Returns the document range covered by a top-of-file YAML frontmatter block,
+ * or null when the document does not open with one. Lezer's stock markdown
+ * grammar does not parse frontmatter; we treat the whole block as raw so
+ * inline markup inside metadata is left untouched.
+ */
+function frontmatterRange(text: string): Range | null {
+  if (!text.startsWith("---")) return null;
+  const firstNl = text.indexOf("\n");
+  if (firstNl === -1) return null;
+  if (text.slice(0, firstNl).replace(/\r$/, "").trim() !== "---") return null;
+  let searchFrom = firstNl + 1;
+  while (searchFrom < text.length) {
+    const nextNl = text.indexOf("\n", searchFrom);
+    const lineEnd = nextNl === -1 ? text.length : nextNl;
+    const line = text.slice(searchFrom, lineEnd);
+    if (line.replace(/\r$/, "").trim() === "---") {
+      const body = text.slice(firstNl + 1, searchFrom);
+      try {
+        const parsed = yaml.load(body);
+        if (parsed === undefined || (typeof parsed === "object" && !Array.isArray(parsed))) {
+          return { from: 0, to: lineEnd };
+        }
+      } catch {
+        return null;
+      }
+      return null;
+    }
+    if (nextNl === -1) break;
+    searchFrom = nextNl + 1;
+  }
+  return null;
+}
+
+// --- Block-level Obsidian regions (math `$$`, comments `%%`) ---------------
+
+interface ObsidianBlockScan {
+  /** Ranges fully covering `$$ … $$` or `%%`-fenced blocks (raw inside). */
+  blockRaw: Range[];
+  /** Hide ranges for the surrounding `$$` / `%%` fence markers. */
+  fenceHides: Range[];
+}
+
+function scanObsidianBlocks(
+  text: string,
+  cursorLineIndex: number,
+  lineStartByIndex: ReadonlyArray<number>,
+): ObsidianBlockScan {
+  const blockRaw: Range[] = [];
+  const fenceHides: Range[] = [];
+
+  // `$$ … $$` block math. Only lines containing exactly `$$` toggle the block.
+  scanFencedBlock(text, lineStartByIndex, cursorLineIndex, "$$", true, blockRaw, fenceHides);
+  // `%% … %%` block comment. The block opens with a `%%` that has no matching
+  // closing `%%` on the same line, and closes with the next line containing
+  // `%%`.
+  scanFencedBlock(text, lineStartByIndex, cursorLineIndex, "%%", false, blockRaw, fenceHides);
+
+  return { blockRaw, fenceHides };
+}
+
+function scanFencedBlock(
+  text: string,
+  lineStartByIndex: ReadonlyArray<number>,
+  cursorLineIndex: number,
+  marker: string,
+  requireWholeLine: boolean,
+  blockRaw: Range[],
+  fenceHides: Range[],
+): void {
+  const markerLen = marker.length;
+  let inBlock = false;
+  let blockStartOffset = -1;
+  for (let lineIdx = 0; lineIdx < lineStartByIndex.length; lineIdx++) {
+    const ls = lineStartByIndex[lineIdx];
+    if (ls === undefined) continue;
+    const le = lineEndOfLine(lineIdx, lineStartByIndex, text.length);
+    const line = text.slice(ls, le);
+
+    if (requireWholeLine) {
+      if (line.trim() !== marker) continue;
+      const idx = line.indexOf(marker);
+      if (idx === -1) continue;
+      if (!inBlock) {
+        inBlock = true;
+        blockStartOffset = ls + idx;
+        if (lineIdx !== cursorLineIndex) {
+          fenceHides.push({ from: ls + idx, to: ls + idx + markerLen });
+        }
+      } else {
+        // close
+        if (lineIdx !== cursorLineIndex) {
+          fenceHides.push({ from: ls + idx, to: ls + idx + markerLen });
+        }
+        blockRaw.push({ from: blockStartOffset + markerLen, to: ls + idx });
+        inBlock = false;
+        blockStartOffset = -1;
+      }
+    } else {
+      // Single-line `%%…%%` runs are NOT block-mode; they're handled by the
+      // inline comment regex. We only enter block mode for an opening `%%`
+      // that has no matching `%%` later on the same line.
+      const first = line.indexOf(marker);
+      if (first === -1) continue;
+      if (!inBlock) {
+        const second = line.indexOf(marker, first + markerLen);
+        if (second !== -1) continue; // single-line — handled inline.
+        inBlock = true;
+        blockStartOffset = ls + first;
+        if (lineIdx !== cursorLineIndex) {
+          fenceHides.push({ from: ls + first, to: ls + first + markerLen });
+        }
+      } else {
+        // close: the FIRST `%%` on the line closes the block.
+        if (lineIdx !== cursorLineIndex) {
+          fenceHides.push({ from: ls + first, to: ls + first + markerLen });
+        }
+        blockRaw.push({ from: blockStartOffset + markerLen, to: ls + first });
+        inBlock = false;
+        blockStartOffset = -1;
+      }
+    }
+  }
+  // If a block was opened but never closed, treat the rest of the document
+  // as raw too — keeps unfinished `%%` from leaking decorations.
+  if (inBlock && blockStartOffset >= 0) {
+    blockRaw.push({ from: blockStartOffset + markerLen, to: text.length });
+  }
+}
+
+// --- AST scan: code/HTML raw regions + standard marker hides ---------------
+
+interface AstScan {
+  rawRegions: Range[];
+  /** Spans covered by Obsidian-specific constructs (wikilinks, embeds, custom
+   *  task markers, callout `[!type]`, footnote refs) — used to suppress AST
+   *  Link/Image chrome decorations there. */
+  obsidianOverrides: Range[];
+  hides: Range[];
+}
+
+function scanTree(
+  text: string,
+  cursorLineIndex: number,
+  frontmatter: Range | null,
+  blockRaw: ReadonlyArray<Range>,
+  lineStartByIndex: ReadonlyArray<number>,
+): AstScan {
+  const rawRegions: Range[] = [];
+  const obsidianOverrides: Range[] = [];
+  const hides: Range[] = [];
+
+  if (frontmatter) rawRegions.push({ from: frontmatter.from, to: frontmatter.to });
+  for (const r of blockRaw) rawRegions.push({ from: r.from, to: r.to });
+
+  collectObsidianOverrides(text, lineStartByIndex, obsidianOverrides);
+
+  const isInsideRaw = (from: number, to: number): boolean => {
+    if (frontmatter && from >= frontmatter.from && to <= frontmatter.to) return true;
+    for (const r of blockRaw) {
+      if (from >= r.from && to <= r.to) return true;
+    }
+    return false;
+  };
+
+  const lineOfPos = (pos: number): number => offsetLineIndex(pos, lineStartByIndex);
+  const isOnCursorLine = (from: number, to: number): boolean => {
+    const startLine = lineOfPos(from);
+    const endLine = lineOfPos(Math.max(from, to - 1));
+    return cursorLineIndex >= startLine && cursorLineIndex <= endLine;
+  };
+
+  const tree = markdownTreeParser.parse(text);
+  tree.iterate({
+    enter(node: SyntaxNodeRef): boolean | undefined {
+      const name = node.type.name;
+      const { from, to } = node;
+
+      // Top-level Document — descend.
+      if (name === "Document") return;
+
+      // Anything completely inside a pre-detected raw region: ignore.
+      if (isInsideRaw(from, to)) return false;
+
+      switch (name) {
+        case "FencedCode":
+        case "CodeBlock": {
+          rawRegions.push({ from, to });
+          if (isOnCursorLine(from, to)) return false;
+          if (name === "FencedCode") {
+            // Hide the open fence line and the close fence line. The fence
+            // marks are the first and last `CodeMark` children; the opener
+            // optionally has a `CodeInfo` for the language tag.
+            const linkNode = node.node;
+            const marks: { from: number; to: number; name: string }[] = [];
+            for (let c = linkNode.firstChild; c; c = c.nextSibling) {
+              if (c.type.name === "CodeMark" || c.type.name === "CodeInfo") {
+                marks.push({ from: c.from, to: c.to, name: c.type.name });
+              }
+            }
+            const opener = marks.find((mk) => mk.name === "CodeMark");
+            const codeInfo = marks.find((mk) => mk.name === "CodeInfo");
+            const closer = marks
+              .slice()
+              .reverse()
+              .find((mk) => mk.name === "CodeMark");
+            if (opener && opener.from >= 0) {
+              const openLine = lineOfPos(opener.from);
+              if (openLine !== cursorLineIndex) {
+                const end = codeInfo ? Math.max(opener.to, codeInfo.to) : opener.to;
+                hides.push({ from: opener.from, to: end });
+              }
+            }
+            if (closer && opener && closer.from !== opener.from) {
+              const closeLine = lineOfPos(closer.from);
+              if (closeLine !== cursorLineIndex) {
+                hides.push({ from: closer.from, to: closer.to });
+              }
+            }
+          }
+          return false;
+        }
+        case "InlineCode": {
+          rawRegions.push({ from, to });
+          return false;
+        }
+        case "HTMLBlock": {
+          // Lezer's HTMLBlock greedily includes anything after a `<tag>` until
+          // the paragraph ends — including content that follows `</tag>` on
+          // the same or later lines. Narrow the raw region to the actual
+          // `<tag>…</tag>` span (or the whole block when no closer is found).
+          const span = matchedHtmlSpan(text, from, to);
+          if (span) {
+            rawRegions.push({ from: span.from, to: span.to });
+            // Re-parse the leftover text on either side of the span so that
+            // markers like trailing `**bold**` still get decorated. The AST
+            // walker has already returned `false` for descent here, so we
+            // queue secondary parses below.
+            reparseInline(text, from, span.from, cursorLineIndex, rawRegions, hides);
+            reparseInline(text, span.to, to, cursorLineIndex, rawRegions, hides);
+          } else {
+            rawRegions.push({ from, to });
+          }
+          return false;
+        }
+        case "LinkReference": {
+          // `[^foo]: definition…` — Lezer wraps the definition body in URL.
+          // Per the existing test, footnote definition lines stay source-like
+          // (the `^` is NOT hidden); we just re-parse the post-colon content
+          // as inline so emphasis inside the definition still gets decorated.
+          const slice = text.slice(from, to);
+          const footnoteHead = slice.match(/^\[\^([^\]\n]+)\]:/);
+          if (footnoteHead) {
+            const colonPos = from + footnoteHead[0].length;
+            reparseInline(text, colonPos, to, cursorLineIndex, rawRegions, hides);
+            return false;
+          }
+          return false;
+        }
+        case "HorizontalRule": {
+          if (!isOnCursorLine(from, to)) hides.push({ from, to });
+          return false;
+        }
+        case "ATXHeading1":
+        case "ATXHeading2":
+        case "ATXHeading3":
+        case "ATXHeading4":
+        case "ATXHeading5":
+        case "ATXHeading6": {
+          if (isOnCursorLine(from, to)) return;
+          const child = node.node.firstChild;
+          if (child && child.type.name === "HeaderMark") {
+            let end = child.to;
+            while (end < text.length && (text[end] === " " || text[end] === "\t")) end += 1;
+            hides.push({ from: child.from, to: end });
+          }
+          return;
+        }
+        case "SetextHeading1":
+        case "SetextHeading2": {
+          // Setext headings end with an underline (`===` or `---`). Hide the
+          // underline line via the trailing HeaderMark; let inline emphasis
+          // in the title still decorate by descending.
+          if (isOnCursorLine(from, to)) return;
+          const headingNode = node.node;
+          for (let c = headingNode.firstChild; c; c = c.nextSibling) {
+            if (c.type.name === "HeaderMark") {
+              hides.push({ from: c.from, to: c.to });
+            }
+          }
+          return;
+        }
+        case "Emphasis":
+        case "StrongEmphasis": {
+          if (isOnCursorLine(from, to)) return;
+          // Skip emphasis runs whose opening mark sits immediately after a
+          // markdown Escape (`\*foo*`, `\__foo__`, etc.). Obsidian renders
+          // these as literal text and the existing test suite expects no
+          // hides for them.
+          const prev = node.node.prevSibling;
+          if (prev && prev.type.name === "Escape" && prev.to === from) {
+            const escChar = text[prev.to - 1];
+            const markChar = text[from];
+            if (escChar !== undefined && escChar === markChar) {
+              return false;
+            }
+          }
+          if (name === "StrongEmphasis") return; // descend for inner emphasis.
+          // Combined `***triple***` / `___triple___` runs: Lezer parses these
+          // as Emphasis whose first child is a 1-char EmphasisMark touching a
+          // nested StrongEmphasis with 2-char EmphasisMarks. Emit one merged
+          // hide for each end so the visible decoration is a single `***`.
+          const en = node.node;
+          const first = en.firstChild;
+          const last = en.lastChild;
+          if (
+            first &&
+            last &&
+            first.type.name === "EmphasisMark" &&
+            last.type.name === "EmphasisMark"
+          ) {
+            const strong = first.nextSibling;
+            if (strong && strong.type.name === "StrongEmphasis" && strong.from === first.to) {
+              const strongFirst = strong.firstChild;
+              const strongLast = strong.lastChild;
+              if (
+                strongFirst &&
+                strongLast &&
+                strongFirst.type.name === "EmphasisMark" &&
+                strongLast.type.name === "EmphasisMark" &&
+                last.from === strongLast.to
+              ) {
+                if (!isEscaped(text, first.from)) {
+                  hides.push({ from: first.from, to: strongFirst.to });
+                }
+                if (!isEscaped(text, strongLast.from)) {
+                  hides.push({ from: strongLast.from, to: last.to });
+                }
+                // Walk through any inner inline children (text only) by
+                // descending — but the marks themselves are already covered.
+                // Returning normally lets the iterator descend; the inner
+                // EmphasisMark children will be re-emitted below by the
+                // generic case. To prevent duplicate hides we skip descent.
+                return false;
+              }
+            }
+          }
+          return; // standard nested emphasis — descend.
+        }
+        case "EmphasisMark":
+        case "StrikethroughMark": {
+          if (isOnCursorLine(from, to)) return false;
+          // Lezer sometimes parses `\**bold**` as Escape `\*` followed by an
+          // Emphasis `*bold*`; Obsidian's live preview keeps that opening `*`
+          // raw because of the user-visible escape. Skip emphasis marks whose
+          // preceding character is a backslash that has not itself been
+          // escaped.
+          if (isEscaped(text, from)) return false;
+          hides.push({ from, to });
+          return false;
+        }
+        case "Link":
+        case "Image": {
+          if (isOnCursorLine(from, to)) return;
+          if (rangesOverlap(obsidianOverrides, from, to)) return false;
+          // Standard markdown link/image: hide `[` (or `![`) and `](url)`.
+          const linkNode = node.node;
+          const linkMarks: { from: number; to: number }[] = [];
+          for (let c = linkNode.firstChild; c; c = c.nextSibling) {
+            if (c.type.name === "LinkMark") linkMarks.push({ from: c.from, to: c.to });
+          }
+          if (linkMarks.length >= 4) {
+            const open = linkMarks[0];
+            const labelClose = linkMarks[1];
+            const urlClose = linkMarks[linkMarks.length - 1];
+            if (open && labelClose && urlClose) {
+              hides.push({ from: open.from, to: open.to });
+              hides.push({ from: labelClose.from, to: urlClose.to });
+            }
+          }
+          return;
+        }
+        case "Task": {
+          if (isOnCursorLine(from, to)) return;
+          const child = node.node.firstChild;
+          if (child && child.type.name === "TaskMarker") {
+            hides.push({ from: child.from, to: child.to });
+          }
+          return;
+        }
+        case "TableDelimiter": {
+          if (isOnCursorLine(from, to)) return false;
+          hides.push({ from, to });
+          return false;
+        }
+        case "Escape": {
+          // Don't hide — the existing test suite expects backslash-escaped
+          // markers to leave the backslash visible (Obsidian behavior).
+          return false;
+        }
+        default:
+          return;
+      }
+    },
+  });
+
+  return { rawRegions, obsidianOverrides, hides };
+}
+
+/**
+ * Find a matching `<tag>…</tag>` span inside a Lezer HTMLBlock. Returns the
+ * tightest containing `<tag>…</tag>` if the block opens with a recognisable
+ * HTML element, or null when no closer is found.
+ */
+function matchedHtmlSpan(text: string, from: number, to: number): Range | null {
+  const slice = text.slice(from, to);
+  const openMatch = slice.match(/^\s*<([A-Za-z][A-Za-z0-9-]*)(?:\s[^<>]*)?>/);
+  if (!openMatch) return null;
+  const tag = openMatch[1];
+  if (!tag) return null;
+  const openStart = (slice.indexOf("<") >= 0 ? slice.indexOf("<") : 0) + from;
+  // openStart is the position of the leading `<`.
+  const close = `</${tag}>`;
+  const closeIdx = slice.indexOf(close);
+  if (closeIdx === -1) return null;
+  return { from: openStart, to: from + closeIdx + close.length };
+}
+
+/**
+ * Re-parse a substring of the document as inline markdown to recover hides
+ * inside HTMLBlock leftovers (text before or after the matched HTML span).
+ */
+function reparseInline(
+  text: string,
+  from: number,
+  to: number,
+  cursorLineIndex: number,
+  rawRegions: Range[],
+  hides: Range[],
+): void {
+  if (to <= from) return;
+  const sub = text.slice(from, to);
+  if (sub.trim() === "") return;
+  // Run the parser over the substring and translate offsets back to document
+  // coordinates. This is a cheap second parse only triggered for HTMLBlock
+  // leftovers, which are rare.
+  const subTree = markdownTreeParser.parse(sub);
+  const lineStartByIndex = buildLineStarts(text);
+  const lineOfPos = (pos: number): number => offsetLineIndex(pos, lineStartByIndex);
+  const isOnCursorLine = (start: number, end: number): boolean => {
+    const startLine = lineOfPos(start);
+    const endLine = lineOfPos(Math.max(start, end - 1));
+    return cursorLineIndex >= startLine && cursorLineIndex <= endLine;
+  };
+  subTree.iterate({
+    enter(node) {
+      const start = from + node.from;
+      const end = from + node.to;
+      switch (node.type.name) {
+        case "InlineCode":
+        case "FencedCode":
+        case "CodeBlock": {
+          rawRegions.push({ from: start, to: end });
+          return false;
+        }
+        case "EmphasisMark":
+        case "StrikethroughMark": {
+          if (!isOnCursorLine(start, end)) hides.push({ from: start, to: end });
+          return false;
+        }
+        case "TableDelimiter": {
+          if (!isOnCursorLine(start, end)) hides.push({ from: start, to: end });
+          return false;
+        }
+        default:
+          return;
+      }
+    },
+  });
+}
+
+/**
+ * Pre-scan for Obsidian-specific syntax that Lezer mis-parses as Link/Image
+ * (wikilinks `[[…]]`, embeds `![[…]]`, footnote refs `[^id]`, callout
+ * markers `[!type]+`, custom task markers `[?]` / `[-]`).
+ *
+ * The collected ranges are used to **suppress** AST Link/Image chrome
+ * decorations inside them — the Obsidian regex pass handles those markers.
+ */
+function collectObsidianOverrides(
+  text: string,
+  lineStartByIndex: ReadonlyArray<number>,
+  overrides: Range[],
+): void {
+  WIKILINK_RE.lastIndex = 0;
+  let m: RegExpExecArray | null = WIKILINK_RE.exec(text);
+  while (m) {
+    const start = m[1] === "!" ? m.index : m.index;
+    overrides.push({ from: start, to: m.index + m[0].length });
+    m = WIKILINK_RE.exec(text);
+  }
+  FOOTNOTE_REF_RE.lastIndex = 0;
+  m = FOOTNOTE_REF_RE.exec(text);
+  while (m) {
+    overrides.push({ from: m.index, to: m.index + m[0].length });
+    m = FOOTNOTE_REF_RE.exec(text);
+  }
+  for (let lineIdx = 0; lineIdx < lineStartByIndex.length; lineIdx++) {
+    const start = lineStartByIndex[lineIdx];
+    if (start === undefined) continue;
+    const end = lineEndOfLine(lineIdx, lineStartByIndex, text.length);
+    const line = text.slice(start, end);
+    const callMatch = line.match(CALLOUT_RE);
+    if (callMatch) {
+      const prefixLen = callMatch[1]?.length ?? 0;
+      const markerLen = callMatch[0].length - prefixLen;
+      overrides.push({ from: start + prefixLen, to: start + prefixLen + markerLen });
+    }
+    const taskMatch = line.match(CUSTOM_TASK_RE);
+    if (taskMatch) {
+      const prefixLen = taskMatch[1]?.length ?? 0;
+      const markerChar = taskMatch[2] ?? "";
+      if (markerChar !== " " && markerChar !== "x" && markerChar !== "X") {
+        overrides.push({ from: start + prefixLen, to: start + prefixLen + 3 });
+      }
+    }
+  }
+}
+
+// --- Obsidian regex pass ---------------------------------------------------
+
+function collectObsidianHides(
+  text: string,
+  cursorLineIndex: number,
+  rawRegions: ReadonlyArray<Range>,
+  lineStartByIndex: ReadonlyArray<number>,
+  hides: Range[],
+): void {
+  const inRaw = (from: number, to: number): boolean => rangesOverlap(rawRegions, from, to);
+
+  for (let lineIdx = 0; lineIdx < lineStartByIndex.length; lineIdx++) {
+    if (lineIdx === cursorLineIndex) continue;
+    const lineStart = lineStartByIndex[lineIdx];
+    if (lineStart === undefined) continue;
+    const lineEndExcl = lineEndOfLine(lineIdx, lineStartByIndex, text.length);
+    const line = text.slice(lineStart, lineEndExcl);
+    if (inRaw(lineStart, lineEndExcl)) continue;
+
+    const callMatch = line.match(CALLOUT_RE);
+    if (callMatch) {
+      const prefixLen = callMatch[1]?.length ?? 0;
+      const markerLen = callMatch[0].length - prefixLen;
+      hides.push({ from: lineStart + prefixLen, to: lineStart + prefixLen + markerLen });
+    }
+
+    const blockIdMatch = line.match(BLOCK_ID_RE);
+    if (blockIdMatch?.index !== undefined) {
+      hides.push({ from: lineStart + blockIdMatch.index, to: lineStart + line.length });
+    }
+
+    const taskMatch = line.match(CUSTOM_TASK_RE);
+    if (taskMatch) {
+      const prefixLen = taskMatch[1]?.length ?? 0;
+      const markerChar = taskMatch[2] ?? "";
+      if (markerChar !== " " && markerChar !== "x" && markerChar !== "X") {
+        hides.push({ from: lineStart + prefixLen, to: lineStart + prefixLen + 3 });
+      }
+    }
+  }
+
+  const pushIfVisible = (from: number, to: number): void => {
+    const startLine = offsetLineIndex(from, lineStartByIndex);
+    const endLine = offsetLineIndex(to - 1, lineStartByIndex);
+    if (cursorLineIndex >= startLine && cursorLineIndex <= endLine) return;
+    if (inRaw(from, to)) return;
+    hides.push({ from, to });
+  };
+
+  WIKILINK_RE.lastIndex = 0;
+  let m: RegExpExecArray | null = WIKILINK_RE.exec(text);
+  while (m) {
+    const isEmbed = m[1] === "!";
+    const innerStr = m[2];
+    if (innerStr) {
+      const parts = parseWikilink(innerStr);
+      if (parts.target) {
+        const fullStart = m.index;
+        const fullEnd = fullStart + m[0].length;
+        const openLen = isEmbed ? 3 : 2;
+        pushIfVisible(fullStart, fullStart + openLen);
+        if (parts.display) {
+          const pipeIdx = innerStr.indexOf("|");
+          if (pipeIdx !== -1) {
+            pushIfVisible(fullStart + openLen, fullStart + openLen + pipeIdx + 1);
+          }
+        }
+        pushIfVisible(fullEnd - 2, fullEnd);
+      }
+    }
+    m = WIKILINK_RE.exec(text);
+  }
+
+  HIGHLIGHT_RE.lastIndex = 0;
+  m = HIGHLIGHT_RE.exec(text);
+  while (m) {
+    const idx = m.index;
+    const len = m[0].length;
+    if (!isEscaped(text, idx) && !isEscaped(text, idx + len - 2)) {
+      pushIfVisible(idx, idx + 2);
+      pushIfVisible(idx + len - 2, idx + len);
+    }
+    m = HIGHLIGHT_RE.exec(text);
+  }
+
+  FOOTNOTE_REF_RE.lastIndex = 0;
+  m = FOOTNOTE_REF_RE.exec(text);
+  while (m) {
+    const idx = m.index;
+    if (!isEscaped(text, idx)) {
+      const lineIdx = offsetLineIndex(idx, lineStartByIndex);
+      const ls = lineStartByIndex[lineIdx] ?? 0;
+      const lineSlice = text.slice(ls, idx);
+      const afterMatch = text[idx + m[0].length];
+      if (lineSlice.trim() !== "" || afterMatch !== ":") {
+        pushIfVisible(idx + 1, idx + 2);
+      }
+    }
+    m = FOOTNOTE_REF_RE.exec(text);
+  }
+
+  COMMENT_INLINE_RE.lastIndex = 0;
+  m = COMMENT_INLINE_RE.exec(text);
+  while (m) {
+    const idx = m.index;
+    const len = m[0].length;
+    pushIfVisible(idx, idx + 2);
+    pushIfVisible(idx + len - 2, idx + len);
+    m = COMMENT_INLINE_RE.exec(text);
+  }
+
+  // Inline math, per non-cursor line, skipping raw regions. Lines containing
+  // only `$$` are block fences and don't host inline math.
+  for (let lineIdx = 0; lineIdx < lineStartByIndex.length; lineIdx++) {
+    if (lineIdx === cursorLineIndex) continue;
+    const ls = lineStartByIndex[lineIdx];
+    if (ls === undefined) continue;
+    const le = lineEndOfLine(lineIdx, lineStartByIndex, text.length);
+    const line = text.slice(ls, le);
+    if (line.trim() === "$$") continue;
+    if (inRaw(ls, le)) continue;
+    INLINE_MATH_RE.lastIndex = 0;
+    let mm: RegExpExecArray | null = INLINE_MATH_RE.exec(line);
+    while (mm) {
+      const idx = mm.index;
+      const len = mm[0].length;
+      if (
+        !isEscaped(line, idx) &&
+        !isEscaped(line, idx + len - 1) &&
+        !inRaw(ls + idx, ls + idx + len)
+      ) {
+        hides.push({ from: ls + idx, to: ls + idx + 1 });
+        hides.push({ from: ls + idx + len - 1, to: ls + idx + len });
+      }
+      mm = INLINE_MATH_RE.exec(line);
+    }
+  }
+}
+
+/**
+ * Detect inline `<tag>…</tag>` ranges in plain text. These are added to the
+ * raw region list so wikilinks/etc. inside inline HTML are not decorated.
+ */
+function collectInlineHtmlRanges(
+  text: string,
+  rawRegions: ReadonlyArray<Range>,
+  out: Range[],
+): void {
+  INLINE_HTML_ELEMENT_RE.lastIndex = 0;
+  let m: RegExpExecArray | null = INLINE_HTML_ELEMENT_RE.exec(text);
+  while (m) {
+    const start = m.index;
+    const end = m.index + m[0].length;
+    if (!rangesOverlap(rawRegions, start, end)) {
+      out.push({ from: start, to: end });
+    }
+    m = INLINE_HTML_ELEMENT_RE.exec(text);
+  }
+}
+
+/**
+ * Compute which character ranges should be hidden on each non-cursor line.
+ * Exported pure function for test coverage. Positions are 0-based document
+ * offsets, ascending. `cursorLineIndex` is 0-based; pass -1 to decorate every
+ * line.
+ */
+export function computeLivePreviewRanges(text: string, cursorLineIndex: number): Range[] {
+  const lineStartByIndex = buildLineStarts(text);
+  const frontmatter = frontmatterRange(text);
+  const { blockRaw, fenceHides } = scanObsidianBlocks(text, cursorLineIndex, lineStartByIndex);
+  const { rawRegions, hides } = scanTree(
+    text,
+    cursorLineIndex,
+    frontmatter,
+    blockRaw,
+    lineStartByIndex,
+  );
+  const inlineHtml: Range[] = [];
+  collectInlineHtmlRanges(text, rawRegions, inlineHtml);
+  rawRegions.push(...inlineHtml);
+
+  // Drop any AST-derived hide that falls inside an inline HTML element — the
+  // existing test expects `<div>**not bold**</div>` to leave the bold markers
+  // raw. (Inline HTML ranges weren't known when the AST walker ran.)
+  const filteredHides = hides.filter((h) => !rangesContain(inlineHtml, h.from, h.to));
+
+  filteredHides.push(...fenceHides);
+  // Run the Obsidian regex pass with the full raw region set so wikilinks/etc.
+  // inside HTML and code blocks are also skipped.
+  collectObsidianHides(text, cursorLineIndex, rawRegions, lineStartByIndex, filteredHides);
+  return mergeOverlapping(filteredHides);
+}
+
+// --- View plugin -----------------------------------------------------------
+
+function decorationsForState(state: EditorState): DecorationSet {
+  const text = state.doc.toString();
+  const cursorPos = state.selection.main.head;
+  const cursorLine = state.doc.lineAt(cursorPos);
+  const cursorLineIndex = cursorLine.number - 1;
   const ranges = computeLivePreviewRanges(text, cursorLineIndex);
   const builder = new RangeSetBuilder<Decoration>();
   for (const r of ranges) builder.add(r.from, r.to, replaceDeco);
   return builder.finish();
+}
+
+function buildDecorations(view: EditorView): DecorationSet {
+  return decorationsForState(view.state);
 }
 
 export const livePreviewDecorations = ViewPlugin.fromClass(

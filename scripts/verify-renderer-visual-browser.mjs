@@ -1,61 +1,5 @@
-import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { createServer } from "node:net";
-import { setTimeout as delay } from "node:timers/promises";
-import { chromium } from "playwright";
-
-const cwd = process.cwd();
-
-async function getOpenPort() {
-  const server = createServer();
-  await new Promise((resolve, reject) => {
-    server.once("error", reject);
-    server.listen(0, "127.0.0.1", resolve);
-  });
-  const address = server.address();
-  await new Promise((resolve, reject) => server.close((err) => (err ? reject(err) : resolve())));
-  if (!address || typeof address === "string") throw new Error("Could not allocate a local port");
-  return address.port;
-}
-
-function startVite(port) {
-  const output = { text: "", exitCode: null };
-  const child = spawn(
-    "bunx",
-    ["vite", "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
-    {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-  const append = (chunk) => {
-    output.text += chunk.toString();
-    if (output.text.length > 20_000) output.text = output.text.slice(-20_000);
-  };
-  child.stdout.on("data", append);
-  child.stderr.on("data", append);
-  child.on("exit", (code) => {
-    output.exitCode = code;
-  });
-  return { child, output };
-}
-
-async function waitForServer(url, processOutput) {
-  const deadline = Date.now() + 15_000;
-  while (Date.now() < deadline) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) return;
-    } catch {
-      // Vite is still booting.
-    }
-    if (processOutput.exitCode !== null) {
-      throw new Error(`Vite exited before becoming ready:\n${processOutput.text}`);
-    }
-    await delay(100);
-  }
-  throw new Error(`Timed out waiting for Vite at ${url}\n${processOutput.text}`);
-}
+import { runBrowserFixture, runMain } from "./_lib/dev-server.mjs";
 
 function hash(buffer) {
   return createHash("sha256").update(buffer).digest("hex").slice(0, 16);
@@ -112,18 +56,11 @@ async function captureTheme(page, theme) {
   };
 }
 
-async function main() {
-  const port = await getOpenPort();
-  const baseUrl = `http://127.0.0.1:${port}`;
-  const fixtureUrl = `${baseUrl}/scripts/renderer-visual-browser-fixture.html`;
-  const { child, output } = startVite(port);
-  let browser;
-
-  try {
-    await waitForServer(fixtureUrl, output);
-    browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1800 } });
-    await page.goto(fixtureUrl, { waitUntil: "networkidle" });
+runMain(() =>
+  runBrowserFixture({
+    fixture: "scripts/renderer-visual-browser-fixture.html",
+    viewport: { width: 1440, height: 1800 },
+    body: async ({ page }) => {
     await page.locator("#renderer-visual-root").waitFor({ state: "visible" });
 
     const selectors = [
@@ -188,15 +125,6 @@ async function main() {
     console.log("Renderer visual browser verification passed.");
     console.log(`Rendered selectors: ${rendered.length}`);
     console.log(`Theme captures: ${JSON.stringify({ light, dark })}`);
-  } finally {
-    if (browser) await browser.close();
-    child.kill("SIGTERM");
-    await delay(100);
-    if (child.exitCode === null) child.kill("SIGKILL");
-  }
-}
-
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+    },
+  }),
+);

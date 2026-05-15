@@ -1,6 +1,7 @@
 import { stem } from "@core/fs/path";
 import type { VaultFile } from "@core/fs/types";
 import { colorForString, folderColorForPath, tagColorForFile } from "@core/graph/colors";
+import { ForceSimulation, type SimEdge, type SimNodeInput } from "@core/graph/force-simulation";
 import { firstMatchingGroup } from "@core/graph/groups";
 import { transformForGraphViewport, viewportForPanDrag } from "@core/graph/pan";
 import {
@@ -32,11 +33,9 @@ interface GraphNode {
   display: string;
   tags: string[];
   frontmatter: Record<string, unknown>;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
   weight: number;
+  /** Color resolved at build time so the render loop never re-evaluates. */
+  color: string;
 }
 
 interface GraphEdge {
@@ -44,8 +43,209 @@ interface GraphEdge {
   target: string;
 }
 
-const MIN_VELOCITY = 0.05;
-const DAMPING = 0.85;
+interface BuiltGraph {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  neighbors: Map<string, Set<string>>;
+}
+
+/**
+ * Hit test against the rendered node positions in world coordinates.
+ * Exported for unit tests / fixtures that want to drive interactions.
+ */
+export function hitTestNode(
+  worldX: number,
+  worldY: number,
+  positionsX: Float64Array,
+  positionsY: Float64Array,
+  radius: number,
+): number {
+  const r2 = radius * radius;
+  let best = -1;
+  let bestD2 = r2;
+  for (let i = 0; i < positionsX.length; i++) {
+    const dx = (positionsX[i] ?? 0) - worldX;
+    const dy = (positionsY[i] ?? 0) - worldY;
+    const d2 = dx * dx + dy * dy;
+    if (d2 < bestD2) {
+      bestD2 = d2;
+      best = i;
+    }
+  }
+  return best;
+}
+
+/**
+ * Render one frame of the graph into a 2D canvas. Pure function over the
+ * passed-in arrays — no global state, so it's safe to share with the browser
+ * verifier fixture.
+ */
+export function drawGraphFrame(
+  ctx: CanvasRenderingContext2D,
+  options: {
+    size: { w: number; h: number };
+    view: { x: number; y: number; scale: number };
+    dpr: number;
+    positionsX: Float64Array;
+    positionsY: Float64Array;
+    weights: Float64Array;
+    colors: string[];
+    edgeSrc: Int32Array;
+    edgeDst: Int32Array;
+    nodeSize: number;
+    linkThickness: number;
+    showLabels: boolean;
+    labelSize: number;
+    labels: string[];
+    hoveredIndex: number;
+    neighborMask: Uint8Array;
+    focusedIndex: number;
+    background: string;
+    accent: string;
+    edgeColor: string;
+    nodeStroke: string;
+    textColor: string;
+  },
+): void {
+  const {
+    size,
+    view,
+    dpr,
+    positionsX,
+    positionsY,
+    weights,
+    colors,
+    edgeSrc,
+    edgeDst,
+    nodeSize,
+    linkThickness,
+    showLabels,
+    labelSize,
+    labels,
+    hoveredIndex,
+    neighborMask,
+    focusedIndex,
+    background,
+    accent,
+    edgeColor,
+    nodeStroke,
+    textColor,
+  } = options;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = background;
+  ctx.fillRect(0, 0, size.w, size.h);
+
+  const cx = size.w / 2 + view.x;
+  const cy = size.h / 2 + view.y;
+  ctx.translate(cx, cy);
+  ctx.scale(view.scale, view.scale);
+
+  // Edges first.
+  const invScale = 1 / Math.max(0.7, view.scale);
+  ctx.lineWidth = linkThickness * invScale;
+  ctx.strokeStyle = edgeColor;
+  const dimEdgeAlpha = hoveredIndex >= 0 ? 0.1 : 0.45;
+  const highlightEdgeAlpha = 0.9;
+  ctx.beginPath();
+  for (let e = 0; e < edgeSrc.length; e++) {
+    const a = edgeSrc[e] ?? -1;
+    const b = edgeDst[e] ?? -1;
+    if (a < 0 || b < 0) continue;
+    const highlight = hoveredIndex >= 0 && (a === hoveredIndex || b === hoveredIndex);
+    if (highlight) continue;
+    ctx.moveTo(positionsX[a] ?? 0, positionsY[a] ?? 0);
+    ctx.lineTo(positionsX[b] ?? 0, positionsY[b] ?? 0);
+  }
+  ctx.globalAlpha = dimEdgeAlpha;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  if (hoveredIndex >= 0) {
+    ctx.beginPath();
+    for (let e = 0; e < edgeSrc.length; e++) {
+      const a = edgeSrc[e] ?? -1;
+      const b = edgeDst[e] ?? -1;
+      if (a !== hoveredIndex && b !== hoveredIndex) continue;
+      ctx.moveTo(positionsX[a] ?? 0, positionsY[a] ?? 0);
+      ctx.lineTo(positionsX[b] ?? 0, positionsY[b] ?? 0);
+    }
+    ctx.globalAlpha = highlightEdgeAlpha;
+    ctx.strokeStyle = accent;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Nodes — batched by color so we do one path per fill style. At 10k nodes
+  // this is the single biggest performance lever: 10k arc() calls in one
+  // path are an order of magnitude cheaper than 10k individual fill+stroke
+  // pairs because the canvas can short-circuit redundant state changes.
+  const baseR = nodeSize * invScale;
+  ctx.lineWidth = 1 * invScale;
+  ctx.strokeStyle = nodeStroke;
+
+  const hasHover = hoveredIndex >= 0;
+  if (!hasHover && focusedIndex < 0) {
+    // Fast path — no hover/focus, batch by color.
+    const byColor = new Map<string, number[]>();
+    for (let i = 0; i < positionsX.length; i++) {
+      const c = colors[i] ?? "#888";
+      let arr = byColor.get(c);
+      if (!arr) {
+        arr = [];
+        byColor.set(c, arr);
+      }
+      arr.push(i);
+    }
+    for (const [color, indices] of byColor) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      for (const i of indices) {
+        const w = Math.max(0.6, Math.min(2.2, Math.sqrt(weights[i] ?? 1) * 0.6));
+        const r = baseR * w;
+        const px = positionsX[i] ?? 0;
+        const py = positionsY[i] ?? 0;
+        ctx.moveTo(px + r, py);
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+      }
+      ctx.fill();
+      ctx.stroke();
+    }
+  } else {
+    // Slow path — hover/focus needs per-node tinting and alpha.
+    for (let i = 0; i < positionsX.length; i++) {
+      const isHover = i === hoveredIndex;
+      const isNeighbor = neighborMask[i] === 1;
+      const dim = hasHover && !isHover && !isNeighbor;
+      const w = Math.max(0.6, Math.min(2.2, Math.sqrt(weights[i] ?? 1) * 0.6));
+      const r = baseR * w * (isHover ? 1.4 : 1);
+      ctx.globalAlpha = dim ? 0.25 : 1;
+      ctx.beginPath();
+      ctx.fillStyle = isHover || i === focusedIndex ? accent : (colors[i] ?? "#888");
+      ctx.arc(positionsX[i] ?? 0, positionsY[i] ?? 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  if (showLabels) {
+    ctx.font = `${labelSize * invScale}px var(--font-interface, sans-serif)`;
+    ctx.fillStyle = textColor;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    for (let i = 0; i < positionsX.length; i++) {
+      const isHover = i === hoveredIndex;
+      const isNeighbor = neighborMask[i] === 1;
+      const dim = hoveredIndex >= 0 && !isHover && !isNeighbor;
+      const w = Math.max(0.6, Math.min(2.2, Math.sqrt(weights[i] ?? 1) * 0.6));
+      const r = baseR * w;
+      ctx.globalAlpha = dim ? 0.4 : 1;
+      ctx.fillText(labels[i] ?? "", positionsX[i] ?? 0, (positionsY[i] ?? 0) + r + 4 * invScale);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
 
 export function GraphView() {
   const metadataVersion = useMetadataVersion();
@@ -54,33 +254,24 @@ export function GraphView() {
   const t = useI18n();
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-  const viewportRef = useRef<SVGGElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const transformLabelRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 800, h: 600 });
   const [view, setView] = useState({ x: 0, y: 0, scale: 1 });
   const viewRef = useRef(view);
-  const [hover, setHover] = useState<string | null>(null);
+  const [hover, setHover] = useState<number>(-1);
+  const hoverRef = useRef(-1);
+  const [focusIdx, setFocusIdx] = useState<number>(-1);
+  const focusIdxRef = useRef(-1);
   const [showControls, setShowControls] = useState(true);
-  const [, forceTick] = useState(0);
   const draggingRef = useRef<{
     startX: number;
     startY: number;
     viewX: number;
     viewY: number;
+    moved: boolean;
   } | null>(null);
   const { groups: wsGroups, activeGroupId, leaves } = useWorkspace();
-
-  const applyViewportTransform = useCallback(
-    (next = viewRef.current) => {
-      viewportRef.current?.setAttribute("transform", transformForGraphViewport(next, size));
-    },
-    [size],
-  );
-
-  useEffect(() => {
-    viewRef.current = view;
-    applyViewportTransform(view);
-  }, [view, applyViewportTransform]);
 
   // Hydrate config from disk once on mount.
   useEffect(() => {
@@ -93,18 +284,11 @@ export function GraphView() {
     return leaf?.state.type === "markdown" ? leaf.state.path : null;
   }, [activeGroupId, wsGroups, leaves]);
 
-  // Build the graph from the metadata cache. Re-runs when metadata changes
-  // or when the user's filter / local-graph settings change.
-  const { nodes, edges, neighbors } = useMemo(() => {
+  // Build the graph from the metadata cache.
+  const built: BuiltGraph = useMemo(() => {
     void metadataVersion;
-    const out: {
-      nodes: GraphNode[];
-      edges: GraphEdge[];
-      neighbors: Map<string, Set<string>>;
-    } = { nodes: [], edges: [], neighbors: new Map() };
+    const out: BuiltGraph = { nodes: [], edges: [], neighbors: new Map() };
     const fileEntries = metadataCache.getAllSwitcherEntries().filter((e) => e.alias === null);
-
-    // Apply the user's filter (content-free — only path/stem/tags/properties).
     const parsedFilter = config.filter.trim() ? parseQuery(config.filter) : null;
     const filterMatches = (path: string, tags: string[], fm: Record<string, unknown>) => {
       if (!parsedFilter) return true;
@@ -128,7 +312,7 @@ export function GraphView() {
             cssClasses: [],
             headings: [],
             links: [],
-            tags: tags.map((t, line) => ({ name: t, line })),
+            tags: tags.map((tag, line) => ({ name: tag, line })),
             blocks: [],
             footnotes: [],
             isEmpty: false,
@@ -142,7 +326,7 @@ export function GraphView() {
     const stemToId = new Map<string, string>();
     for (const e of fileEntries) {
       const meta = metadataCache.getMetadata(e.path);
-      const tags = meta ? [...new Set(meta.tags.map((t) => t.name))] : [];
+      const tags = meta ? [...new Set(meta.tags.map((tag) => tag.name))] : [];
       const fm = meta ? meta.frontmatter : {};
       if (!filterMatches(e.path, tags, fm)) continue;
       const id = e.path;
@@ -154,11 +338,8 @@ export function GraphView() {
         display: stem(e.path),
         tags,
         frontmatter: fm,
-        x: 0,
-        y: 0,
-        vx: 0,
-        vy: 0,
         weight: 1,
+        color: "var(--text-muted)",
       });
       out.neighbors.set(id, new Set());
     }
@@ -179,7 +360,6 @@ export function GraphView() {
       }
     }
 
-    // Local-graph trim: keep only nodes within `localHops` of the active path.
     if (config.localGraph && activePath) {
       const keep = new Set<string>();
       const seedId = activePath;
@@ -212,17 +392,108 @@ export function GraphView() {
       out.neighbors = newNeighbors;
     }
 
-    const r = 160;
-    out.nodes.forEach((n, i) => {
-      const angle = (i / Math.max(1, out.nodes.length)) * Math.PI * 2;
-      n.x = Math.cos(angle) * r;
-      n.y = Math.sin(angle) * r;
+    for (const n of out.nodes) {
       n.weight = 1 + (out.neighbors.get(n.id)?.size ?? 0);
-    });
+    }
     return out;
   }, [metadataVersion, config.filter, config.localGraph, config.localHops, activePath]);
 
-  // Resize observer.
+  const colorFor = useCallback(
+    (n: GraphNode): string => {
+      if (config.colorMode === "groups") {
+        const match = firstMatchingGroup(config.groups, {
+          path: n.path,
+          tags: n.tags,
+          frontmatter: n.frontmatter,
+        });
+        if (match) return match.color;
+      } else if (config.colorMode === "tag") {
+        const c = tagColorForFile(n.tags);
+        if (c) return c;
+      } else if (config.colorMode === "folder") {
+        return folderColorForPath(n.path);
+      }
+      return "var(--text-muted)";
+    },
+    [config.colorMode, config.groups],
+  );
+
+  // Pre-compute color array whenever the color mode / groups change.
+  const resolvedColors = useMemo(
+    () => built.nodes.map((n) => colorFor(n)),
+    [built.nodes, colorFor],
+  );
+  const labels = useMemo(() => built.nodes.map((n) => n.display), [built.nodes]);
+  const idToIndex = useMemo(() => {
+    const m = new Map<string, number>();
+    for (let i = 0; i < built.nodes.length; i++) {
+      const n = built.nodes[i];
+      if (n) m.set(n.id, i);
+    }
+    return m;
+  }, [built.nodes]);
+
+  // Edge index arrays in typed form for the render path.
+  const edgeArrays = useMemo(() => {
+    const src = new Int32Array(built.edges.length);
+    const dst = new Int32Array(built.edges.length);
+    for (let i = 0; i < built.edges.length; i++) {
+      const e = built.edges[i];
+      if (!e) continue;
+      src[i] = idToIndex.get(e.source) ?? -1;
+      dst[i] = idToIndex.get(e.target) ?? -1;
+    }
+    return { src, dst };
+  }, [built.edges, idToIndex]);
+
+  // Per-node neighbour bitmask used by the render to dim non-neighbours.
+  const neighborMask = useMemo(() => {
+    return new Uint8Array(built.nodes.length);
+  }, [built.nodes.length]);
+
+  // Live simulation reference + rAF loop.
+  const simRef = useRef<ForceSimulation | null>(null);
+  const rafRef = useRef<number>(0);
+  const weightsRef = useRef<Float64Array>(new Float64Array(0));
+
+  // Build a new simulation whenever the graph topology or forces change.
+  useEffect(() => {
+    if (built.nodes.length === 0) {
+      simRef.current = null;
+      weightsRef.current = new Float64Array(0);
+      return;
+    }
+    const initial: SimNodeInput[] = built.nodes.map((n, i) => {
+      const angle = (i / Math.max(1, built.nodes.length)) * Math.PI * 2;
+      const r = 160 + Math.sqrt(built.nodes.length);
+      return {
+        x: Math.cos(angle) * r,
+        y: Math.sin(angle) * r,
+        mass: n.weight,
+      };
+    });
+    const simEdges: SimEdge[] = [];
+    for (let i = 0; i < built.edges.length; i++) {
+      const a = edgeArrays.src[i] ?? -1;
+      const b = edgeArrays.dst[i] ?? -1;
+      if (a >= 0 && b >= 0) simEdges.push({ source: a, target: b });
+    }
+    simRef.current = new ForceSimulation(initial, simEdges, {
+      repulsion: config.forces.repulsion,
+      attraction: config.forces.attraction,
+      centerForce: config.forces.centerForce,
+      linkDistance: config.forces.linkDistance,
+      // Use a slightly faster decay than d3 default so the layout settles
+      // within ~120-150 frames for typical vault sizes.
+      alphaDecay: 0.04,
+      damping: 0.6,
+    });
+    const w = new Float64Array(built.nodes.length);
+    for (let i = 0; i < built.nodes.length; i++) w[i] = built.nodes[i]?.weight ?? 1;
+    weightsRef.current = w;
+  }, [built.nodes, built.edges, edgeArrays, config.forces]);
+
+  // Resize observer; recalculates DPR + canvas backing-store size.
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -235,81 +506,137 @@ export function GraphView() {
     return () => ro.disconnect();
   }, []);
 
-  // Force-directed simulation in a rAF loop. Re-runs (and re-anneals) when
-  // the user changes force params or the underlying graph changes.
+  // Update the offscreen transform mirror element whenever view/size change.
   useEffect(() => {
-    if (nodes.length === 0) return;
-    const { repulsion, attraction, centerForce, linkDistance } = config.forces;
-    let raf = 0;
-    let frame = 0;
-    const maxFrames = 600;
-    const step = () => {
-      frame += 1;
-      let totalEnergy = 0;
-      const byId = new Map<string, GraphNode>();
-      for (const n of nodes) byId.set(n.id, n);
-      // Repulsion (pairwise; O(n^2) is fine up to a few hundred nodes).
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const a = nodes[i];
-          const b = nodes[j];
-          if (!a || !b) continue;
-          let dx = b.x - a.x;
-          let dy = b.y - a.y;
-          let dist2 = dx * dx + dy * dy;
-          if (dist2 < 1) {
-            dx = (Math.random() - 0.5) * 2;
-            dy = (Math.random() - 0.5) * 2;
-            dist2 = dx * dx + dy * dy;
+    viewRef.current = view;
+    if (transformLabelRef.current) {
+      transformLabelRef.current.setAttribute(
+        "data-transform",
+        transformForGraphViewport(view, size),
+      );
+    }
+  }, [view, size]);
+
+  useEffect(() => {
+    hoverRef.current = hover;
+  }, [hover]);
+  useEffect(() => {
+    focusIdxRef.current = focusIdx;
+  }, [focusIdx]);
+
+  // Single rAF loop that owns both simulation stepping AND canvas redraw.
+  // No React state is bumped per-frame, so render cost stays constant.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+    const dpr = typeof window !== "undefined" ? Math.max(1, window.devicePixelRatio || 1) : 1;
+
+    canvas.width = Math.max(1, Math.floor(size.w * dpr));
+    canvas.height = Math.max(1, Math.floor(size.h * dpr));
+    canvas.style.width = `${size.w}px`;
+    canvas.style.height = `${size.h}px`;
+
+    const bg = readCssVar(canvas, "--background-primary", "#1e1e1e");
+    const accent = readCssVar(canvas, "--text-accent", "#7c52ed");
+    const edgeColor = readCssVar(canvas, "--text-muted", "#888");
+    const nodeStroke = readCssVar(canvas, "--background-primary", "#1e1e1e");
+    const textColor = readCssVar(canvas, "--text-normal", "#ddd");
+
+    const renderOnce = () => {
+      const sim = simRef.current;
+      const positionsX = sim ? sim.x : new Float64Array(0);
+      const positionsY = sim ? sim.y : new Float64Array(0);
+      const weights = weightsRef.current;
+      const hoveredIndex = hoverRef.current;
+      const focusedIndex = focusIdxRef.current;
+
+      // Neighbour mask for dimming. Reset to 0 each frame.
+      neighborMask.fill(0);
+      if (hoveredIndex >= 0) {
+        const hoveredNode = built.nodes[hoveredIndex];
+        if (hoveredNode) {
+          const set = built.neighbors.get(hoveredNode.id);
+          if (set) {
+            for (const id of set) {
+              const idx = idToIndex.get(id);
+              if (idx !== undefined) neighborMask[idx] = 1;
+            }
           }
-          const dist = Math.sqrt(dist2);
-          const f = repulsion / dist2;
-          const fx = (dx / dist) * f;
-          const fy = (dy / dist) * f;
-          a.vx -= fx;
-          a.vy -= fy;
-          b.vx += fx;
-          b.vy += fy;
         }
       }
-      // Spring attraction along edges with rest length linkDistance.
-      // dist > rest pulls together, dist < rest pushes apart.
-      for (const e of edges) {
-        const a = byId.get(e.source);
-        const b = byId.get(e.target);
-        if (!a || !b) continue;
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
-        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        const stretch = dist - linkDistance;
-        const f = stretch * attraction;
-        const fx = (dx / dist) * f;
-        const fy = (dy / dist) * f;
-        a.vx += fx;
-        a.vy += fy;
-        b.vx -= fx;
-        b.vy -= fy;
-      }
-      // Gentle pull toward origin.
-      for (const n of nodes) {
-        n.vx -= n.x * centerForce;
-        n.vy -= n.y * centerForce;
-        n.vx *= DAMPING;
-        n.vy *= DAMPING;
-        n.x += n.vx;
-        n.y += n.vy;
-        totalEnergy += Math.abs(n.vx) + Math.abs(n.vy);
-      }
-      forceTick((c) => c + 1);
-      if (frame < maxFrames && totalEnergy > MIN_VELOCITY * nodes.length) {
-        raf = requestAnimationFrame(step);
-      }
+
+      drawGraphFrame(ctx, {
+        size,
+        view: viewRef.current,
+        dpr,
+        positionsX,
+        positionsY,
+        weights,
+        colors: resolvedColors,
+        edgeSrc: edgeArrays.src,
+        edgeDst: edgeArrays.dst,
+        nodeSize: config.display.nodeSize,
+        linkThickness: config.display.linkThickness,
+        showLabels: viewRef.current.scale > config.display.textFadeThreshold,
+        labelSize: config.display.textSize,
+        labels,
+        hoveredIndex,
+        neighborMask,
+        focusedIndex,
+        background: bg,
+        accent,
+        edgeColor,
+        nodeStroke,
+        textColor,
+      });
     };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [nodes, edges, config.forces]);
+
+    const tick = () => {
+      const sim = simRef.current;
+      // Skip simulation work once the layout has cooled. Panning still
+      // renders every frame, but we don't waste cycles recomputing forces
+      // on a settled graph.
+      if (sim && sim.alpha > 0.005) sim.step();
+      renderOnce();
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [
+    size,
+    built.nodes,
+    built.neighbors,
+    idToIndex,
+    edgeArrays,
+    resolvedColors,
+    labels,
+    config.display.nodeSize,
+    config.display.linkThickness,
+    config.display.textFadeThreshold,
+    config.display.textSize,
+    neighborMask,
+  ]);
 
   // Pan + zoom handlers.
+  const screenToWorld = useCallback(
+    (clientX: number, clientY: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return { x: 0, y: 0 };
+      const rect = canvas.getBoundingClientRect();
+      const sx = clientX - rect.left;
+      const sy = clientY - rect.top;
+      const cx = size.w / 2 + viewRef.current.x;
+      const cy = size.h / 2 + viewRef.current.y;
+      return {
+        x: (sx - cx) / viewRef.current.scale,
+        y: (sy - cy) / viewRef.current.scale,
+      };
+    },
+    [size],
+  );
+
   const onMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     draggingRef.current = {
@@ -317,17 +644,46 @@ export function GraphView() {
       startY: e.clientY,
       viewX: viewRef.current.x,
       viewY: viewRef.current.y,
+      moved: false,
     };
   };
   const onMouseMove = (e: React.MouseEvent) => {
     const drag = draggingRef.current;
-    if (!drag) return;
-    viewRef.current = viewportForPanDrag(viewRef.current, drag, e.clientX, e.clientY);
-    applyViewportTransform();
+    if (drag) {
+      const next = viewportForPanDrag(viewRef.current, drag, e.clientX, e.clientY);
+      if (next.x !== viewRef.current.x || next.y !== viewRef.current.y) drag.moved = true;
+      viewRef.current = next;
+      return;
+    }
+    // Hover hit-test in world space.
+    const sim = simRef.current;
+    if (!sim) return;
+    const world = screenToWorld(e.clientX, e.clientY);
+    const hitR = (config.display.nodeSize * 2.5) / Math.max(0.7, viewRef.current.scale);
+    const idx = hitTestNode(world.x, world.y, sim.x, sim.y, hitR);
+    if (idx !== hoverRef.current) setHover(idx);
   };
-  const onMouseUp = () => {
-    if (draggingRef.current) {
+  const onMouseUp = (e: React.MouseEvent) => {
+    const drag = draggingRef.current;
+    if (drag) {
       setView(viewRef.current);
+      if (!drag.moved) {
+        // Treat as click on the hovered node.
+        const sim = simRef.current;
+        if (sim) {
+          const world = screenToWorld(e.clientX, e.clientY);
+          const hitR = (config.display.nodeSize * 2.5) / Math.max(0.7, viewRef.current.scale);
+          const idx = hitTestNode(world.x, world.y, sim.x, sim.y, hitR);
+          if (idx >= 0) {
+            const node = built.nodes[idx];
+            if (node) {
+              workspaceStore.openFile(node.path, {
+                newTab: e.metaKey || e.ctrlKey,
+              });
+            }
+          }
+        }
+      }
     }
     draggingRef.current = null;
   };
@@ -341,7 +697,7 @@ export function GraphView() {
     });
   };
 
-  if (nodes.length === 0) {
+  if (built.nodes.length === 0) {
     return (
       <div ref={containerRef} className="graph-view graph-view-empty">
         {config.filter || config.localGraph ? t("graph.empty.filtered") : t("graph.empty.noNotes")}
@@ -349,25 +705,8 @@ export function GraphView() {
     );
   }
 
-  const byIdRender = new Map<string, GraphNode>();
-  for (const n of nodes) byIdRender.set(n.id, n);
-
-  const colorFor = (n: GraphNode): string => {
-    if (config.colorMode === "groups") {
-      const match = firstMatchingGroup(config.groups, {
-        path: n.path,
-        tags: n.tags,
-        frontmatter: n.frontmatter,
-      });
-      if (match) return match.color;
-    } else if (config.colorMode === "tag") {
-      const c = tagColorForFile(n.tags);
-      if (c) return c;
-    } else if (config.colorMode === "folder") {
-      return folderColorForPath(n.path);
-    }
-    return "var(--text-muted)";
-  };
+  const focusedPath =
+    focusIdx >= 0 && focusIdx < built.nodes.length ? (built.nodes[focusIdx]?.path ?? null) : null;
 
   return (
     <div
@@ -379,103 +718,56 @@ export function GraphView() {
       onMouseLeave={onMouseUp}
       onWheel={onWheel as unknown as React.WheelEventHandler}
     >
-      <svg
-        ref={svgRef}
-        width={size.w}
-        height={size.h}
-        className="graph-view-canvas"
-        aria-label={t("graph.aria")}
-      >
+      <canvas ref={canvasRef} className="graph-view-canvas" aria-label={t("graph.aria")} role="img">
         <title>{t("graph.aria")}</title>
-        <g ref={viewportRef} transform={transformForGraphViewport(view, size)}>
-          {edges.map((e) => {
-            const a = byIdRender.get(e.source);
-            const b = byIdRender.get(e.target);
-            if (!a || !b) return null;
-            const dim =
-              hover &&
-              hover !== a.id &&
-              hover !== b.id &&
-              !neighbors.get(hover)?.has(a.id) &&
-              !neighbors.get(hover)?.has(b.id);
-            return (
-              <line
-                key={`${e.source}->${e.target}`}
-                x1={a.x}
-                y1={a.y}
-                x2={b.x}
-                y2={b.y}
-                stroke="var(--text-muted)"
-                strokeWidth={config.display.linkThickness / view.scale}
-                opacity={dim ? 0.1 : 0.45}
-              />
-            );
-          })}
-          {nodes.map((n) => {
-            const isHover = hover === n.id;
-            const isNeighbor = !!hover && neighbors.get(hover)?.has(n.id);
-            const dim = !!hover && !isHover && !isNeighbor;
-            const radius =
-              (config.display.nodeSize * Math.max(0.6, Math.min(2.2, Math.sqrt(n.weight) * 0.6))) /
-              Math.max(0.7, view.scale);
-            const fontScale = 1 / Math.max(0.7, view.scale);
-            const fill = isHover ? "var(--text-accent)" : colorFor(n);
-            return (
-              <g
-                key={n.id}
-                className="graph-node-interactive"
-                tabIndex={0}
-                onMouseEnter={() => setHover(n.id)}
-                onMouseLeave={() => setHover((h) => (h === n.id ? null : h))}
-                onKeyDown={(ev) => {
-                  if (ev.key === "Enter" || ev.key === " ") {
-                    ev.preventDefault();
-                    workspaceStore.openFile(n.path, {
-                      newTab: ev.metaKey || ev.ctrlKey,
-                    });
-                  }
-                }}
-                onClick={(ev) => {
-                  ev.stopPropagation();
+      </canvas>
+      {/* Accessibility mirror — focusable list of nodes for keyboard nav. */}
+      <ul className="graph-node-interactive-list" aria-label={t("graph.aria")}>
+        {built.nodes.map((n, i) => (
+          <li key={n.id}>
+            <button
+              type="button"
+              className="graph-node-interactive"
+              data-graph-node-id={n.id}
+              tabIndex={0}
+              onFocus={() => setFocusIdx(i)}
+              onBlur={() => setFocusIdx((cur) => (cur === i ? -1 : cur))}
+              onMouseEnter={() => setHover(i)}
+              onMouseLeave={() => setHover((h) => (h === i ? -1 : h))}
+              onKeyDown={(ev) => {
+                if (ev.key === "Enter" || ev.key === " ") {
+                  ev.preventDefault();
                   workspaceStore.openFile(n.path, {
                     newTab: ev.metaKey || ev.ctrlKey,
                   });
-                }}
-              >
-                <circle
-                  cx={n.x}
-                  cy={n.y}
-                  r={radius * (isHover ? 1.4 : 1)}
-                  fill={fill}
-                  opacity={dim ? 0.25 : 1}
-                  stroke="var(--background-primary)"
-                  strokeWidth={1 / view.scale}
-                />
-                {(isHover || view.scale > config.display.textFadeThreshold) && (
-                  <text
-                    x={n.x}
-                    y={n.y + radius + 8 * fontScale}
-                    textAnchor="middle"
-                    fontSize={config.display.textSize * fontScale}
-                    fill="var(--text-normal)"
-                    className="graph-view-label"
-                    opacity={dim ? 0.4 : 1}
-                  >
-                    {n.display}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </g>
-      </svg>
+                }
+              }}
+              onClick={(ev) => {
+                ev.stopPropagation();
+                workspaceStore.openFile(n.path, {
+                  newTab: ev.metaKey || ev.ctrlKey,
+                });
+              }}
+            >
+              {n.display}
+            </button>
+          </li>
+        ))}
+      </ul>
+      <div
+        ref={transformLabelRef}
+        className="graph-view-transform-mirror"
+        aria-hidden="true"
+        data-transform={transformForGraphViewport(view, size)}
+      />
       <div className="graph-view-stats">
         {t("graph.stats", {
-          nodes: nodes.length,
-          nodeLabel: t(nodes.length === 1 ? "graph.node" : "graph.nodes"),
-          links: edges.length,
-          linkLabel: t(edges.length === 1 ? "graph.link" : "graph.links"),
+          nodes: built.nodes.length,
+          nodeLabel: t(built.nodes.length === 1 ? "graph.node" : "graph.nodes"),
+          links: built.edges.length,
+          linkLabel: t(built.edges.length === 1 ? "graph.link" : "graph.links"),
         })}
+        {focusedPath ? <span className="graph-view-focused-path"> · {focusedPath}</span> : null}
       </div>
       <button
         type="button"
@@ -491,6 +783,15 @@ export function GraphView() {
       {showControls && <GraphControlsPanel onClose={() => setShowControls(false)} />}
     </div>
   );
+}
+
+function readCssVar(el: Element, name: string, fallback: string): string {
+  try {
+    const v = getComputedStyle(el).getPropertyValue(name).trim();
+    return v || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function GraphControlsPanel({ onClose }: { onClose: () => void }) {

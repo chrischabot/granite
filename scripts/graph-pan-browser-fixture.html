@@ -4,53 +4,117 @@
     <meta charset="utf-8" />
     <title>Granite Graph Pan Browser Fixture</title>
     <style>
+      :root {
+        color-scheme: dark;
+      }
       body {
         margin: 0;
         overflow: hidden;
         background: #111;
+        color: #ddd;
       }
-
-      svg {
+      canvas {
         display: block;
-        width: 1200px;
-        height: 800px;
+        background: #1e1e1e;
       }
     </style>
   </head>
   <body>
-    <svg id="graph" width="1200" height="800" aria-label="10k graph pan fixture">
-      <g id="viewport"></g>
-    </svg>
+    <canvas id="graph" width="1200" height="800" aria-label="10k graph pan fixture"></canvas>
     <script type="module">
+      // Use the exact same production modules that ship in the GraphView.
+      import {
+        ForceSimulation,
+      } from "../src/core/graph/force-simulation.ts";
       import { transformForGraphViewport, viewportForPanDrag } from "../src/core/graph/pan.ts";
+      import { drawGraphFrame } from "../src/ui/views/GraphView.tsx";
 
-      const NS = "http://www.w3.org/2000/svg";
       const NODE_COUNT = 10_000;
       const DURATION_MS = 10_000;
       const MIN_FPS = 30;
+      const MAX_P95_FRAME_MS = 33;
       const size = { w: 1200, h: 800 };
-      const viewport = document.querySelector("#viewport");
+      const canvas = document.querySelector("#graph");
+      canvas.width = size.w;
+      canvas.height = size.h;
+      const ctx = canvas.getContext("2d", { alpha: false });
 
-      const fragment = document.createDocumentFragment();
+      // Build a synthetic graph that approximates what a large vault produces.
+      const nodes = new Array(NODE_COUNT);
       for (let i = 0; i < NODE_COUNT; i++) {
         const angle = (i / NODE_COUNT) * Math.PI * 2;
         const band = 80 + (i % 100) * 2.8;
-        const node = document.createElementNS(NS, "circle");
-        node.setAttribute("cx", String(Math.cos(angle) * band));
-        node.setAttribute("cy", String(Math.sin(angle) * band));
-        node.setAttribute("r", "2.5");
-        node.setAttribute("fill", i % 3 === 0 ? "#8ab4f8" : i % 3 === 1 ? "#81c995" : "#fdd663");
-        fragment.appendChild(node);
+        nodes[i] = {
+          x: Math.cos(angle) * band,
+          y: Math.sin(angle) * band,
+          mass: 1,
+        };
       }
-      viewport.appendChild(fragment);
+      // Sparse edges (~2 per node).
+      const edges = [];
+      for (let i = 0; i < NODE_COUNT; i++) {
+        edges.push({ source: i, target: (i * 31 + 7) % NODE_COUNT });
+        if (i % 5 === 0) edges.push({ source: i, target: (i + 17) % NODE_COUNT });
+      }
+
+      const sim = new ForceSimulation(nodes, edges, {
+        repulsion: 6000,
+        attraction: 0.005,
+        centerForce: 0.001,
+        linkDistance: 80,
+        // Aggressive cool-down so 10k-node fixture settles inside warm-up
+        // (we measure steady-state pan, not the initial annealing burst).
+        alpha: 0.1,
+        alphaDecay: 0.2,
+        damping: 0.6,
+      });
+
+      // Pre-allocate render arrays so we mirror production behavior.
+      const colors = new Array(NODE_COUNT);
+      const labels = new Array(NODE_COUNT);
+      const palette = ["#8ab4f8", "#81c995", "#fdd663", "#f28b82", "#c58af9"];
+      for (let i = 0; i < NODE_COUNT; i++) {
+        colors[i] = palette[i % palette.length];
+        labels[i] = `n${i}`;
+      }
+      const edgeSrc = new Int32Array(edges.length);
+      const edgeDst = new Int32Array(edges.length);
+      for (let i = 0; i < edges.length; i++) {
+        edgeSrc[i] = edges[i].source;
+        edgeDst[i] = edges[i].target;
+      }
+      const weights = new Float64Array(NODE_COUNT).fill(1);
+      const neighborMask = new Uint8Array(NODE_COUNT);
 
       async function run() {
         let view = { x: 0, y: 0, scale: 1 };
         const drag = { startX: 0, startY: 0, viewX: 0, viewY: 0 };
         const frameIntervals = [];
+        const renderCosts = [];
         let frames = 0;
+
+        // Benchmark a single simulation step BEFORE warm-up. With Barnes-Hut
+        // this should be well under 200 ms on 10k nodes. The old O(n^2) all-
+        // pairs loop is roughly 50M operations — easily over 1 s here, so a
+        // regression would fail this gate hard.
+        const simStart = performance.now();
+        sim.step();
+        const stepCost = performance.now() - simStart;
+        const SIM_STEP_BUDGET_MS = 200;
+        if (stepCost > SIM_STEP_BUDGET_MS) {
+          throw new Error(
+            `Single Barnes-Hut step took ${stepCost.toFixed(
+              1,
+            )} ms on ${NODE_COUNT} nodes — exceeds the ${SIM_STEP_BUDGET_MS} ms budget (regression to O(n^2)?)`,
+          );
+        }
+
         let previous = performance.now();
         const start = previous;
+        // Warm up the simulation so we measure the steady-state pan cost,
+        // not the initial cooling burst. After warm-up alpha is below the
+        // freeze threshold so step() is a near no-op.
+        for (let i = 0; i < 50; i++) sim.step();
 
         await new Promise((resolve) => {
           const step = (now) => {
@@ -64,7 +128,38 @@
               Math.sin(phase * 2.1) * 420 + phase * 18,
               Math.cos(phase * 1.7) * 320 - phase * 11,
             );
-            viewport.setAttribute("transform", transformForGraphViewport(view, size));
+            const renderStart = performance.now();
+            // Match production behaviour: skip simulation steps once the
+            // layout has settled. Panning still renders every frame.
+            if (sim.alpha > 0.005) sim.step();
+            drawGraphFrame(ctx, {
+              size,
+              view,
+              dpr: 1,
+              positionsX: sim.x,
+              positionsY: sim.y,
+              weights,
+              colors,
+              edgeSrc,
+              edgeDst,
+              nodeSize: 4,
+              linkThickness: 0.7,
+              showLabels: false,
+              labelSize: 11,
+              labels,
+              hoveredIndex: -1,
+              neighborMask,
+              focusedIndex: -1,
+              background: "#1e1e1e",
+              accent: "#7c52ed",
+              edgeColor: "#5a5a5a",
+              nodeStroke: "#1e1e1e",
+              textColor: "#ddd",
+            });
+            // Use the shared transform helper too so any divergence in the
+            // pan math is caught here.
+            canvas.dataset.transform = transformForGraphViewport(view, size);
+            renderCosts.push(performance.now() - renderStart);
             if (now - start >= DURATION_MS) resolve();
             else requestAnimationFrame(step);
           };
@@ -73,25 +168,44 @@
 
         const elapsedMs = performance.now() - start;
         const fps = (frames / elapsedMs) * 1000;
-        const sorted = [...frameIntervals].sort((a, b) => a - b);
-        const p95 = sorted[Math.floor(sorted.length * 0.95)] ?? 0;
+        const sortedIntervals = [...frameIntervals].sort((a, b) => a - b);
+        const p95 = sortedIntervals[Math.floor(sortedIntervals.length * 0.95)] ?? 0;
+        const sortedCosts = [...renderCosts].sort((a, b) => a - b);
+        const p95RenderCost =
+          sortedCosts[Math.floor(sortedCosts.length * 0.95)] ?? 0;
         const longFrames = frameIntervals.filter((ms) => ms > 50).length;
-        const finalTransform = viewport.getAttribute("transform");
-        if (fps < MIN_FPS) {
+        // We pass the perf gate when *either* the raw fps clears the bar or
+        // — when running on a v-sync-locked headless browser — the rendering
+        // cost itself (excluding rAF wait time) clears the per-frame budget.
+        // This way the gate still rejects an O(n^2) regression: with the old
+        // code, render cost alone is well above 33 ms.
+        const fpsOk = fps >= MIN_FPS;
+        const renderBudgetOk = p95RenderCost <= MAX_P95_FRAME_MS;
+        if (!fpsOk) {
           throw new Error(
             `Graph pan FPS ${fps.toFixed(1)} fell below ${MIN_FPS} with ${NODE_COUNT} nodes`,
+          );
+        }
+        if (!renderBudgetOk) {
+          throw new Error(
+            `Graph pan p95 render cost ${p95RenderCost.toFixed(
+              1,
+            )} ms exceeded ${MAX_P95_FRAME_MS} ms with ${NODE_COUNT} nodes — regression in canvas draw path`,
           );
         }
 
         return {
           ok: true,
           nodeCount: NODE_COUNT,
+          edgeCount: edges.length,
           elapsedMs,
           frames,
           fps,
           p95FrameMs: p95,
+          p95RenderCostMs: p95RenderCost,
+          simStepMs: stepCost,
           longFrames,
-          finalTransform,
+          finalTransform: canvas.dataset.transform,
         };
       }
 

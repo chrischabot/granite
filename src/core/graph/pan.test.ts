@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { ForceSimulation, type SimEdge, type SimNodeInput } from "./force-simulation";
 import { transformForGraphViewport, viewportForPanDrag } from "./pan";
 
 describe("graph pan helpers", () => {
@@ -45,5 +46,42 @@ describe("graph pan helpers", () => {
     );
     expect(source.match(/transformForGraphViewport/g)).toHaveLength(3);
     expect(source.match(/viewportForPanDrag/g)).toHaveLength(2);
+  });
+
+  it("simulates and renders a 1000-node graph under the per-frame budget", () => {
+    // Severe perf gate: if anyone reverts the simulation to O(n^2) loops this
+    // test must fail. 60 frames on 1000 nodes is well above the rAF cadence
+    // budget at 30 fps (2000 ms).
+    const N = 1000;
+    const nodes: SimNodeInput[] = [];
+    for (let i = 0; i < N; i++) {
+      const angle = (i / N) * Math.PI * 2;
+      nodes.push({ x: Math.cos(angle) * 200, y: Math.sin(angle) * 200, mass: 1 });
+    }
+    const edges: SimEdge[] = [];
+    for (let i = 0; i < N - 1; i++) edges.push({ source: i, target: i + 1 });
+    const sim = new ForceSimulation(nodes, edges, {
+      repulsion: 6000,
+      attraction: 0.005,
+      centerForce: 0.001,
+      linkDistance: 80,
+    });
+
+    const view = { x: 0, y: 0, scale: 1 };
+    const size = { w: 1200, h: 800 };
+    const start = performance.now();
+    for (let frame = 0; frame < 60; frame++) {
+      sim.step();
+      // Apply the same pan/transform math the canvas would use.
+      const next = viewportForPanDrag(
+        view,
+        { startX: 0, startY: 0, viewX: 0, viewY: 0 },
+        frame,
+        -frame,
+      );
+      transformForGraphViewport(next, size);
+    }
+    const elapsed = performance.now() - start;
+    expect(elapsed).toBeLessThan(2000);
   });
 });

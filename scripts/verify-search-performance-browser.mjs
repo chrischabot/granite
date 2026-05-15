@@ -90,9 +90,14 @@ async function main() {
         .join(", ")}`,
     );
     console.log(
-      `Regex/property search: ${result.regexSearch.notes} notes, ${result.regexSearch.matches} matches, ${result.regexSearch.elapsedMs.toFixed(
+      `§24.7 indexed full-text search: ${result.fullTextSearch.notes} notes, ${result.fullTextSearch.matches} matches, ${result.fullTextSearch.elapsedMs.toFixed(
         2,
-      )} ms`,
+      )} ms (budget 200 ms)`,
+    );
+    console.log(
+      `Regex watchdog: ${result.regexWatchdog.notes} notes, ${result.regexWatchdog.matches} matches, ${result.regexWatchdog.elapsedMs.toFixed(
+        2,
+      )} ms (watchdog 500 ms)`,
     );
   } finally {
     if (browser) await browser.close();

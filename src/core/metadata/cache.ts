@@ -21,6 +21,28 @@ let unsubFs: (() => void) | null = null;
 let unsubSettings: (() => void) | null = null;
 let lastExcludeRaw = "";
 
+/**
+ * Callback invoked once per indexed file with the raw text. Used by the
+ * search subsystem to populate the inverted index in the same pass that
+ * `indexVault()` / `refreshOne()` already reads file content — so we don't
+ * double-read. The callback receives `null` when the file is removed.
+ */
+export type SearchIndexCallback = (path: VaultPath, content: string | null) => void;
+let searchIndexCallback: SearchIndexCallback | null = null;
+
+export function setSearchIndexCallback(cb: SearchIndexCallback | null): void {
+  searchIndexCallback = cb;
+}
+
+function notifyIndex(path: VaultPath, content: string | null): void {
+  if (!searchIndexCallback) return;
+  try {
+    searchIndexCallback(path, content);
+  } catch {
+    /* don't let index errors break the metadata cache */
+  }
+}
+
 export function aggregateTagCounts(
   tagLists: Iterable<ReadonlyArray<{ readonly name: string }>>,
 ): Array<{ name: string; count: number }> {
@@ -54,6 +76,7 @@ function pruneExcluded(): boolean {
   for (const path of [...entries.keys()]) {
     if (isExcluded(path, patterns)) {
       entries.delete(path);
+      notifyIndex(path, null);
       dropped += 1;
     }
   }
@@ -63,7 +86,10 @@ function pruneExcluded(): boolean {
 async function refreshOne(path: VaultPath): Promise<void> {
   if (extension(path) !== "md") return;
   if (isExcluded(path, currentPatterns())) {
-    if (entries.delete(path)) emit();
+    if (entries.delete(path)) {
+      notifyIndex(path, null);
+      emit();
+    }
     return;
   }
   try {
@@ -77,7 +103,7 @@ async function refreshOne(path: VaultPath): Promise<void> {
       }),
     );
     if (!result) {
-      entries.delete(path);
+      if (entries.delete(path)) notifyIndex(path, null);
       return;
     }
     const meta = parseMetadata(result.text);
@@ -86,6 +112,7 @@ async function refreshOne(path: VaultPath): Promise<void> {
       mtimeMs: result.stat.type === "file" ? result.stat.mtimeMs : 0,
       metadata: meta,
     });
+    notifyIndex(path, result.text);
   } catch {
     /* ignore individual errors */
   }
@@ -94,7 +121,10 @@ async function refreshOne(path: VaultPath): Promise<void> {
 async function refreshListedFile(file: VaultFile): Promise<void> {
   if (extension(file.path) !== "md") return;
   if (isExcluded(file.path, currentPatterns())) {
-    if (entries.delete(file.path)) emit();
+    if (entries.delete(file.path)) {
+      notifyIndex(file.path, null);
+      emit();
+    }
     return;
   }
   try {
@@ -109,6 +139,7 @@ async function refreshListedFile(file: VaultFile): Promise<void> {
       mtimeMs: file.mtimeMs,
       metadata: parseMetadata(text),
     });
+    notifyIndex(file.path, text);
   } catch {
     /* ignore individual errors */
   }
@@ -133,7 +164,7 @@ function bindWatcher() {
       const fs = yield* FileSystem;
       return fs.watch((event) => {
         if (event.type === "delete") {
-          entries.delete(event.path);
+          if (entries.delete(event.path)) notifyIndex(event.path, null);
           emit();
           return;
         }
@@ -169,7 +200,9 @@ ensureSettingsBinding();
 
 export const metadataCache = {
   reset(): void {
+    const paths = [...entries.keys()];
     entries.clear();
+    for (const p of paths) notifyIndex(p, null);
     unsubFs?.();
     unsubFs = null;
     vaultBound = false;

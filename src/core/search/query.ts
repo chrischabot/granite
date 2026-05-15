@@ -1,6 +1,7 @@
 import { stem } from "@core/fs/path";
 import type { VaultFile, VaultPath } from "@core/fs/types";
 import type { ParsedMetadata } from "@core/metadata/parser";
+import type { InvertedIndex } from "./inverted-index";
 
 export type PropertyValueConstraint =
   | { kind: "null" }
@@ -346,4 +347,59 @@ export function findLineMatches(
 
 export function isMarkdownPath(path: VaultPath): boolean {
   return path.toLowerCase().endsWith(".md");
+}
+
+/**
+ * Collect the free-text terms used to filter candidates against the inverted
+ * index. We use `include` (mandatory free terms) and `lineTerms` (mandatory
+ * per-line terms) — both require the substring to appear somewhere in the
+ * document. `paths` / `files` / `tags` / `regexes` / properties are NOT used
+ * by the index because they don't correspond to body text. `exclude` is also
+ * skipped: the index narrows candidate sets, and a negative term doesn't
+ * narrow — it widens. The full predicate still runs on the candidate set so
+ * negative terms and other constraints are enforced there.
+ */
+export function indexCandidateTerms(query: ParsedQuery): ReadonlyArray<string> {
+  const out: string[] = [];
+  for (const t of query.include) out.push(t);
+  for (const t of query.lineTerms) out.push(t);
+  return out;
+}
+
+/**
+ * Same semantics as `fileMatchesQuery`, but designed for batch evaluation
+ * where the caller already has an inverted index. The caller is responsible
+ * for pre-filtering with `prefilterCandidatesByIndex` and then calling
+ * `fileMatchesQuery` per surviving candidate.
+ *
+ * Returns the candidate path set, or `null` if no index pre-filter was
+ * possible (no free-text terms, or every term un-indexable) — in which case
+ * the caller falls back to scanning every file.
+ */
+export function prefilterCandidatesByIndex(
+  query: ParsedQuery,
+  index: InvertedIndex,
+): Set<VaultPath> | null {
+  const terms = indexCandidateTerms(query);
+  if (terms.length === 0) return null;
+  return index.queryFullText(terms);
+}
+
+/**
+ * Convenience: run the full predicate but skip files that the index has
+ * already ruled out. Backward-compatible — if `index` is omitted the
+ * behaviour is identical to `fileMatchesQuery`.
+ */
+export function fileMatchesQueryIndexed(
+  query: ParsedQuery,
+  ctx: QueryContext,
+  options: MatchOptions = {},
+  index?: InvertedIndex,
+  prefiltered?: Set<VaultPath> | null,
+): boolean {
+  if (index) {
+    const set = prefiltered ?? prefilterCandidatesByIndex(query, index);
+    if (set !== null && !set.has(ctx.file.path)) return false;
+  }
+  return fileMatchesQuery(query, ctx, options);
 }

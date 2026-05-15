@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Granite Severe Vault Browser Fixture</title>
+  </head>
+  <body>
+    <script type="module">
+      import { generateSevereVault } from "../scripts/fixtures/severe-vault/generate.mjs";
+      import { setAppLayer, run, disposeRuntime } from "../src/core/effect/runtime.ts";
+      import { FileSystem } from "../src/core/fs/FileSystem.ts";
+      import { handleAdapter, openOPFS } from "../src/core/fs/handle-adapter.ts";
+      import { metadataCache } from "../src/core/metadata/cache.ts";
+      import { settingsStore, resetSettingsForTests } from "../src/core/settings/store.ts";
+      import { Layer, Effect } from "effect";
+
+      const COUNT = 10_000;
+      const SEED = 42;
+      const INDEX_BUDGET_MS = 3000;
+      const SEARCH_BUDGET_MS = 200;
+      const RENAME_BUDGET_MS = 1000;
+      const RENAME_BATCH = 50;
+
+      function assert(condition, message, detail = {}) {
+        if (!condition) throw new Error(`${message}: ${JSON.stringify(detail)}`);
+      }
+
+      /**
+       * Wipe an OPFS directory recursively so consecutive runs start from a clean
+       * vault. OPFS persists across page reloads; we want determinism.
+       */
+      async function clearOpfs(root) {
+        for await (const [name] of root.entries()) {
+          try {
+            await root.removeEntry(name, { recursive: true });
+          } catch {
+            /* ignore — another entry may have removed it */
+          }
+        }
+      }
+
+      async function writePlanToOpfs(root, files) {
+        // Walk file list, mkdir each parent path lazily, write via OPFS API
+        // (faster than going through Effect for 10k writes). We measure this
+        // separately to keep the vault-setup time out of the index budget.
+        for (const file of files) {
+          const segments = file.path.split("/");
+          const fname = segments.pop();
+          let dir = root;
+          for (const seg of segments) {
+            dir = await dir.getDirectoryHandle(seg, { create: true });
+          }
+          const handle = await dir.getFileHandle(fname, { create: true });
+          const writer = await handle.createWritable();
+          if (file.content !== undefined) await writer.write(file.content);
+          else if (file.bytes !== undefined) await writer.write(file.bytes);
+          await writer.close();
+        }
+      }
+
+      async function bindRuntime(root) {
+        const fs = handleAdapter(root);
+        setAppLayer(() => Layer.succeed(FileSystem, fs));
+        return fs;
+      }
+
+      async function runIndexPhase(manifest) {
+        // Exclude `.obsidian`, `node_modules`, `.trash` — the generator dropped
+        // poison files into each one.
+        settingsStore.update({ excludedFiles: manifest.excludedFolders.join("\n") });
+        const start = performance.now();
+        await metadataCache.indexVault();
+        const elapsedMs = performance.now() - start;
+        const switcher = metadataCache.getAllSwitcherEntries();
+        const tags = metadataCache.getAllTags();
+        // Excluded folders must not appear at all.
+        for (const entry of switcher) {
+          for (const ex of manifest.excludedFolders) {
+            assert(!entry.path.startsWith(`${ex}/`), "excluded folder leaked into switcher", {
+              path: entry.path,
+              ex,
+            });
+          }
+        }
+        // Match note count: 1 entry per file + 1 per alias.
+        const fileEntries = switcher.filter((e) => e.alias === null);
+        assert(
+          fileEntries.length === manifest.paths.length,
+          "indexed file count differs from manifest",
+          { observed: fileEntries.length, expected: manifest.paths.length },
+        );
+        return { elapsedMs, fileCount: fileEntries.length, tagCount: tags.length };
+      }
+
+      function runSearchPhase(manifest) {
+        // Search for a tag that the generator emits — `project` family is
+        // guaranteed to have a high count.
+        const targetTag = manifest.tagDistribution[0]?.name;
+        assert(targetTag, "manifest has no tags to search", {});
+        const start = performance.now();
+        // Search across the metadata cache for files containing this tag.
+        let matches = 0;
+        for (const entry of metadataCache.getAllSwitcherEntries()) {
+          if (entry.alias !== null) continue;
+          const md = metadataCache.getMetadata(entry.path);
+          if (!md) continue;
+          for (const tag of md.tags) {
+            if (tag.name.toLocaleLowerCase() === targetTag.toLocaleLowerCase()) {
+              matches += 1;
+              break;
+            }
+          }
+        }
+        const elapsedMs = performance.now() - start;
+        return { query: targetTag, matches, elapsedMs };
+      }
+
+      async function runRenameStorm(manifest, rng) {
+        // Rename N notes — assert that fs.rename completes within budget and
+        // that the link graph (backlinks) reflects the new names where they
+        // match the rename targets.
+        const paths = manifest.paths;
+        const renames = [];
+        for (let i = 0; i < RENAME_BATCH; i += 1) {
+          const idx = Math.floor(rng() * paths.length);
+          const oldPath = paths[idx];
+          const slash = oldPath.lastIndexOf("/");
+          const dir = slash >= 0 ? oldPath.slice(0, slash + 1) : "";
+          const base = slash >= 0 ? oldPath.slice(slash + 1) : oldPath;
+          const newPath = `${dir}Renamed-${i}-${base}`;
+          renames.push({ from: oldPath, to: newPath });
+        }
+        const start = performance.now();
+        for (const r of renames) {
+          await run(
+            Effect.gen(function* () {
+              const fs = yield* FileSystem;
+              yield* fs.rename(r.from, r.to);
+            }),
+          );
+        }
+        const elapsedMs = performance.now() - start;
+        return { renamed: renames.length, elapsedMs };
+      }
+
+      function xorshift32(seed) {
+        let s = seed >>> 0;
+        if (s === 0) s = 0x9e3779b9;
+        return function next() {
+          s ^= s << 13;
+          s >>>= 0;
+          s ^= s >>> 17;
+          s >>>= 0;
+          s ^= s << 5;
+          s >>>= 0;
+          return s / 0x1_0000_0000;
+        };
+      }
+
+      async function snapshotExcludedFolder(root, name) {
+        // Returns the file count + total bytes inside an excluded folder. Used
+        // to assert no writes leaked into the excluded folder during indexing.
+        let files = 0;
+        let bytes = 0;
+        try {
+          const dir = await root.getDirectoryHandle(name);
+          for await (const [, handle] of dir.entries()) {
+            if (handle.kind === "file") {
+              const file = await handle.getFile();
+              files += 1;
+              bytes += file.size;
+            }
+          }
+        } catch {
+          /* directory may not exist */
+        }
+        return { files, bytes };
+      }
+
+      async function run_() {
+        // 1. Generate vault deterministically.
+        const plan = generateSevereVault({ count: COUNT, seed: SEED, shape: "mixed" });
+
+        // 2. Wipe OPFS and write the vault.
+        const root = await openOPFS();
+        await clearOpfs(root);
+        const writeStart = performance.now();
+        await writePlanToOpfs(root, plan.files);
+        const writeMs = performance.now() - writeStart;
+
+        // 3. Snapshot excluded folders before indexing (oracle for the no-write
+        //    invariant).
+        const excludedBefore = {};
+        for (const ex of plan.manifest.excludedFolders) {
+          excludedBefore[ex] = await snapshotExcludedFolder(root, ex);
+        }
+
+        // 4. Bind runtime to OPFS-backed FileSystem.
+        await disposeRuntime();
+        metadataCache.reset();
+        resetSettingsForTests();
+        await bindRuntime(root);
+
+        // 5. Index.
+        const indexResult = await runIndexPhase(plan.manifest);
+        assert(indexResult.elapsedMs < INDEX_BUDGET_MS, "indexVault exceeded budget", {
+          elapsedMs: indexResult.elapsedMs,
+          budgetMs: INDEX_BUDGET_MS,
+        });
+
+        // 6. Search.
+        const searchResult = runSearchPhase(plan.manifest);
+        assert(searchResult.elapsedMs < SEARCH_BUDGET_MS, "search exceeded budget", {
+          elapsedMs: searchResult.elapsedMs,
+          budgetMs: SEARCH_BUDGET_MS,
+        });
+        assert(searchResult.matches > 0, "search returned no matches", searchResult);
+
+        // 7. Rename storm.
+        const rng = xorshift32(SEED ^ 0xdeadbeef);
+        const renameResult = await runRenameStorm(plan.manifest, rng);
+        assert(renameResult.elapsedMs < RENAME_BUDGET_MS, "rename storm exceeded budget", {
+          elapsedMs: renameResult.elapsedMs,
+          budgetMs: RENAME_BUDGET_MS,
+        });
+
+        // 8. Excluded folders must be byte-identical after indexing.
+        const excludedAfter = {};
+        for (const ex of plan.manifest.excludedFolders) {
+          excludedAfter[ex] = await snapshotExcludedFolder(root, ex);
+          assert(
+            excludedAfter[ex].files === excludedBefore[ex].files &&
+              excludedAfter[ex].bytes === excludedBefore[ex].bytes,
+            "indexing wrote into an excluded folder",
+            { ex, before: excludedBefore[ex], after: excludedAfter[ex] },
+          );
+        }
+
+        return {
+          ok: true,
+          writeMs,
+          index: indexResult,
+          search: searchResult,
+          rename: renameResult,
+          excludedBefore,
+          excludedAfter,
+          manifest: {
+            files: plan.manifest.files,
+            edges: plan.manifest.edges,
+            tagEmissions: plan.manifest.tagEmissions,
+            assetCount: plan.manifest.assetCount,
+            totalBytes: plan.manifest.totalBytes,
+            tagDistinct: plan.manifest.tagDistribution.length,
+          },
+        };
+      }
+
+      window.__graniteSevereVaultResult = Promise.resolve()
+        .then(run_)
+        .catch((error) => ({
+          ok: false,
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        }));
+    </script>
+  </body>
+</html>

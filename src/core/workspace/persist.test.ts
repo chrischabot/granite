@@ -1,13 +1,99 @@
-import type { VaultPath } from "@core/fs/types";
+import { type AppServices, disposeRuntime, setAppLayer } from "@core/effect/runtime";
+import { FileSystem, type FileSystemImpl } from "@core/fs/FileSystem";
+import { extension } from "@core/fs/path";
+import type { FsError, VaultEntry, VaultFile, VaultPath } from "@core/fs/types";
+import { readConfigJson, writeConfigJson } from "@core/vault/granite-config";
+import { Effect, Layer } from "effect";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   bindPersistence,
   clearPersistedFor,
   flushWorkspacePersistence,
   restoreFor,
+  restoreForAsync,
 } from "./persist";
 import { workspaceStore } from "./store";
+import { channelNameFor, createInProcessChannelHub } from "./sync";
 import type { LeafState } from "./types";
+
+function makeInMemoryFs(): FileSystemImpl & { _files: Map<VaultPath, string> } {
+  const files = new Map<VaultPath, string>();
+  const dirs = new Set<VaultPath>();
+  return {
+    _files: files,
+    rootName: "test-vault",
+    list: () => Effect.succeed([] as ReadonlyArray<VaultEntry>),
+    listAll: () =>
+      Effect.succeed(
+        [...files.keys()].map<VaultFile>((path) => ({
+          type: "file",
+          path,
+          name: path.split("/").pop() ?? path,
+          size: files.get(path)?.length ?? 0,
+          mtimeMs: 0,
+          ctimeMs: 0,
+          extension: extension(path),
+        })),
+      ),
+    readText: (path) => {
+      const v = files.get(path);
+      if (v === undefined) return Effect.fail({ _tag: "FsNotFound", path } as unknown as FsError);
+      return Effect.succeed(v);
+    },
+    readBytes: (path) => {
+      const v = files.get(path);
+      if (v === undefined) return Effect.fail({ _tag: "FsNotFound", path } as unknown as FsError);
+      return Effect.succeed(new TextEncoder().encode(v));
+    },
+    writeText: (path, content) => {
+      files.set(path, content);
+      return Effect.succeed(undefined);
+    },
+    writeBytes: (path, bytes) => {
+      files.set(path, new TextDecoder().decode(bytes));
+      return Effect.succeed(undefined);
+    },
+    mkdir: (dir) => {
+      dirs.add(dir);
+      return Effect.succeed(undefined);
+    },
+    rename: (from, to) => {
+      const v = files.get(from);
+      if (v === undefined)
+        return Effect.fail({ _tag: "FsNotFound", path: from } as unknown as FsError);
+      files.delete(from);
+      files.set(to, v);
+      return Effect.succeed(undefined);
+    },
+    remove: (path) => {
+      files.delete(path);
+      return Effect.succeed(undefined);
+    },
+    stat: (path) => {
+      const v = files.get(path);
+      if (v === undefined) return Effect.succeed(null);
+      return Effect.succeed<VaultFile>({
+        type: "file",
+        path,
+        name: path,
+        size: v.length,
+        mtimeMs: 0,
+        ctimeMs: 0,
+        extension: extension(path),
+      });
+    },
+    watch: () => () => {
+      /* no-op disposer */
+    },
+  };
+}
+
+async function withFs(): Promise<ReturnType<typeof makeInMemoryFs>> {
+  await disposeRuntime();
+  const impl = makeInMemoryFs();
+  setAppLayer(() => Layer.succeed(FileSystem, impl) as Layer.Layer<AppServices, never, never>);
+  return impl;
+}
 
 const VAULT_ID = "test-vault";
 
@@ -207,6 +293,211 @@ describe("workspace persistence", () => {
 
     expect(restoreFor(VAULT_ID)).toBe(true);
     expect(markdownPaths()).toContain("Before-unload.md");
+  });
+
+  it("binds: writes the workspace envelope to .granite/workspace.json on changes", async () => {
+    const fs = await withFs();
+    const unbind = bindPersistence(VAULT_ID);
+    workspaceStore.openFile("Disk.md" as VaultPath);
+    flushWorkspacePersistence();
+    const raw = fs._files.get(".granite/workspace.json" as VaultPath);
+    expect(raw, "disk workspace.json").toBeDefined();
+    const parsed = JSON.parse(raw ?? "{}");
+    expect(parsed.version).toBe(2);
+    expect(typeof parsed.updatedMs).toBe("number");
+    expect(parsed.updatedMs).toBeGreaterThan(0);
+    expect(parsed.snapshot.shape).toBe("columns");
+    unbind();
+  });
+
+  it("hydrate prefers the disk envelope over localStorage on async restore", async () => {
+    const fs = await withFs();
+    // Wait for any deferred clearPersistedFor disk-removal to complete on
+    // the new FS layer before seeding.
+    await new Promise((r) => setTimeout(r, 0));
+    fs._files.delete(".granite/workspace.json" as VaultPath);
+    // Seed localStorage with one path and disk with a different one. Disk
+    // must win — otherwise a stale localStorage from another browser profile
+    // would clobber the canonical vault state.
+    const localSnap = {
+      shape: "columns",
+      columns: [
+        [{ leaves: [{ type: "markdown", path: "Local.md", mode: "source" }], activeIndex: 0 }],
+      ],
+      activeGroupIndex: 0,
+    };
+    localStorage.setItem(`granite.workspace.last.${VAULT_ID}`, JSON.stringify(localSnap));
+    const diskSnap = {
+      shape: "columns",
+      columns: [
+        [{ leaves: [{ type: "markdown", path: "Disk.md", mode: "source" }], activeIndex: 0 }],
+      ],
+      activeGroupIndex: 0,
+    };
+    await writeConfigJson("workspace", {
+      version: 2,
+      updatedMs: 1_234_567,
+      snapshot: diskSnap,
+    });
+
+    workspaceStore.reset();
+    const ok = await restoreForAsync(VAULT_ID);
+    expect(ok).toBe(true);
+    expect(markdownPaths()).toContain("Disk.md");
+    expect(markdownPaths()).not.toContain("Local.md");
+  });
+
+  it("migrate: writes disk from localStorage when disk is missing on first run", async () => {
+    const fs = await withFs();
+    const localSnap = {
+      shape: "columns",
+      columns: [
+        [{ leaves: [{ type: "markdown", path: "Migrate.md", mode: "source" }], activeIndex: 0 }],
+      ],
+      activeGroupIndex: 0,
+    };
+    localStorage.setItem(`granite.workspace.last.${VAULT_ID}`, JSON.stringify(localSnap));
+    expect(fs._files.has(".granite/workspace.json" as VaultPath)).toBe(false);
+
+    workspaceStore.reset();
+    const ok = await restoreForAsync(VAULT_ID);
+    expect(ok).toBe(true);
+    expect(markdownPaths()).toContain("Migrate.md");
+
+    const written = await readConfigJson<{
+      version: number;
+      updatedMs: number;
+      snapshot: { shape: string };
+    }>("workspace");
+    expect(written).not.toBeNull();
+    expect(written?.version).toBe(2);
+    // Migration stamps updatedMs=0 so any real in-window save beats it.
+    expect(written?.updatedMs).toBe(0);
+    expect(written?.snapshot?.shape).toBe("columns");
+  });
+
+  it("vault swap: restoreForAsync reads the new vault's workspace.json, not the old one's", async () => {
+    const fs = await withFs();
+    // Seed disk as if vault A had a snapshot when we were bound to it.
+    await writeConfigJson("workspace", {
+      version: 2,
+      updatedMs: 100,
+      snapshot: {
+        shape: "columns",
+        columns: [
+          [{ leaves: [{ type: "markdown", path: "VaultA.md", mode: "source" }], activeIndex: 0 }],
+        ],
+        activeGroupIndex: 0,
+      },
+    });
+    // Also poison localStorage for vault B so we can detect "vault B used
+    // its own disk (empty) and ignored vault A's disk and vault A's local".
+    localStorage.setItem(
+      "granite.workspace.last.vault-A",
+      JSON.stringify({
+        shape: "columns",
+        columns: [
+          [
+            {
+              leaves: [{ type: "markdown", path: "VaultA-local.md", mode: "source" }],
+              activeIndex: 0,
+            },
+          ],
+        ],
+        activeGroupIndex: 0,
+      }),
+    );
+
+    // Switch to a NEW FileSystem layer (vault B): the new vault's
+    // workspace.json does not exist on disk.
+    const fsB = await withFs();
+    expect(fsB).not.toBe(fs);
+    workspaceStore.reset();
+    const ok = await restoreForAsync("vault-B");
+    expect(ok).toBe(false);
+    // The active store stays at the buildInitial single-empty-leaf state.
+    expect(markdownPaths()).toEqual([]);
+  });
+
+  // Severe test: the `suppressPersistOnce` feedback-loop guard is the only
+  // thing breaking an A→B→A→B infinite broadcast loop. Without it, every
+  // peer `workspaceUpdated` we apply would itself trigger our debounced save
+  // → broadcast back → peer applies → broadcasts again, ad infinitum.
+  //
+  // This test wires a real `bindPersistence` to a shared in-process hub, has
+  // a separate peer channel post snapshots, and asserts the channel sees
+  // exactly N originals — no echoes from the persistence side.
+  it("does NOT re-broadcast when applying an inbound peer snapshot (loop guard)", async () => {
+    const hub = createInProcessChannelHub();
+    const VID = `loop-${Date.now()}`;
+    const channelName = channelNameFor(VID);
+    const unbind = bindPersistence(VID, { syncOptions: { channelFactory: hub.factory } });
+    // Peer channel: simulates window B. It only POSTS; whatever it posts
+    // becomes the expected message count on the bus.
+    const peer = hub.factory(channelName);
+
+    // Single peer update: persistence must hydrate AND must not echo.
+    peer.postMessage({
+      type: "workspaceUpdated",
+      writerId: "peer-1",
+      updatedMs: 1_000,
+      snapshot: {
+        shape: "columns",
+        columns: [
+          [
+            {
+              leaves: [{ type: "markdown", path: "Loop-1.md", mode: "source" }],
+              activeIndex: 0,
+            },
+          ],
+        ],
+        activeGroupIndex: 0,
+      },
+    });
+    await hub.flush();
+    // Flush any debounce. If the suppression is broken, this fires the echo.
+    flushWorkspacePersistence();
+    await hub.flush();
+    expect(markdownPaths()).toContain("Loop-1.md");
+    expect(hub.postCount(channelName)).toBe(1);
+
+    // 5-cycle interleave: peer posts a fresh snapshot each round. After all
+    // rounds, the channel log must contain exactly 5 messages — every
+    // additional message would be an unsuppressed echo. Without the guard
+    // we'd see ≥ 10 (peer + persistence echo, per round).
+    for (let i = 0; i < 5; i += 1) {
+      peer.postMessage({
+        type: "workspaceUpdated",
+        writerId: `peer-${i + 2}`,
+        updatedMs: 2_000 + i,
+        snapshot: {
+          shape: "columns",
+          columns: [
+            [
+              {
+                leaves: [{ type: "markdown", path: `Loop-cycle-${i}.md`, mode: "source" }],
+                activeIndex: 0,
+              },
+            ],
+          ],
+          activeGroupIndex: 0,
+        },
+      });
+      await hub.flush();
+      flushWorkspacePersistence();
+      await hub.flush();
+    }
+
+    // 1 from the first single update, 5 from the cycles — strictly 6.
+    // β< 0.1: this assertion catches any echo (every echo would add ≥ 1
+    // message per cycle) and any debounce-coalescing surprise.
+    expect(hub.postCount(channelName)).toBe(6);
+    // The final applied state should be the last cycle's snapshot, proving
+    // the apply path is exercised (not silently no-op'd).
+    expect(markdownPaths()).toContain("Loop-cycle-4.md");
+
+    unbind();
+    peer.close();
   });
 
   it("survives 100 kill-and-restart workspace cycles without losing the latest note", () => {

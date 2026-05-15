@@ -38,6 +38,7 @@
       import { run } from "@core/effect/runtime";
       import { FileSystem } from "@core/fs/FileSystem";
       import { workspaceStore } from "@core/workspace/store";
+      import { createWorkspaceSync } from "@core/workspace/sync";
       import { MenuHost } from "@/ui/overlay/Menu";
       import { Workspace } from "@/ui/shell/Workspace";
       import { ThemeProvider } from "@/ui/theme/ThemeProvider";
@@ -65,6 +66,48 @@
           }),
         );
       }
+
+      async function readNote(path) {
+        try {
+          return await run(
+            Effect.gen(function* () {
+              const fs = yield* FileSystem;
+              return yield* fs.readText(path);
+            }),
+          );
+        } catch {
+          return null;
+        }
+      }
+
+      // Cross-window verifier helpers: track inbound broadcasts so the test
+      // can assert ordering and that propagation actually happened.
+      window.__graniteVerifier = {
+        writeNote,
+        readNote,
+        receivedMessages: [],
+        attachSync(vaultId) {
+          const sync = createWorkspaceSync(vaultId);
+          sync.subscribe((message) => {
+            window.__graniteVerifier.receivedMessages.push({
+              type: message.type,
+              updatedMs: message.updatedMs,
+              ...(message.type === "metadataInvalidated" ? { paths: message.paths } : {}),
+              ...(message.type === "workspaceUpdated"
+                ? { snapshot: message.snapshot }
+                : {}),
+            });
+          });
+          window.__graniteVerifier.sync = sync;
+          return true;
+        },
+        broadcastMetadataInvalidated(paths) {
+          window.__graniteVerifier.sync?.postMetadataInvalidated(paths);
+        },
+        broadcastWorkspaceUpdated(snapshot) {
+          window.__graniteVerifier.sync?.postWorkspaceUpdated(snapshot);
+        },
+      };
 
       function snapshot(activeVault, vaults) {
         const state = workspaceStore.getState();

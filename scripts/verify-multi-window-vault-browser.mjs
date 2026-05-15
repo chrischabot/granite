@@ -163,6 +163,161 @@ async function main() {
       throw new Error(`Leaf popout used wrong vault id: ${JSON.stringify(popoutSnap)}`);
     }
 
+    // ─── Severe two-page cross-window propagation flow ────────────────────
+    //
+    // Open TWO real pages bound to the same OPFS vault in the same browser
+    // context (so they share IndexedDB / OPFS). Assert that:
+    //  - workspace edits in page1 propagate to page2 via BroadcastChannel +
+    //    disk within 1000 ms,
+    //  - metadata invalidation messages cross the BC bus in order,
+    //  - both pages observe each other's writes when they interleave.
+    //
+    // The earlier flow above already asserts URL generation via the
+    // window.open mock + parseVaultWindowRequest unit coverage; this block
+    // is the real two-window test.
+    {
+      const baseTwoWindow = `mw-cross-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const xwUrlOne = `${baseUrl}/scripts/multi-window-vault-browser-fixture.html?base=${baseTwoWindow}`;
+      const pageOne = await context.newPage();
+      pageOne.on("console", (m) => consoleMessages.push(`xwOne ${m.type()}: ${m.text()}`));
+      pageOne.on("pageerror", (e) => consoleMessages.push(`xwOne pageerror: ${e.message}`));
+      await pageOne.goto(xwUrlOne, { waitUntil: "networkidle" });
+      await waitForFixture(pageOne);
+      const snapOne = await snapshot(pageOne);
+      const xwVaultOne = vaultByName(snapOne, `${baseTwoWindow}-one`);
+      assertActiveVault(snapOne, `${baseTwoWindow}-one`, "cross-window page one");
+
+      // Page 2 reopens the same vault via vaultWindow=<id>: same origin →
+      // shared OPFS + shared BroadcastChannel namespace.
+      const xwUrlTwo = `${baseUrl}/scripts/multi-window-vault-browser-fixture.html?base=${baseTwoWindow}&vaultWindow=1&vaultId=${xwVaultOne.id}`;
+      const pageTwo = await context.newPage();
+      pageTwo.on("console", (m) => consoleMessages.push(`xwTwo ${m.type()}: ${m.text()}`));
+      pageTwo.on("pageerror", (e) => consoleMessages.push(`xwTwo pageerror: ${e.message}`));
+      await pageTwo.goto(xwUrlTwo, { waitUntil: "networkidle" });
+      await waitForFixture(pageTwo);
+      assertActiveVault(
+        await snapshot(pageTwo),
+        `${baseTwoWindow}-one`,
+        "cross-window page two",
+      );
+
+      // Both pages attach an extra sync probe so the verifier can observe
+      // inbound BC traffic without depending on UI state.
+      await pageTwo.evaluate(
+        (vaultId) => window.__graniteVerifier.attachSync(vaultId),
+        xwVaultOne.id,
+      );
+      await pageOne.evaluate(
+        (vaultId) => window.__graniteVerifier.attachSync(vaultId),
+        xwVaultOne.id,
+      );
+
+      // Page 1 writes a fresh note to disk and broadcasts metadata invalidation.
+      const probePath = "CrossWindow.md";
+      const probeContent = `# CrossWindow\n\nstamp=${Date.now()}`;
+      await pageOne.evaluate(
+        async ([path, text]) => {
+          await window.__graniteVerifier.writeNote(path, text);
+          window.__graniteVerifier.broadcastMetadataInvalidated([path]);
+        },
+        [probePath, probeContent],
+      );
+
+      // Page 2 should see the BC message AND read the new disk content
+      // within 1 000 ms (the brief — disk-shared + BC-relayed).
+      await pageTwo.waitForFunction(
+        (path) =>
+          window.__graniteVerifier.receivedMessages.some(
+            (m) => m.type === "metadataInvalidated" && m.paths?.includes(path),
+          ),
+        probePath,
+        { timeout: 1_000 },
+      );
+      const observedContent = await pageTwo.evaluate(
+        (path) => window.__graniteVerifier.readNote(path),
+        probePath,
+      );
+      if (observedContent !== probeContent) {
+        throw new Error(
+          `Page 2 did not read the cross-window note correctly. Expected:\n${probeContent}\nGot:\n${observedContent}`,
+        );
+      }
+
+      // Page 1 broadcasts a workspaceUpdated snapshot; page 2 receives it.
+      await pageOne.evaluate(() => {
+        window.__graniteVerifier.broadcastWorkspaceUpdated({
+          shape: "columns",
+          columns: [
+            [
+              {
+                leaves: [{ type: "markdown", path: "CrossWindow.md", mode: "source" }],
+                activeIndex: 0,
+              },
+            ],
+          ],
+          activeGroupIndex: 0,
+          probe: "from-page-1",
+        });
+      });
+      await pageTwo.waitForFunction(
+        () =>
+          window.__graniteVerifier.receivedMessages.some(
+            (m) =>
+              m.type === "workspaceUpdated" && m.snapshot && m.snapshot.probe === "from-page-1",
+          ),
+        null,
+        { timeout: 1_000 },
+      );
+
+      // Reverse direction: page 2 broadcasts; page 1 must see it.
+      await pageTwo.evaluate(() => {
+        window.__graniteVerifier.broadcastMetadataInvalidated(["FromTwo.md"]);
+      });
+      await pageOne.waitForFunction(
+        () =>
+          window.__graniteVerifier.receivedMessages.some(
+            (m) => m.type === "metadataInvalidated" && m.paths?.includes("FromTwo.md"),
+          ),
+        null,
+        { timeout: 1_000 },
+      );
+
+      // Interleaved 50/50 bursts (no ordering or drop bugs allowed).
+      await pageOne.evaluate(() => {
+        for (let i = 0; i < 50; i += 1) {
+          window.__graniteVerifier.broadcastMetadataInvalidated([`A-${i}.md`]);
+        }
+      });
+      await pageTwo.evaluate(() => {
+        for (let i = 0; i < 50; i += 1) {
+          window.__graniteVerifier.broadcastMetadataInvalidated([`B-${i}.md`]);
+        }
+      });
+      await pageTwo.waitForFunction(
+        () => {
+          const seen = window.__graniteVerifier.receivedMessages.filter(
+            (m) => m.type === "metadataInvalidated" && m.paths?.[0]?.startsWith("A-"),
+          );
+          return seen.length === 50;
+        },
+        null,
+        { timeout: 2_000 },
+      );
+      await pageOne.waitForFunction(
+        () => {
+          const seen = window.__graniteVerifier.receivedMessages.filter(
+            (m) => m.type === "metadataInvalidated" && m.paths?.[0]?.startsWith("B-"),
+          );
+          return seen.length === 50;
+        },
+        null,
+        { timeout: 2_000 },
+      );
+
+      await pageOne.close();
+      await pageTwo.close();
+    }
+
     console.log("Multi-window vault browser verification passed.");
   } catch (error) {
     const noisyConsole = consoleMessages.filter(

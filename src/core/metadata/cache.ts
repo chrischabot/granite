@@ -219,6 +219,31 @@ export const metadataCache = {
   },
 
   /**
+   * Refresh the cached metadata for an explicit list of paths and emit once.
+   * Used by the cross-window sync layer to react to peer writes — when
+   * window A writes a note, window B receives a `metadataInvalidated`
+   * broadcast and asks the cache to re-read those paths from disk so the
+   * derived UI (backlinks, tags, properties) stays in sync.
+   *
+   * Accepts plain strings rather than the `VaultPath` brand because callers
+   * typically forward unvalidated payloads from a `BroadcastChannel`; this
+   * function rejects anything that doesn't look like a sane vault-relative
+   * path (no leading slash, no `..` segment, no `\0`).
+   */
+  async refreshPaths(paths: ReadonlyArray<string>): Promise<void> {
+    if (paths.length === 0) return;
+    let changed = 0;
+    for (const raw of paths) {
+      if (typeof raw !== "string" || raw.length === 0) continue;
+      if (raw.includes("\0") || raw.startsWith("/") || raw.split("/").includes("..")) continue;
+      if (extension(raw) !== "md") continue;
+      await refreshOne(raw as VaultPath);
+      changed += 1;
+    }
+    if (changed > 0) emit();
+  },
+
+  /**
    * Find files whose links resolve to `target`. Match on file basename (stem)
    * or full path (with or without `.md` suffix).
    */

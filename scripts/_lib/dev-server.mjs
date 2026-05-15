@@ -7,7 +7,7 @@ const DEFAULT_VITE_BOOT_MS = 15_000;
 const POLL_INTERVAL_MS = 100;
 const OUTPUT_CAP_BYTES = 20_000;
 
-export async function getOpenPort() {
+async function getOpenPort() {
   const server = createServer();
   await new Promise((resolve, reject) => {
     server.once("error", reject);
@@ -21,7 +21,7 @@ export async function getOpenPort() {
   return address.port;
 }
 
-export function startVite(port, { cwd = process.cwd() } = {}) {
+function startVite(port, { cwd = process.cwd() } = {}) {
   const output = { text: "", exitCode: null };
   const child = spawn(
     "bunx",
@@ -42,7 +42,7 @@ export function startVite(port, { cwd = process.cwd() } = {}) {
   return { child, output };
 }
 
-export async function waitForServer(url, output, { timeoutMs = DEFAULT_VITE_BOOT_MS } = {}) {
+async function waitForServer(url, output, { timeoutMs = DEFAULT_VITE_BOOT_MS } = {}) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     try {
@@ -65,6 +65,20 @@ async function stopVite(child) {
   await delay(100);
   if (child.exitCode === null) child.kill("SIGKILL");
 }
+
+/**
+ * Public API:
+ *   - withDevServer(body, opts)   — spawn Vite, give body the baseUrl, tear down.
+ *   - withBrowser(body, opts)     — launch Chromium, give body a page, close.
+ *   - runBrowserFixture(opts)     — convenience: dev-server + browser + auto-navigate.
+ *   - runResultFixture(opts)      — convenience: + assert window[resultKey].ok.
+ *   - runMain(fn)                 — top-level catch + process.exit wrapper.
+ *
+ * Internal primitives (getOpenPort/startVite/waitForServer) are not exported;
+ * external callers should reach for the higher-level helpers above. If you
+ * find yourself wanting them directly, that's usually a sign the higher-level
+ * API is missing an option — extend it instead of inlining the primitives.
+ */
 
 /**
  * Spawn Vite, wait for it to be ready, run `body` with the baseUrl, then

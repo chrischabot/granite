@@ -2,7 +2,15 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { PSEUDO_LOCALE, registerLocale, setLocale, t, verifyLocaleSync } from "./index";
+import {
+  EN_LOCALE,
+  HE_LOCALE,
+  PSEUDO_LOCALE,
+  registerLocale,
+  setLocale,
+  t,
+  verifyLocaleSync,
+} from "./index";
 
 // ---------------------------------------------------------------------------
 // SEVERE locale-coverage scanner (audit #9).
@@ -27,6 +35,7 @@ import { PSEUDO_LOCALE, registerLocale, setLocale, t, verifyLocaleSync } from ".
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const INDEX_TS = resolve(HERE, "index.ts");
+const EN_LOCALE_TS = resolve(HERE, "locales/en.ts");
 
 // CLI threshold for Hebrew coverage. Defaults to 0.5 (per the audit
 // recommendation) but can be tightened via `MIN_HE_COVERAGE=0.9 bun run test`.
@@ -111,14 +120,13 @@ describe("locale coverage", () => {
     for (const m of src.matchAll(/\bt\(`([^`\n${}]+)`/g)) {
       referenced.add(m[1] as string);
     }
-    // We need the EN_LOCALE itself; extract it from the source via regex
-    // rather than re-exporting it (it's a module-internal constant).
-    const enBlockStart = src.indexOf("const EN_LOCALE: LocaleMap = {");
-    const enBlockEnd = src.indexOf("\n};", enBlockStart);
+    // The EN_LOCALE table now lives in `./locales/en.ts`. Parse it the same
+    // way (key-prefix regex) so this regression test catches renames even if
+    // the imported binding is shadowed at runtime.
+    const enSrc = readFileSync(EN_LOCALE_TS, "utf8");
+    const enBlockStart = enSrc.indexOf("EN_LOCALE");
     expect(enBlockStart).toBeGreaterThan(-1);
-    expect(enBlockEnd).toBeGreaterThan(enBlockStart);
-    const enBlock = src.slice(enBlockStart, enBlockEnd);
-    const enKeys = new Set([...enBlock.matchAll(/^ {2}"([^"]+)":/gm)].map((m) => m[1] as string));
+    const enKeys = new Set([...enSrc.matchAll(/^ {2}"([^"]+)":/gm)].map((m) => m[1] as string));
     const orphans = [...referenced].filter((k) => !enKeys.has(k));
     if (orphans.length > 0) {
       throw new Error(
@@ -126,6 +134,26 @@ describe("locale coverage", () => {
       );
     }
     expect(orphans).toEqual([]);
+  });
+
+  // Contract test (severe-testing #9): both shipped locale tables must contain
+  // the exact same key set. If a key is added to EN_LOCALE without a Hebrew
+  // translation, or a stale Hebrew key lingers after the English source is
+  // removed, this test fails with a precise diff.
+  it("EN_LOCALE and HE_LOCALE have identical key sets", () => {
+    const enKeys = new Set(Object.keys(EN_LOCALE));
+    const heKeys = new Set(Object.keys(HE_LOCALE));
+    const missingInHe = [...enKeys].filter((k) => !heKeys.has(k));
+    const extraInHe = [...heKeys].filter((k) => !enKeys.has(k));
+    if (missingInHe.length > 0 || extraInHe.length > 0) {
+      throw new Error(
+        `EN_LOCALE / HE_LOCALE key-set drift:
+  missing in he (${missingInHe.length}): ${missingInHe.slice(0, 20).join(", ")}
+  extra in he (${extraInHe.length}): ${extraInHe.slice(0, 20).join(", ")}`,
+      );
+    }
+    expect(missingInHe).toEqual([]);
+    expect(extraInHe).toEqual([]);
   });
 
   // β inversion checks: prove the scanner actually detects mutations.

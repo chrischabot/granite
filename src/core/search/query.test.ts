@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { ParsedMetadata } from "../metadata/parser";
-import { fileMatchesQuery, findLineMatches, parseQuery } from "./query";
+import { createInvertedIndex } from "./inverted-index";
+import {
+  fileMatchesQuery,
+  fileMatchesQueryIndexed,
+  findLineMatches,
+  parseQuery,
+  prefilterCandidatesByIndex,
+} from "./query";
 
 const emptyMeta: ParsedMetadata = {
   frontmatter: {},
@@ -275,7 +282,9 @@ describe("fileMatchesQuery — regex", () => {
     ).toBe(true);
   });
 
-  it("keeps 10k-note regex scans under the 500 ms performance budget", () => {
+  // NOTE: this is a per-construct watchdog for the regex code path. It is
+  // NOT the §24.7 acceptance gate — see the indexed full-text test below.
+  it("keeps 10k-note regex scans under the 500 ms regex watchdog", () => {
     const q = parseQuery("/target-[0-9]+/");
     const files = Array.from({ length: 10_000 }, (_, i) => ({
       file: { ...file, path: `Folder/Note ${i}.md`, name: `Note ${i}.md` },
@@ -430,6 +439,69 @@ describe("findLineMatches matchCase", () => {
     expect(findLineMatches(content, parseQuery("Hello"), 5, { matchCase: true })).toEqual([
       { line: 1, preview: "Hello World" },
     ]);
+  });
+});
+
+describe("fileMatchesQueryIndexed — §24.7 full-text 10k-note budget", () => {
+  it("indexed full-text query over 10k notes completes in < 200 ms", () => {
+    // Deterministic corpus: a sparse needle term ("granitemarker") appears
+    // in every 250th note, plus an unrelated word vocabulary.
+    const NOTE_COUNT = 10_000;
+    const filler = "ordinary searchable body text with words and stuff";
+    const files = Array.from({ length: NOTE_COUNT }, (_, i) => ({
+      file: { ...file, path: `Folder/Note ${i}.md`, name: `Note ${i}.md` },
+      content:
+        i % 250 === 0
+          ? `# Note ${i}\nThis note has the granitemarker keyword for the full-text scan.\n${filler}`
+          : `# Note ${i}\n${filler}`,
+      metadata: emptyMeta,
+    }));
+
+    const index = createInvertedIndex();
+    for (const ctx of files) index.add(ctx.file.path, ctx.content);
+
+    const query = parseQuery("granitemarker keyword");
+
+    // Warm
+    fileMatchesQueryIndexed(query, files[0] as (typeof files)[number], {}, index);
+
+    const start = performance.now();
+    const prefiltered = prefilterCandidatesByIndex(query, index);
+    const matches = files.filter((ctx) =>
+      fileMatchesQueryIndexed(query, ctx, {}, index, prefiltered),
+    );
+    const elapsed = performance.now() - start;
+
+    expect(matches).toHaveLength(40);
+    // §24.7 budget — keep generous margin for slow CI machines.
+    expect(elapsed).toBeLessThan(200);
+  });
+
+  it("falls back to scan when no index is supplied", () => {
+    const ctx = { file, content: "hello world", metadata: emptyMeta };
+    expect(fileMatchesQueryIndexed(parseQuery("hello"), ctx)).toBe(true);
+    expect(fileMatchesQueryIndexed(parseQuery("missing"), ctx)).toBe(false);
+  });
+
+  it("indexed path rejects files outside the candidate set without scanning content", () => {
+    const index = createInvertedIndex();
+    index.add("a.md", "alpha beta");
+    index.add("b.md", "gamma delta");
+    const query = parseQuery("alpha");
+    // Even though we LIE about b.md's content containing "alpha", the index
+    // says b.md is not a candidate, so the indexed predicate must reject it.
+    expect(
+      fileMatchesQueryIndexed(
+        query,
+        {
+          file: { ...file, path: "b.md", name: "b.md" },
+          content: "alpha alpha alpha", // a lie
+          metadata: emptyMeta,
+        },
+        {},
+        index,
+      ),
+    ).toBe(false);
   });
 });
 

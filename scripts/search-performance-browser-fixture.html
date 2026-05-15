@@ -7,10 +7,23 @@
   <body>
     <script type="module">
       import { createFuzzyIndex, rankFuzzyIndex } from "../src/core/search/fuzzy.ts";
-      import { fileMatchesQuery, parseQuery } from "../src/core/search/query.ts";
+      import { createInvertedIndex } from "../src/core/search/inverted-index.ts";
+      import {
+        fileMatchesQuery,
+        fileMatchesQueryIndexed,
+        parseQuery,
+        prefilterCandidatesByIndex,
+      } from "../src/core/search/query.ts";
 
+      // §24.7 quick-switcher keystroke budget.
       const QUICK_SWITCHER_BUDGET_MS = 16;
-      const REGEX_SEARCH_BUDGET_MS = 500;
+      // §24.7 acceptance gate: full-text non-regex query, 10k notes,
+      // < 200 ms to first paint.
+      const FULL_TEXT_SEARCH_BUDGET_MS = 200;
+      // Watchdog only — regex/property path was the OLD verifier gate and
+      // is kept here as a coarse regression check on the regex code path,
+      // but no longer claims to be the §24.7 budget.
+      const REGEX_WATCHDOG_BUDGET_MS = 500;
       const NOTE_COUNT = 10_000;
 
       const emptyMeta = {
@@ -60,7 +73,7 @@
             },
             content:
               i % 250 === 0
-                ? `---\nstatus: ${status}\n---\n# Note ${padded}\nThis line contains target-${i} for the browser regex scan.\n#project`
+                ? `---\nstatus: ${status}\n---\n# Note ${padded}\nThis line contains target-${i} granitemarker keyword for the browser scan.\n#project`
                 : `---\nstatus: ${status}\n---\n# Note ${padded}\nThis note has ordinary searchable body text.\n#project`,
             metadata: {
               ...emptyMeta,
@@ -90,7 +103,35 @@
         return { entries: items.length, timings };
       }
 
-      function runRegexSearchPerf() {
+      // §24.7 GATE: full-text indexed query over a 10k-note vault must
+      // complete in < 200 ms wall time.
+      function runFullTextIndexedPerf() {
+        const contexts = buildSearchContexts();
+        const index = createInvertedIndex();
+        for (const ctx of contexts) index.add(ctx.file.path, ctx.content);
+
+        const query = parseQuery("granitemarker keyword");
+        // Warm
+        fileMatchesQueryIndexed(query, contexts[0], {}, index);
+
+        const start = performance.now();
+        const prefiltered = prefilterCandidatesByIndex(query, index);
+        const matches = contexts.filter((ctx) =>
+          fileMatchesQueryIndexed(query, ctx, {}, index, prefiltered),
+        );
+        const elapsedMs = performance.now() - start;
+        assert(matches.length === 40, "indexed full-text match count changed", {
+          matches: matches.length,
+        });
+        assert(elapsedMs < FULL_TEXT_SEARCH_BUDGET_MS, "indexed full-text search exceeded §24.7 budget", {
+          elapsedMs,
+          budgetMs: FULL_TEXT_SEARCH_BUDGET_MS,
+        });
+        return { notes: contexts.length, matches: matches.length, elapsedMs };
+      }
+
+      // Watchdog only — keeps the regex code path from regressing badly.
+      function runRegexWatchdog() {
         const contexts = buildSearchContexts();
         const query = parseQuery("/target-[0-9]+/ [status:active]");
         const warm = contexts[0];
@@ -100,20 +141,21 @@
         const start = performance.now();
         const matches = contexts.filter((ctx) => fileMatchesQuery(query, ctx));
         const elapsedMs = performance.now() - start;
-        assert(matches.length === 14, "regex/property browser search match count changed", {
+        assert(matches.length === 14, "regex/property browser match count changed", {
           matches: matches.length,
         });
-        assert(elapsedMs < REGEX_SEARCH_BUDGET_MS, "regex browser search exceeded budget", {
+        assert(elapsedMs < REGEX_WATCHDOG_BUDGET_MS, "regex watchdog exceeded budget", {
           elapsedMs,
-          budgetMs: REGEX_SEARCH_BUDGET_MS,
+          budgetMs: REGEX_WATCHDOG_BUDGET_MS,
         });
         return { notes: contexts.length, matches: matches.length, elapsedMs };
       }
 
       function run() {
         const quickSwitcher = runQuickSwitcherPerf();
-        const regexSearch = runRegexSearchPerf();
-        return { ok: true, quickSwitcher, regexSearch };
+        const fullTextSearch = runFullTextIndexedPerf();
+        const regexWatchdog = runRegexWatchdog();
+        return { ok: true, quickSwitcher, fullTextSearch, regexWatchdog };
       }
 
       window.__graniteSearchPerformanceResult = Promise.resolve()

@@ -387,3 +387,70 @@ body:not(.is-phone) .vertical-tab-nav-item.is-active {
   line-height: 1;
   text-align: center;
 }
+.hotkey-settings-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.hotkey-settings-container .setting-item-description {
+  padding-top: 0;
+}
+
+.hotkey-settings-container hr {
+  margin: 20px 0 10px 0;
+}
+
+.hotkey-list-container {
+  overflow: auto;
+}
+
+.hotkey-header-container {
+  justify-content: space-between;
+  padding-bottom: var(--size-4-8);
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.hotkey-filter {
+  align-items: center;
+  background-color: var(--background-modifier-hover);
+  border-radius: var(--radius-s);
+  display: flex;
+  font-size: var(--font-ui-small);
+  padding: var(--size-4-1) var(--size-4-1) var(--size-4-1) var(--size-4-2);
+  gap: var(--size-2-1);
+}
+
+.setting-filter-container {
+  display: flex;
+  gap: var(--size-4-2);
+  margin-bottom: var(--size-4-4);
+}
+
+.input-right-decorator {
+  position: absolute;
+  transform: translateY(-50%);
+  top: 50%;
+  inset-inline-end: var(--input-icon-inset);
+}
+
+.search-input-container.mod-hotkey .clickable-icon {
+  padding: var(--size-2-1);
+}
+
+.hotkey-filter-remove-button {
+  cursor: var(--cursor);
+  color: var(--text-muted);
+  padding: var(--size-2-1);
+  border-radius: var(--radius-s);
+  display: flex;
+  align-items: center;
+  --icon-size: var(--icon-xs);
+  --icon-stroke: var(--icon-xs-stroke-width);
+}
+
+@media (hover: hover) {
+  .hotkey-filter-remove-button:hover {
+    background-color: var(--background-modifier-hover);
+  }
+}

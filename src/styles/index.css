@@ -1,4 +1,9 @@
 @import "./tokens.css";
+/* Obsidian renderer fallback layer — verbatim app.css. Loaded BEFORE
+ * all Granite-specific modules so any selector Granite has customized
+ * wins via cascade order, while every Obsidian rule still exists in
+ * the bundle for selectors Granite does not override. */
+@import "./obsidian-fallback.css";
 @import "./os-modifiers.css";
 @import "./rtl.css";
 @import "./typography.css";
@@ -31,6 +36,7 @@
 @import "./embeds.css";
 @import "./list-container.css";
 @import "./cm-tokens.css";
+@import "./footnotes.css";
 @import "./shell.css";
 @import "./tabs.css";
 @import "./overlays.css";

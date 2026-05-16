@@ -1802,8 +1802,7 @@ body.mod-rtl .bases-table-header-resizer {
   border: var(--border-width) solid var(--background-modifier-border);
   border-radius: var(--radius-m);
   overflow: hidden;
-  background:
-    linear-gradient(var(--background-modifier-border) 1px, transparent 1px),
+  background: linear-gradient(var(--background-modifier-border) 1px, transparent 1px),
     linear-gradient(90deg, var(--background-modifier-border) 1px, transparent 1px),
     var(--background-secondary);
   background-size: 10% 10%;

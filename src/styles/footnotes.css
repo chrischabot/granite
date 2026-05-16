@@ -1,0 +1,93 @@
+/* SPEC: specs/renderer/footnotes.md */
+/* ===========================================================================
+ * Granite — Footnote rendering + Footnotes view
+ * VERBATIM IMPORT from Obsidian app.css §12627-12651 (markdown), §20194-20254
+ * (.footnotes-view leaf).
+ * =========================================================================== */
+
+.footnote-link {
+  text-decoration: none;
+}
+
+.footnotes {
+  font-size: var(--footnote-size);
+}
+
+.footnote-ref {
+  vertical-align: super;
+}
+
+.footnote-backref {
+  display: inline-block;
+  margin-inline-start: var(--size-4-1);
+  color: var(--text-faint);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .footnote-backref:hover {
+    color: var(--text-accent);
+    text-decoration: none;
+  }
+}
+.footnotes-view .footnote {
+  background-color: var(--footnote-input-background);
+  border-radius: var(--footnote-radius);
+  display: flex;
+  gap: var(--footnote-gap);
+  padding-inline: var(--footnote-padding-inline);
+  padding-block: var(--footnote-padding-block);
+}
+
+.footnotes-view .footnote-list-item {
+  border-bottom: var(--footnote-divider-width) solid var(--footnote-divider-color);
+}
+
+.footnotes-view .footnote-list-item.is-editing {
+  border-color: var(--footnote-divider-color-active);
+}
+
+.footnotes-view .footnote-list-item.is-editing > .footnote {
+  background-color: var(--footnote-input-background-active);
+  box-shadow: 0 0 0 var(--input-border-width-focus) var(--background-modifier-border-focus);
+}
+
+.footnotes-view .footnote-list-item:last-child {
+  border-bottom-width: 0;
+}
+
+.footnotes-view .footnote-id {
+  color: var(--footnote-id-color);
+  font-size: var(--footnote-size);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--footnote-line-height);
+}
+
+.footnotes-view .footnote-id::after {
+  content: var(--footnote-id-delimiter);
+}
+
+.footnotes-view .footnote-id.mod-no-occurrences {
+  color: var(--footnote-id-color-no-occurrences);
+}
+
+.footnotes-view .footnote-content {
+  width: 100%;
+  cursor: text;
+}
+
+.footnotes-view .footnote-content .markdown-preview-view,
+.footnotes-view .footnote-content .markdown-source-view {
+  padding: 0;
+  font-size: var(--footnote-size);
+  line-height: var(--footnote-line-height);
+}
+
+.footnotes-view .markdown-embed {
+  padding: 0;
+  border: none;
+}
+
+.footnotes-view .inline-title {
+  display: none;
+}

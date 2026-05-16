@@ -5,7 +5,7 @@ runMain(() =>
     fixture: "docs/index.html",
     viewport: { width: 1100, height: 760 },
     body: async ({ page, baseUrl }) => {
-      await page.getByRole("heading", { name: "Vault format and extension API" }).waitFor();
+      await page.getByRole("heading", { name: "Documentation index" }).waitFor();
 
       const background = await page
         .locator("body")
@@ -24,12 +24,14 @@ runMain(() =>
           })),
         );
       const expected = new Map([
-        ["./vault-format.md", ["Granite Vault Format", "Atomic write", "JSON Canvas"]],
-        ["./plugin-api.md", ["Plugin API", "PluginApi", "loadData"]],
-        [
-          "./contributor-guide.md",
-          ["Contributor Guide", "Plugin API Discipline", "severe-testing.md"],
-        ],
+        ["./getting-started/README.md", ["Getting started", "Installation", "First run"]],
+        ["./user-guide/README.md", ["User guide", "Editor", "Markdown"]],
+        ["./developer/README.md", ["Developer guide", "Architecture", "Testing"]],
+        ["./reference/README.md", ["Reference", "Plugin API", "Vault format"]],
+        ["./sdk/README.md", ["Plugin SDK", "Quickstart", "Manifest"]],
+        ["./reference/vault-format.md", ["Vault format", "Atomic", "JSON Canvas"]],
+        ["./reference/plugin-api.md", ["Plugin API", "PluginApi", "loadData"]],
+        ["./developer/contributing.md", ["Contributing", "Plugin API"]],
       ]);
 
       if (links.length !== expected.size) {

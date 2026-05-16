@@ -73,11 +73,31 @@ specs/               Product and renderer reference specs
 public/              Static assets used by the Vite app
 ```
 
-Useful documentation:
+## Documentation
 
-- [Vault format](docs/vault-format.md)
-- [Plugin API](docs/plugin-api.md)
-- [Contributor guide](docs/contributor-guide.md)
+The full documentation lives under [`docs/`](docs/README.md). Top-level
+sections:
+
+- [Getting started](docs/getting-started/README.md) — install, first run,
+  first note, workspace tour.
+- [User guide](docs/user-guide/README.md) — every Granite feature explained
+  for end users: vaults, editor modes, Markdown syntax, links and embeds,
+  properties and tags, Canvas, Bases, search, graph view, command palette,
+  hotkeys, settings, themes and snippets, plugins, accessibility,
+  troubleshooting.
+- [Developer guide](docs/developer/README.md) — architecture, repo layout,
+  running the dev/preview servers, build and deploy, web app structure,
+  testing, browser verifiers, reporting (notices/errors/file
+  recovery/debug info), CSS and design tokens, i18n, contributing.
+- [Reference](docs/reference/README.md) — parameter-level reference for the
+  Plugin API, vault format, file formats, commands, events, settings,
+  hotkeys, and a glossary.
+- [Plugin SDK](docs/sdk/README.md) — overview, quickstart, manifest,
+  lifecycle, type reference, cookbook, and publishing guide.
+
+Internal references:
+
+- [Stable API and format specifications](specs/api) (plugin API, vault format)
 - [Product specs](specs/product)
 - [Renderer specs](specs/renderer)
 
@@ -213,7 +233,8 @@ Community plugins live under:
 
 Plugins can register commands, status-bar items, workspace events, metadata
 reads, vault reads/writes, data persistence, and settings tabs. See
-[docs/plugin-api.md](docs/plugin-api.md).
+[docs/reference/plugin-api.md](docs/reference/plugin-api.md) and the
+[Plugin SDK](docs/sdk/README.md).
 
 Themes and snippets are normal CSS. Granite's renderer CSS is tokenized so
 themes can override visual variables without patching app logic.
@@ -278,7 +299,7 @@ NODE
 
 ## Contributing
 
-Start with [docs/contributor-guide.md](docs/contributor-guide.md).
+Start with [docs/developer/contributing.md](docs/developer/contributing.md).
 
 The short version:
 

@@ -1,77 +1,74 @@
 :root {
   color-scheme: light dark;
-  --bg: #f8f7f4;
-  --fg: #1e1c19;
-  --muted: #67625b;
-  --border: #d8d1c6;
-  --link: #315f8f;
+  --bg: #fafafa;
+  --fg: #1a1a1a;
+  --muted: #6a6a6a;
+  --link: #2864c8;
+  --border: #e4e4e4;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #181716;
-    --fg: #f4f0ea;
-    --muted: #aaa199;
-    --border: #39342f;
-    --link: #9ec7f2;
+    --bg: #181818;
+    --fg: #f1f1f1;
+    --muted: #9a9a9a;
+    --link: #79a8ff;
+    --border: #2a2a2a;
   }
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
-  line-height: 1.55;
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 
 main {
-  width: min(760px, calc(100% - 40px));
-  margin: 12vh auto;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 5rem;
 }
 
 .eyebrow {
+  margin: 0 0 0.5rem;
   color: var(--muted);
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  margin: 0 0 12px;
+  font-size: 0.85rem;
   text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 h1 {
-  font-size: clamp(2.4rem, 7vw, 5.5rem);
-  letter-spacing: 0;
-  line-height: 0.96;
-  margin: 0 0 24px;
+  margin: 0 0 1rem;
+  font-size: 2rem;
 }
 
 p {
-  color: var(--muted);
-  font-size: 1.1rem;
-  max-width: 62ch;
+  color: var(--fg);
 }
 
-nav {
-  display: grid;
-  gap: 10px;
-  margin-top: 42px;
+nav[aria-label] {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
 }
 
-a {
-  border: 1px solid var(--border);
-  border-radius: 8px;
+nav[aria-label] a {
   color: var(--link);
-  display: block;
-  font-weight: 700;
-  padding: 14px 16px;
   text-decoration: none;
+  font-size: 1.05rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px dotted var(--border);
 }
 
-a:focus-visible,
-a:hover {
-  border-color: currentColor;
-  outline: 2px solid currentColor;
-  outline-offset: 2px;
+nav[aria-label] a:hover,
+nav[aria-label] a:focus-visible {
+  text-decoration: underline;
 }

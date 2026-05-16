@@ -17,11 +17,16 @@ function pluginApiBlock(): string {
 }
 
 describe("public docs site", () => {
-  it("links the required public documentation sections from the static index", () => {
-    const html = read("docs/index.html");
-    expect(html).toContain("vault-format.md");
-    expect(html).toContain("plugin-api.md");
-    expect(html).toContain("contributor-guide.md");
+  it("links the required public documentation sections from the docs index", () => {
+    const readme = read("docs/README.md");
+    expect(readme).toContain("getting-started/");
+    expect(readme).toContain("user-guide/");
+    expect(readme).toContain("developer/");
+    expect(readme).toContain("reference/");
+    expect(readme).toContain("sdk/");
+    expect(readme).toContain("reference/plugin-api.md");
+    expect(readme).toContain("reference/vault-format.md");
+    expect(readme).toContain("developer/contributing.md");
   });
 
   it("wires docs drift and browser reachability checks into package scripts", () => {
@@ -33,7 +38,7 @@ describe("public docs site", () => {
   });
 
   it("documents the vault storage formats and compatibility folders", () => {
-    const doc = read("docs/vault-format.md");
+    const doc = read("docs/reference/vault-format.md");
     for (const required of [
       ".granite/",
       ".obsidian/",
@@ -50,7 +55,7 @@ describe("public docs site", () => {
 
   it("documents every top-level PluginApi member", () => {
     const block = pluginApiBlock();
-    const doc = read("docs/plugin-api.md");
+    const doc = read("docs/reference/plugin-api.md");
     const memberMatches = [
       ...block.matchAll(/readonly\s+([A-Za-z0-9_]+)/g),
       ...block.matchAll(/^\s*([A-Za-z0-9_]+)\(/gm),
@@ -59,7 +64,9 @@ describe("public docs site", () => {
 
     expect(members.length).toBeGreaterThan(0);
     for (const member of members) {
-      expect(doc, `docs/plugin-api.md must document PluginApi.${member}`).toContain(member);
+      expect(doc, `docs/reference/plugin-api.md must document PluginApi.${member}`).toContain(
+        member,
+      );
     }
   });
 });

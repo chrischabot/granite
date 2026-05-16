@@ -26,6 +26,9 @@
 @import "./view-graph.css";
 @import "./view-pdf.css";
 @import "./view-bases.css";
+@import "./view-canvas.css";
+@import "./view-web-viewer.css";
+@import "./embeds.css";
 @import "./shell.css";
 @import "./tabs.css";
 @import "./overlays.css";

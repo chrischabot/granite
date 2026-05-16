@@ -52,9 +52,10 @@
 }
 
 /* -------------------------------------------------------------------------- *
- * Tags
+ * Tags — VERBATIM Obsidian app.css §14690-14710 (global a.tag so the same
+ * pill style applies inside markdown, properties, tag-pane, popovers).
  * -------------------------------------------------------------------------- */
-.markdown-rendered a.tag {
+a.tag {
   background-color: var(--tag-background);
   border: var(--tag-border-width) solid var(--tag-border-color);
   border-radius: var(--tag-radius);
@@ -67,9 +68,9 @@
 }
 
 @media (hover: hover) {
-  .markdown-rendered a.tag:hover {
+  a.tag:hover {
     background-color: var(--tag-background-hover);
-    border-color: var(--tag-border-color-hover);
+    border: var(--tag-border-width) solid var(--tag-border-color-hover);
     color: var(--tag-color-hover);
     text-decoration: var(--tag-decoration-hover);
   }

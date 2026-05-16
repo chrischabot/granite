@@ -52,6 +52,40 @@
   text-align: start;
 }
 
+/* Tag pane — VERBATIM Obsidian app.css §18928-18959. */
+.tag-pane-tag.is-active {
+  background-color: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.tag-pane-tag.is-active .tag-pane-tag-count {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+@media (hover: hover) {
+  .tag-pane-tag.is-active:hover {
+    background-color: var(--interactive-accent);
+    color: var(--text-on-accent);
+  }
+}
+
+.tag-container {
+  font-size: var(--font-ui-small);
+  padding: var(--size-4-3) var(--size-4-3) var(--size-4-8);
+  padding-bottom: max(var(--safe-area-inset-bottom), var(--size-4-8));
+  overflow: auto;
+}
+
+.tree-item-children .tag-pane-tag .tag-pane-tag-parent {
+  display: none;
+}
+
+body:not(.is-phone) .workspace-leaf.mod-active .tree-item.has-focus > .tag-pane-tag {
+  border-radius: var(--radius-s);
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
+}
+
 /* -------------------------------------------------------------------------- *
  * .nav-file-tag — small uppercase extension badge
  * Source: specs/renderer/view-file-explorer.md §4

@@ -1,4 +1,44 @@
 /* SPEC: specs/renderer/progress-bar.md */
+/* ===========================================================================
+ * Granite — Progress bar + native <progress> element
+ * VERBATIM IMPORT from Obsidian app.css §9664-9806.
+ * =========================================================================== */
+
+.notice progress,
+.markdown-preview-view progress,
+.markdown-rendered progress,
+.markdown-source-view.is-live-preview progress {
+  -webkit-writing-mode: horizontal-tb;
+  writing-mode: horizontal-tb;
+  appearance: none;
+  box-sizing: border-box;
+  display: inline-block;
+  height: 6px;
+  margin-bottom: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: 0px;
+  border: 0;
+  vertical-align: -0.2rem;
+}
+
+.notice progress[value]::-webkit-progress-bar,
+.markdown-preview-view progress[value]::-webkit-progress-bar,
+.markdown-rendered progress[value]::-webkit-progress-bar,
+.markdown-source-view.is-live-preview progress[value]::-webkit-progress-bar {
+  background-color: var(--background-secondary);
+  box-shadow: inset 0px 0px 0px 1px var(--background-modifier-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.notice progress[value]::-webkit-progress-value,
+.markdown-preview-view progress[value]::-webkit-progress-value,
+.markdown-rendered progress[value]::-webkit-progress-value,
+.markdown-source-view.is-live-preview progress[value]::-webkit-progress-value {
+  background-color: var(--interactive-accent);
+  overflow: hidden;
+}
 
 .progress-bar-container {
   position: absolute;
@@ -81,4 +121,27 @@
 
 .progress-bar .progress-bar-subline {
   transition: transform 150ms ease-in-out;
+}
+
+@keyframes increase {
+  from {
+    transform: translateX(-5%) scaleX(0.05);
+  }
+  to {
+    transform: translateX(130%) scaleX(1);
+  }
+}
+
+@keyframes decrease {
+  from {
+    transform: translateX(-80%) scaleX(0.8);
+  }
+  to {
+    transform: translateX(110%) scaleX(0.1);
+  }
+}
+
+.progress-bar-context-button {
+  margin-top: var(--size-4-3);
+  text-align: center;
 }

@@ -1,10 +1,13 @@
+/* SPEC: specs/renderer/dropdown-select.md */
 /* ===========================================================================
- * Granite — Dropdown / select
- * Source: specs/renderer/dropdown-select.md
+ * Granite — Dropdown / select / combobox
+ * VERBATIM IMPORT from Obsidian app.css §7852-7937.
  * =========================================================================== */
 
 select,
+.combobox-button,
 .dropdown {
+  -webkit-app-region: no-drag;
   height: var(--input-height);
   font-size: var(--font-ui-small);
   font-family: inherit;
@@ -19,55 +22,62 @@ select,
   border-radius: var(--input-radius);
   -webkit-appearance: none;
   appearance: none;
-  background-color: var(--interactive-normal);
-  padding: 0 1.9em 0 0.8em;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 0.5em center;
-  background-size: 1em auto;
-  cursor: var(--cursor);
+  background-color: var(--dropdown-background);
+  padding: var(--dropdown-padding);
+  background-repeat: no-repeat, repeat;
+  background-position: var(--dropdown-background-position);
+  background-size: var(--dropdown-background-size);
+  background-blend-mode: hard-light;
 }
 
 @media (hover: hover) {
   select:hover,
+  .combobox-button:hover,
   .dropdown:hover {
     box-shadow: var(--input-shadow-hover);
-    background-color: var(--interactive-hover);
+    background-color: var(--dropdown-background-hover);
   }
 }
 
+select.mobile-tap,
+.combobox-button.mobile-tap,
+.dropdown.mobile-tap {
+  box-shadow: var(--input-shadow-hover);
+  background-color: var(--dropdown-background-hover);
+}
+
 select:focus-visible,
+.combobox-button:focus-visible,
 .dropdown:focus-visible {
-  box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
+  box-shadow: 0 0 0px 3px var(--background-modifier-border-focus);
   outline: none;
 }
 
-select option,
+@media (forced-colors: active) {
+  select,
+  .dropdown {
+    border: 1px ButtonBorder solid;
+  }
+}
+
+.dropdown {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23000%27 opacity=%270.9%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 %3E%3Cpath d=%27m7 15 5 5 5-5%27/%3E%3Cpath d=%27m7 9 5-5 5 5%27/%3E%3C/svg%3E");
+}
+
+.theme-dark .dropdown {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2724%27 height=%2724%27 viewBox=%270 0 24 24%27 fill=%27none%27 stroke=%27%23FFF%27 opacity=%270.6%27 stroke-width=%272%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 %3E%3Cpath d=%27m7 15 5 5 5-5%27/%3E%3Cpath d=%27m7 9 5-5 5 5%27/%3E%3C/svg%3E");
+}
+
 .dropdown option {
   font-weight: normal;
   background-color: var(--background-primary);
-  color: var(--text-normal);
 }
 
-input[type="color"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 26px;
-  height: 26px;
-  border: none;
-  background: transparent;
-  cursor: var(--cursor);
-  padding: 0;
+.combobox:not(.has-input-focus) .suggestion-item.is-selected {
+  background-color: transparent;
 }
 
-input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 2px;
-}
-
-input[type="color"]::-webkit-color-swatch {
-  border: 0;
-  box-shadow: inset 0 0 0 1px rgba(var(--mono-rgb-100), 0.15);
-  border-radius: 14px;
-  height: 22px;
-  width: 22px;
+.combobox .search-input-container {
+  --search-icon-color: var(--text-faint);
+  margin-top: 2px;
 }

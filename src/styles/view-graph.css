@@ -110,30 +110,29 @@
   color: var(--interactive-accent);
 }
 
+/* .graph-controls — VERBATIM Obsidian app.css §17209-17301. */
 .graph-controls {
   border-radius: var(--menu-radius);
   position: absolute;
   inset-inline-end: var(--size-4-3);
-  top: calc(var(--size-4-12) + var(--size-2-3));
-  width: var(--graph-controls-width);
-  max-height: calc(100% - var(--size-4-16));
-  overflow: auto;
-  padding: var(--size-4-3);
+  top: var(--size-4-3);
+  padding: 0;
   background-color: var(--menu-background);
+  width: var(--graph-controls-width);
+  overflow: auto;
+}
+
+.graph-controls:not(.is-close) {
+  max-height: calc(100% - var(--size-4-4));
   border: var(--menu-border-width) solid var(--menu-border-color);
-  color: var(--text-muted);
   box-shadow: var(--shadow-s);
-  display: flex;
-  flex-direction: column;
-  gap: var(--size-4-3);
-  font-size: var(--font-ui-smaller);
 }
 
 .graph-controls.is-close {
   min-width: inherit;
   width: auto;
   background-color: var(--background-primary);
-  border-color: transparent;
+  border: var(--menu-border-width) solid transparent;
   padding: var(--size-2-3);
 }
 

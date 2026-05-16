@@ -1,4 +1,5 @@
 /* SPEC: specs/renderer/multi-select.md */
+/* VERBATIM IMPORT from Obsidian app.css §9401-9504. */
 
 .multi-select-container {
   cursor: text;
@@ -92,6 +93,13 @@
   color: var(--input-placeholder-color);
   content: attr(placeholder, "\200B");
   pointer-events: none;
+}
+
+@keyframes multi-select-highlight {
+  from {
+    color: var(--text-warning);
+    --link-color: var(--text-warning);
+  }
 }
 
 .multi-select-duplicate {

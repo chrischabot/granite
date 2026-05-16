@@ -312,8 +312,41 @@ export function registerCoreCommands(handlers: CoreCommandHandlers): () => void 
     id: "canvas:open",
     category: t("command.category.canvas"),
     name: t("command.createNewCanvas"),
-    callback: () => {
-      workspaceStore.openCanvas();
+    callback: async () => {
+      // Spec: "Create new canvas" should actually create a `.canvas` file in
+      // the vault, not just open an empty viewer. We prompt for a filename,
+      // scaffold an empty canvas JSON document, and open it.
+      const { inputPrompt } = await import("@/ui/overlay/inputPrompt");
+      const { run } = await import("@core/effect/runtime");
+      const { FileSystem } = await import("@core/fs/FileSystem");
+      const { Effect } = await import("effect");
+      const { noticeManager } = await import("@core/notices/notice");
+      const raw = await inputPrompt({
+        title: t("command.createNewCanvas"),
+        defaultValue: t("canvas.defaultName"),
+        requireValue: true,
+      });
+      if (!raw) {
+        // Cancelled — fall back to the old behavior of just opening the empty
+        // viewer so the command isn't a complete no-op when the user changes
+        // their mind partway through.
+        workspaceStore.openCanvas();
+        return;
+      }
+      const filename = raw.endsWith(".canvas") ? raw : `${raw}.canvas`;
+      try {
+        await run(
+          Effect.gen(function* () {
+            const fs = yield* FileSystem;
+            const existing = yield* fs.stat(filename);
+            if (existing) throw new Error(t("canvas.error.exists", { path: filename }));
+            yield* fs.writeText(filename, JSON.stringify({ nodes: [], edges: [] }, null, 2));
+          }),
+        );
+        workspaceStore.openCanvas({ path: filename });
+      } catch (err) {
+        noticeManager.show(err instanceof Error ? err.message : String(err), { kind: "error" });
+      }
     },
   });
 

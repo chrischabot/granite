@@ -141,9 +141,8 @@ body:not(.is-phone) .workspace-leaf.mod-active .tree-item-self.has-focus:focus-w
   display: flex;
   flex: 0 0 auto;
   justify-content: center;
-  margin-inline-start: calc(-1 * var(--size-4-5));
+  margin-inline-end: var(--size-2-2);
   opacity: var(--icon-opacity);
-  position: absolute;
   width: var(--size-4-4);
 }
 

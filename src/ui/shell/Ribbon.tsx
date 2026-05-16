@@ -63,13 +63,18 @@ export function Ribbon({
       id: "canvas",
       labelKey: "ribbon.canvas",
       icon: <LayoutDashboard />,
-      onClick: () => workspaceStore.openCanvas(),
+      // Route through the command so it scaffolds an actual `.canvas` file
+      // instead of just opening an empty viewer (which is what
+      // workspaceStore.openCanvas() does on its own).
+      onClick: () => void commandRegistry.run("canvas:open"),
     },
     {
       id: "base",
       labelKey: "ribbon.base",
       icon: <Table />,
-      onClick: () => workspaceStore.openBase(),
+      // Route through the bases-scaffold plugin's command which prompts for a
+      // name and writes a real `.base` file before opening it.
+      onClick: () => void commandRegistry.run("bases:create"),
     },
     {
       id: "daily",

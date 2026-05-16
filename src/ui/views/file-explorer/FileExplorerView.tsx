@@ -52,6 +52,7 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useI18n } from "../../i18n/useI18n";
+import { inputPrompt } from "../../overlay/inputPrompt";
 import { sortNodes } from "./sort";
 
 const FILE_DND_MIME = "application/granite-vault-path";
@@ -221,7 +222,11 @@ export function FileExplorerView() {
 
   const handleNewFile = async () => {
     if (!activeVault) return;
-    const name = prompt(t("fileExplorer.prompt.newNote"), t("fileExplorer.prompt.newNoteDefault"));
+    const name = await inputPrompt({
+      title: t("fileExplorer.prompt.newNote"),
+      defaultValue: t("fileExplorer.prompt.newNoteDefault"),
+      requireValue: true,
+    });
     if (!name) return;
     const filename = name.endsWith(".md") ? name : `${name}.md`;
     const folder = normalize(settingsStore.getState().newNoteFolder);
@@ -245,10 +250,11 @@ export function FileExplorerView() {
 
   const handleNewFolder = async () => {
     if (!activeVault) return;
-    const name = prompt(
-      t("fileExplorer.prompt.newFolder"),
-      t("fileExplorer.prompt.newFolderDefault"),
-    );
+    const name = await inputPrompt({
+      title: t("fileExplorer.prompt.newFolder"),
+      defaultValue: t("fileExplorer.prompt.newFolderDefault"),
+      requireValue: true,
+    });
     if (!name) return;
     try {
       await run(

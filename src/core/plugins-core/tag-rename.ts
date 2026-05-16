@@ -1,4 +1,5 @@
 import { createCommandRegistrar } from "@core/commands/CommandRegistry";
+import { inputPrompt } from "@/ui/overlay/inputPrompt";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { t } from "@core/i18n";
@@ -166,10 +167,11 @@ export async function renameTagAcrossVault(prefilledFrom?: string): Promise<void
       .slice(0, 30)
       .map((tag) => `#${tag.name}`)
       .join(", ")}${tags.length > 30 ? "…" : ""}`;
-    const fromRaw = prompt(
-      t("plugin.tagRename.prompt.from", { tags: tagList }),
-      initialFrom ? `#${initialFrom}` : "",
-    );
+    const fromRaw = await inputPrompt({
+      title: t("plugin.tagRename.prompt.from", { tags: tagList }),
+      defaultValue: initialFrom ? `#${initialFrom}` : "",
+      requireValue: true,
+    });
     if (!fromRaw) return;
     const cleaned = fromRaw.replace(/^#/, "").trim();
     if (!validateTag(cleaned)) {
@@ -178,7 +180,10 @@ export async function renameTagAcrossVault(prefilledFrom?: string): Promise<void
     }
     oldTag = cleaned;
   }
-  const toRaw = prompt(t("plugin.tagRename.prompt.to", { tag: oldTag }));
+  const toRaw = await inputPrompt({
+    title: t("plugin.tagRename.prompt.to", { tag: oldTag }),
+    requireValue: true,
+  });
   if (!toRaw) return;
   const newTag = toRaw.replace(/^#/, "").trim();
   if (!validateTag(newTag)) {

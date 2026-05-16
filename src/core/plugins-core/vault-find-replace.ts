@@ -1,4 +1,5 @@
 import { createCommandRegistrar } from "@core/commands/CommandRegistry";
+import { inputPrompt } from "@/ui/overlay/inputPrompt";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
@@ -59,9 +60,14 @@ export function registerVaultFindReplacePlugin(): () => void {
     category: t("plugin.findReplace.category"),
     name: t("plugin.findReplace.name"),
     callback: async () => {
-      const find = prompt(t("plugin.findReplace.prompt.find"), "");
+      const find = await inputPrompt({
+        title: t("plugin.findReplace.prompt.find"),
+        requireValue: true,
+      });
       if (!find) return;
-      const replace = prompt(t("plugin.findReplace.prompt.replace", { find }), "");
+      const replace = await inputPrompt({
+        title: t("plugin.findReplace.prompt.replace", { find }),
+      });
       if (replace === null) return;
       const caseSensitive = confirm(t("plugin.findReplace.confirm.matchCase"));
       const regex = confirm(t("plugin.findReplace.confirm.regex"));

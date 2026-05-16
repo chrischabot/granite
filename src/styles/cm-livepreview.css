@@ -2,9 +2,16 @@
  * Granite — CodeMirror "Live-Preview lite" source styling
  * Source: specs/renderer/editor-source-mode.md, editor-codemirror.md
  *
- * This is a pure-CSS treatment that makes source-mode markdown look closer to
- * the rendered output: headings get heading sizes, formatting characters dim,
- * inline code keeps a tinted pill, links color accent. No CM decorations.
+ * Two layers cooperate to fake a rendered look on top of the source text:
+ *
+ *   1. `cm-livepreview-decorations` hides formatting markers (`**`, `[[`, `]]`,
+ *      heading `#`s, table pipes, etc.) via Decoration.replace.
+ *   2. `cm-livepreview-classes` tags lines/marks with semantic classes
+ *      (`.cm-codeblock`, `.cm-hashtag`, `.cm-link`, `.cm-inline-code`, …)
+ *      so the styles below take effect.
+ *
+ * Both passes are additive — they leave the source text editable; this file
+ * only paints visuals on top of what the decorators already mark.
  * =========================================================================== */
 
 .cm-host .cm-formatting-code,
@@ -17,17 +24,113 @@
   font-family: var(--font-monospace);
   font-size: var(--code-size);
   background-color: var(--code-background);
-  padding: 0.1em 0.2em;
+  padding: 0.1em 0.3em;
   border-radius: var(--code-radius);
   color: var(--code-normal);
 }
 
 /* ----- Code blocks ---- */
 .cm-host .cm-line.HyperMD-codeblock,
-.cm-host .cm-codeblock {
+.cm-host .cm-line.cm-codeblock {
   font-family: var(--font-monospace);
   font-size: var(--code-size);
   background-color: var(--code-background);
+  border-left: 1px solid var(--background-modifier-border);
+  border-right: 1px solid var(--background-modifier-border);
+  padding-inline: 0.6em;
+}
+
+.cm-host .cm-line.HyperMD-codeblock-begin {
+  border-top: 1px solid var(--background-modifier-border);
+  border-top-left-radius: var(--code-radius);
+  border-top-right-radius: var(--code-radius);
+  padding-top: 0.2em;
+}
+
+.cm-host .cm-line.HyperMD-codeblock-end {
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-bottom-left-radius: var(--code-radius);
+  border-bottom-right-radius: var(--code-radius);
+  padding-bottom: 0.2em;
+}
+
+/* ----- Tables ---- */
+.cm-host .cm-line.HyperMD-table-row {
+  font-family: var(--font-monospace);
+  font-size: 0.95em;
+  background-color: var(--background-secondary);
+  padding-inline: 0.6em;
+}
+
+.cm-host .cm-line.cm-table-row-head {
+  font-weight: 600;
+  border-top: 1px solid var(--background-modifier-border);
+  border-top-left-radius: var(--radius-m, 6px);
+  border-top-right-radius: var(--radius-m, 6px);
+}
+
+.cm-host .cm-line.cm-table-sep {
+  color: var(--text-faint);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.cm-host .cm-line.HyperMD-table-row:last-child {
+  border-bottom: 1px solid var(--background-modifier-border);
+  border-bottom-left-radius: var(--radius-m, 6px);
+  border-bottom-right-radius: var(--radius-m, 6px);
+}
+
+/* ----- Blockquote / Callout ---- */
+.cm-host .cm-line.HyperMD-quote,
+.cm-host .cm-line.cm-quote-line {
+  color: var(--blockquote-color, var(--text-muted));
+  border-left: 3px solid var(--background-modifier-border);
+  padding-inline-start: 0.8em;
+  font-style: italic;
+}
+
+.cm-host .cm-line.HyperMD-callout,
+.cm-host .cm-line.cm-callout {
+  background-color: var(--callout-bg, color-mix(in srgb, var(--text-accent) 8%, transparent));
+  border-left: 4px solid var(--text-accent);
+  padding-inline-start: 0.8em;
+  font-style: normal;
+  color: var(--text-normal);
+}
+
+.cm-host .cm-quote {
+  color: var(--blockquote-color, var(--text-muted));
+}
+
+/* ----- Lists ---- */
+.cm-host .cm-line.HyperMD-list,
+.cm-host .cm-line.cm-list-line {
+  padding-inline-start: 1.2em;
+}
+
+/* ----- Frontmatter ---- */
+.cm-host .cm-line.cm-frontmatter {
+  background-color: var(--background-secondary);
+  font-family: var(--font-monospace);
+  font-size: 0.92em;
+  color: var(--text-muted);
+}
+
+.cm-host .cm-line.cm-frontmatter-fence {
+  color: var(--text-faint);
+  user-select: none;
+}
+
+/* Suppress lezer-markdown's setext-heading styling that would otherwise paint
+   `key: value` lines as headings (Lezer treats the closing `---` as a
+   SetextHeading underline). The decoration system already excludes frontmatter
+   from marker-hide; this resets the syntax highlight too. */
+.cm-host .cm-line.cm-frontmatter * {
+  font-weight: inherit !important;
+  font-style: inherit !important;
+  text-decoration: none !important;
+  font-size: inherit !important;
+  color: inherit !important;
 }
 
 /* ----- Links + tags ---- */
@@ -53,14 +156,17 @@
   font-size: var(--tag-size);
 }
 
-/* ----- Quote ---- */
-.cm-host .cm-quote {
-  color: var(--blockquote-color);
+/* ----- Footnote refs ---- */
+.cm-host .cm-footnote-ref {
+  font-size: 0.75em;
+  vertical-align: super;
+  color: var(--text-accent);
+  text-decoration: none;
 }
 
-/* ----- List bullet ---- */
-.cm-host .cm-list-1,
-.cm-host .cm-list-2,
-.cm-host .cm-list-3 {
-  /* defer styling to default; ensure baseline alignment */
+/* ----- Block IDs ---- */
+.cm-host .cm-block-id {
+  font-family: var(--font-monospace);
+  font-size: 0.8em;
+  color: var(--text-faint);
 }

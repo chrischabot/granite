@@ -23,6 +23,9 @@ export function OutgoingLinksView() {
 
   return (
     <div className="outgoing-link-pane">
+      <div className="sidedock-pane-header">
+        {t("outgoing.count", { count: meta.links.length })}
+      </div>
       <div className="search-result-container mod-global-search">
         {meta.links.map((l) => {
           const path = l.target.endsWith(".md") ? l.target : `${l.target}.md`;

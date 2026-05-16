@@ -1,5 +1,7 @@
 import { useMetadataCache } from "@core/metadata/useMetadata";
 import { bindNativeHistory } from "@core/workspace/native-history";
+import { bindRecentsToFs } from "@core/workspace/recents";
+import { useVault } from "./ui/vault/VaultContext";
 import { useCallback, useEffect, useState } from "react";
 import { A11yAnnouncer, WorkspaceA11yAnnouncements } from "./ui/A11yAnnouncer";
 import { CssClassesBinder } from "./ui/CssClassesBinder";
@@ -9,6 +11,7 @@ import { ErrorBoundary } from "./ui/overlay/ErrorBoundary";
 import { HoverPopoverHost } from "./ui/overlay/HoverPopover";
 import { MenuHost } from "./ui/overlay/Menu";
 import { NoticeContainer } from "./ui/overlay/NoticeContainer";
+import { OverlayHost } from "./ui/overlay/OverlayHost";
 import { TooltipHost } from "./ui/overlay/Tooltip";
 import { CommandPalette } from "./ui/prompts/CommandPalette";
 import { FileRecoveryModal } from "./ui/prompts/FileRecoveryModal";
@@ -34,6 +37,15 @@ function MetadataCacheBinder() {
 
 function NativeHistoryBinder() {
   useEffect(() => bindNativeHistory(), []);
+  return null;
+}
+
+function RecentsFsBinder() {
+  const { activeVault } = useVault();
+  useEffect(() => {
+    if (!activeVault) return;
+    return bindRecentsToFs();
+  }, [activeVault]);
   return null;
 }
 
@@ -67,6 +79,7 @@ export function App() {
         <VaultProvider>
           <MetadataCacheBinder />
           <NativeHistoryBinder />
+          <RecentsFsBinder />
           <CssClassesBinder />
           <LocaleDirectionBinder />
           <A11yAnnouncer />
@@ -109,6 +122,7 @@ export function App() {
           <TooltipHost />
           <MenuHost />
           <HoverPopoverHost />
+          <OverlayHost />
         </VaultProvider>
       </ThemeProvider>
     </ErrorBoundary>

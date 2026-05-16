@@ -413,7 +413,10 @@ export function GraphView() {
       } else if (config.colorMode === "folder") {
         return folderColorForPath(n.path);
       }
-      return "var(--text-muted)";
+      // Canvas2D fillStyle silently rejects CSS var() strings, so resolve at
+      // build time. The token is roughly --text-muted but we pick a hex that
+      // reads OK against both the light and dark backgrounds.
+      return "#888888";
     },
     [config.colorMode, config.groups],
   );

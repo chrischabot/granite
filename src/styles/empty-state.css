@@ -67,14 +67,27 @@
 }
 
 .workspace-sidedock-empty-state {
-  align-items: center;
+  /* Top-align so the empty-state text reads like a short description sitting
+     just below the pane header, not as a centered block hugging the bottom of
+     the panel (which looks like orphaned text). */
+  align-items: flex-start;
   color: var(--text-faint);
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
   font-size: var(--font-ui-small);
-  justify-content: center;
-  padding: var(--size-4-6);
-  text-align: center;
+  justify-content: flex-start;
+  padding: var(--size-4-4) var(--size-4-3);
+  text-align: start;
+}
+
+.sidedock-pane-header {
+  border-bottom: 1px solid var(--background-modifier-border);
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: var(--size-2-3) var(--size-4-3);
+  text-transform: uppercase;
 }
 
 .feedback-banner-container {

@@ -1,4 +1,5 @@
 import { createCommandRegistrar } from "@core/commands/CommandRegistry";
+import { inputPrompt } from "@/ui/overlay/inputPrompt";
 import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { workspaceStore } from "@core/workspace/store";
@@ -104,8 +105,11 @@ export function registerWorkspacesPlugin(): () => void {
     id: "workspaces:save",
     category: t("plugin.workspaces.category"),
     name: t("plugin.workspaces.save"),
-    callback: () => {
-      const name = prompt(t("plugin.workspaces.prompt.save"), "");
+    callback: async () => {
+      const name = await inputPrompt({
+        title: t("plugin.workspaces.prompt.save"),
+        requireValue: true,
+      });
       if (!name) return;
       const data = load();
       data.layouts[name] = serialize(workspaceStore.getState());
@@ -118,7 +122,7 @@ export function registerWorkspacesPlugin(): () => void {
     id: "workspaces:load",
     category: t("plugin.workspaces.category"),
     name: t("plugin.workspaces.load"),
-    callback: () => {
+    callback: async () => {
       const data = load();
       const names = Object.keys(data.layouts);
       if (names.length === 0) {
@@ -126,7 +130,7 @@ export function registerWorkspacesPlugin(): () => void {
         return;
       }
       const labels = names.map((n, i) => `${i + 1}. ${n}`).join("\n");
-      const pick = prompt(t("plugin.workspaces.prompt.load", { labels }));
+      const pick = await inputPrompt({ title: t("plugin.workspaces.prompt.load", { labels }) });
       const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
       const chosenName = names[n];
       if (!chosenName) return;
@@ -147,7 +151,7 @@ export function registerWorkspacesPlugin(): () => void {
     id: "workspaces:delete",
     category: t("plugin.workspaces.category"),
     name: t("plugin.workspaces.delete"),
-    callback: () => {
+    callback: async () => {
       const data = load();
       const names = Object.keys(data.layouts);
       if (names.length === 0) {
@@ -155,7 +159,7 @@ export function registerWorkspacesPlugin(): () => void {
         return;
       }
       const labels = names.map((n, i) => `${i + 1}. ${n}`).join("\n");
-      const pick = prompt(t("plugin.workspaces.prompt.delete", { labels }));
+      const pick = await inputPrompt({ title: t("plugin.workspaces.prompt.delete", { labels }) });
       const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
       const chosenName = names[n];
       if (!chosenName) return;

@@ -2,6 +2,7 @@ import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { workspaceStore } from "@core/workspace/store";
+import { inputPrompt } from "@/ui/overlay/inputPrompt";
 
 export function registerWebViewerPlugin(): () => void {
   const { register, disposer } = createCommandRegistrar();
@@ -10,8 +11,12 @@ export function registerWebViewerPlugin(): () => void {
     id: "web-viewer:open",
     category: t("plugin.webViewer.category"),
     name: t("plugin.webViewer.open"),
-    callback: () => {
-      const url = prompt(t("plugin.webViewer.prompt.url"), "https://");
+    callback: async () => {
+      const url = await inputPrompt({
+        title: t("plugin.webViewer.prompt.url"),
+        defaultValue: "https://",
+        requireValue: true,
+      });
       if (!url) return;
       try {
         // Validate the URL.

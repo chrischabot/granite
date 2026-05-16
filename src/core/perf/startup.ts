@@ -61,6 +61,21 @@ export function showStartupTimingReport(): string {
   return message;
 }
 
+// The number we treat as "how long startup took." Prefer concrete paint/load
+// milestones; only fall back to performance.now() when the page is still in
+// the middle of its load lifecycle. Using nowMs directly is a bug: if the
+// notice fires (or is checked) after the user has been clicking around, the
+// figure keeps growing and no longer represents startup time.
+export function effectiveStartupMs(report: StartupTimingReport): number {
+  return (
+    report.firstContentfulPaintMs ??
+    report.loadEventMs ??
+    report.domContentLoadedMs ??
+    report.firstPaintMs ??
+    report.nowMs
+  );
+}
+
 export function maybeShowSlowStartupNotice({
   enabled,
   thresholdMs = STARTUP_EXPECTED_MS,
@@ -70,10 +85,11 @@ export function maybeShowSlowStartupNotice({
   readonly thresholdMs?: number;
   readonly report?: StartupTimingReport;
 }): string | null {
-  if (!enabled || report.nowMs <= thresholdMs) return null;
+  const elapsedMs = effectiveStartupMs(report);
+  if (!enabled || elapsedMs <= thresholdMs) return null;
   const message = [
     t("startupTiming.slowNotice", {
-      elapsed: `${Math.round(report.nowMs).toLocaleString()} ms`,
+      elapsed: `${Math.round(elapsedMs).toLocaleString()} ms`,
       expected: `${thresholdMs.toLocaleString()} ms`,
     }),
     "",

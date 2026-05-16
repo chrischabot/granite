@@ -14,6 +14,7 @@ import { Effect } from "effect";
 import { Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useI18n } from "../../i18n/useI18n";
+import { inputPrompt } from "../../overlay/inputPrompt";
 
 type ValueType = "text" | "number" | "checkbox" | "list" | "json" | "date" | "datetime";
 
@@ -119,7 +120,7 @@ export function PropertiesView() {
 
   const handleAdd = useCallback(async () => {
     if (!activePath) return;
-    const key = prompt(t("properties.addPrompt"));
+    const key = await inputPrompt({ title: t("properties.addPrompt"), requireValue: true });
     if (!key) return;
     const trimmed = key.trim();
     if (!trimmed) return;

@@ -1,6 +1,7 @@
 import { ExternalLink, FolderOpen, FolderPlus, Globe, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "../i18n/useI18n";
+import { inputPrompt } from "../overlay/inputPrompt";
 import { Modal } from "../overlay/Modal";
 import { useVault } from "../vault/VaultContext";
 
@@ -38,8 +39,12 @@ export function VaultPicker({ open, onClose }: VaultPickerProps) {
     }
   };
 
-  const onCreateOpfs = () => {
-    const name = prompt(t("vaultPicker.prompt.opfsName"), t("vaultPicker.prompt.opfsDefault"));
+  const onCreateOpfs = async () => {
+    const name = await inputPrompt({
+      title: t("vaultPicker.prompt.opfsName"),
+      defaultValue: t("vaultPicker.prompt.opfsDefault"),
+      requireValue: true,
+    });
     if (!name) return;
     void wrap(() => openOpfs(name));
   };

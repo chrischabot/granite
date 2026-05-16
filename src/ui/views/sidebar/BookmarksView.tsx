@@ -1,5 +1,6 @@
 import { ClickableIcon } from "@/ui/controls/ClickableIcon";
 import { useI18n } from "@/ui/i18n/useI18n";
+import { inputPrompt } from "@/ui/overlay/inputPrompt";
 import { useVault } from "@/ui/vault/VaultContext";
 import { stem } from "@core/fs/path";
 import { getDefaultLocaleText } from "@core/i18n";
@@ -297,13 +298,13 @@ export function BookmarksView() {
     });
   }, [activePath, activeGroup]);
 
-  const addHeading = useCallback(() => {
+  const addHeading = useCallback(async () => {
     if (!activePath || !meta || meta.headings.length === 0) {
       noticeManager.show(t("bookmarks.notice.noHeadings"), { kind: "warning" });
       return;
     }
     const labels = meta.headings.map((h, i) => `${i + 1}. ${h.text}`).join("\n");
-    const pick = prompt(t("bookmarks.prompt.pickHeading", { labels }));
+    const pick = await inputPrompt({ title: t("bookmarks.prompt.pickHeading", { labels }) });
     const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
     const h = meta.headings[n];
     if (!h) return;
@@ -320,7 +321,7 @@ export function BookmarksView() {
     ]);
   }, [activePath, meta, activeGroup, t]);
 
-  const addBlock = useCallback(() => {
+  const addBlock = useCallback(async () => {
     if (!activePath || !meta || meta.blocks.length === 0) {
       noticeManager.show(t("bookmarks.notice.noBlocks"), {
         kind: "warning",
@@ -330,7 +331,7 @@ export function BookmarksView() {
     const labels = meta.blocks
       .map((b, i) => `${i + 1}. ^${b.id} (${t("bookmarks.line", { line: b.line + 1 })})`)
       .join("\n");
-    const pick = prompt(t("bookmarks.prompt.pickBlock", { labels }));
+    const pick = await inputPrompt({ title: t("bookmarks.prompt.pickBlock", { labels }) });
     const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
     const blk = meta.blocks[n];
     if (!blk) return;
@@ -347,8 +348,8 @@ export function BookmarksView() {
     ]);
   }, [activePath, meta, activeGroup, t]);
 
-  const addSearch = useCallback(() => {
-    const query = prompt(t("bookmarks.prompt.searchQuery"), "");
+  const addSearch = useCallback(async () => {
+    const query = await inputPrompt({ title: t("bookmarks.prompt.searchQuery"), requireValue: true });
     if (!query) return;
     setBookmarks((prev) => [
       ...prev,
@@ -362,8 +363,8 @@ export function BookmarksView() {
     ]);
   }, [activeGroup, t]);
 
-  const addGroup = useCallback(() => {
-    const name = prompt(t("bookmarks.prompt.groupName"), "");
+  const addGroup = useCallback(async () => {
+    const name = await inputPrompt({ title: t("bookmarks.prompt.groupName"), requireValue: true });
     if (!name) return;
     const trimmed = name.trim();
     if (!trimmed) return;

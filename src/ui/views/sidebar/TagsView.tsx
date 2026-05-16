@@ -135,8 +135,14 @@ function TagRow({
             })}
             style={{
               width: 14,
+              padding: 0,
+              border: 0,
+              background: "transparent",
+              color: "inherit",
+              cursor: "pointer",
               display: "inline-flex",
               alignItems: "center",
+              justifyContent: "center",
             }}
             onClick={(e) => {
               e.stopPropagation();

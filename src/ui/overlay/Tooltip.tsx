@@ -67,11 +67,27 @@ export function TooltipHost() {
       }
     };
 
+    // Detach the tooltip if the anchor element is removed from the DOM (e.g.
+    // when navigating to a different leaf). Without this, React swaps the
+    // toolbar out from under us, no mouseout ever fires, and the tooltip is
+    // stranded mid-air with stale text.
+    const dropIfOrphaned = () => {
+      const tgt = targetRef.current;
+      if (tgt && !tgt.isConnected) {
+        targetRef.current = null;
+        if (timerRef.current) clearTimeout(timerRef.current);
+        setState(null);
+      }
+    };
+    const mo = new MutationObserver(dropIfOrphaned);
+    mo.observe(document.body, { childList: true, subtree: true });
+
     document.addEventListener("mouseover", onOver);
     document.addEventListener("mouseout", onOut);
     return () => {
       document.removeEventListener("mouseover", onOver);
       document.removeEventListener("mouseout", onOut);
+      mo.disconnect();
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);

@@ -1,4 +1,5 @@
 import { createCommandRegistrar } from "@core/commands/CommandRegistry";
+import { inputPrompt } from "@/ui/overlay/inputPrompt";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { extension, stem } from "@core/fs/path";
@@ -132,10 +133,11 @@ export function registerNoteComposerPlugin(): () => void {
         noticeManager.show(t("plugin.noteComposer.noSelection"), { kind: "warning" });
         return;
       }
-      const name = prompt(
-        t("plugin.noteComposer.prompt.newNote"),
-        t("plugin.noteComposer.defaultName"),
-      );
+      const name = await inputPrompt({
+        title: t("plugin.noteComposer.prompt.newNote"),
+        defaultValue: t("plugin.noteComposer.defaultName"),
+        requireValue: true,
+      });
       if (!name) return;
       const filename = name.endsWith(".md") ? name : `${name}.md`;
       try {
@@ -180,9 +182,10 @@ export function registerNoteComposerPlugin(): () => void {
         return;
       }
       const sourcePath = leaf.state.path;
-      const target = prompt(
-        t("plugin.noteComposer.prompt.mergeTarget", { name: stem(sourcePath) }),
-      );
+      const target = await inputPrompt({
+        title: t("plugin.noteComposer.prompt.mergeTarget", { name: stem(sourcePath) }),
+        requireValue: true,
+      });
       if (!target) return;
       if (extension(target) !== "md") {
         noticeManager.show(t("plugin.noteComposer.error.targetMustBeMarkdown"), {

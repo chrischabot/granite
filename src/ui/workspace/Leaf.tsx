@@ -1,4 +1,5 @@
 import { commandRegistry } from "@core/commands/CommandRegistry";
+import { noticeManager } from "@core/notices/notice";
 import { useSettings } from "@core/settings/useSettings";
 import { workspaceStore } from "@core/workspace/store";
 import type { Leaf } from "@core/workspace/types";
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { ClickableIcon } from "../controls/ClickableIcon";
 import { useI18n } from "../i18n/useI18n";
+import { inputPrompt } from "../overlay/inputPrompt";
 import { useVault } from "../vault/VaultContext";
 import { AssetView } from "../views/AssetView";
 import { BasesView } from "../views/BasesView";
@@ -155,14 +157,17 @@ function EmptyLeafBody() {
             <button
               type="button"
               disabled={!canUseOpfs}
-              onClick={() => {
-                const name = prompt(
-                  t("vaultPicker.prompt.opfsName"),
-                  t("vaultPicker.prompt.opfsDefault"),
-                );
+              onClick={async () => {
+                const name = await inputPrompt({
+                  title: t("vaultPicker.prompt.opfsName"),
+                  defaultValue: t("vaultPicker.prompt.opfsDefault"),
+                  requireValue: true,
+                });
                 if (!name) return;
                 void openOpfs(name).catch((err) => {
-                  alert(err instanceof Error ? err.message : String(err));
+                  noticeManager.show(err instanceof Error ? err.message : String(err), {
+                    kind: "error",
+                  });
                 });
               }}
               title={t("workspace.empty.createBrowserVaultTitle")}

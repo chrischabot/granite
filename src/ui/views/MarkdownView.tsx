@@ -32,6 +32,7 @@ import type { VaultPath } from "@core/fs/types";
 import { t as i18n } from "@core/i18n";
 import { noteDirectionFromFrontmatter } from "@core/i18n/direction";
 import { isSupportedAttachmentMime, saveAttachment } from "@core/markdown/attach";
+import { livePreviewClasses } from "@core/markdown/cm-livepreview-classes";
 import { livePreviewDecorations } from "@core/markdown/cm-livepreview-decorations";
 import { unresolvedWikilinkExtension } from "@core/markdown/cm-unresolved-wikilinks";
 import {
@@ -218,7 +219,7 @@ export function MarkdownView({
           icons: false,
         }),
         unresolvedWikilinkExtension,
-        livePreview ? livePreviewDecorations : [],
+        livePreview ? [livePreviewDecorations, livePreviewClasses] : [],
         syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
         markdown({ base: markdownLanguage }),
         EditorView.lineWrapping,

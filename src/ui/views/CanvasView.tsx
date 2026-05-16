@@ -29,6 +29,7 @@ import { workspaceStore } from "@core/workspace/store";
 import { FileText, LinkIcon, Magnet, Maximize2, Trash2, Type, ZoomIn, ZoomOut } from "lucide-react";
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "../i18n/useI18n";
+import { inputPrompt } from "../overlay/inputPrompt";
 
 export interface CanvasViewProps {
   path: string | undefined;
@@ -223,13 +224,13 @@ export function CanvasView({ path }: CanvasViewProps) {
     setSelectedIds([]);
   }, [mutate]);
 
-  const addTextNode = useCallback(() => {
+  const addTextNode = useCallback(async () => {
     const el = containerRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const cx = (rect.width / 2 - view.x) / view.scale;
     const cy = (rect.height / 2 - view.y) / view.scale;
-    const text = prompt(t("canvas.prompt.newTextNode"), "");
+    const text = await inputPrompt({ title: t("canvas.prompt.newTextNode") });
     if (text === null) return;
     const node: TextNode = {
       id: newCanvasId(),

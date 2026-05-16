@@ -1,0 +1,241 @@
+/* SPEC: specs/renderer/list-container.md */
+/* ===========================================================================
+ * Granite — List container + document search/replace bar
+ * VERBATIM IMPORT from Obsidian app.css §7583-7820.
+ * =========================================================================== */
+
+.list-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--size-4-1);
+}
+
+.list-container.has-row-lines .list-item {
+  margin: 0 calc(var(--size-4-4) * -1);
+  padding: var(--size-4-2) var(--size-4-4);
+}
+
+.list-item {
+  border-radius: var(--radius-m);
+  display: flex;
+  margin: var(--size-4-2) 0;
+  gap: var(--size-4-2);
+  align-items: center;
+}
+
+.list-item.mod-selectable {
+  cursor: var(--cursor);
+}
+
+.list-item.mod-selectable.mobile-tap {
+  background-color: var(--background-modifier-hover);
+}
+
+@media (hover: hover) {
+  .list-item.mod-selectable:hover {
+    background-color: var(--background-modifier-hover);
+  }
+}
+
+.list-item.mod-empty {
+  color: var(--text-faint);
+  font-size: var(--font-ui-small);
+  padding: var(--size-4-4);
+  text-align: center;
+  margin: 0 auto;
+}
+
+.list-item-separator {
+  width: 100%;
+  border-bottom: var(--border-width) solid var(--background-modifier-border);
+}
+
+.list-item-actions {
+  display: flex;
+  gap: var(--size-4-2);
+}
+
+.list-item-part.mod-extended {
+  flex-grow: 1;
+  overflow-wrap: anywhere;
+}
+
+.list-item-part.clickable-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--size-2-2);
+  cursor: var(--cursor);
+  border-radius: var(--radius-s);
+  color: var(--icon-color);
+}
+
+.list-item-part.clickable-icon:hover,
+.list-item-part.clickable-icon:active {
+  color: var(--icon-color-hover);
+  background-color: var(--background-modifier-hover);
+}
+
+.list-item-desc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--size-4-2);
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+  width: 100%;
+}
+
+.u-center-text {
+  text-align: center;
+}
+
+.u-faded-text {
+  color: var(--text-muted);
+}
+
+.u-pop {
+  color: var(--text-accent);
+  font-weight: var(--font-semibold);
+}
+
+.u-break-word {
+  overflow-wrap: break-word;
+}
+
+.u-muted {
+  color: var(--text-muted);
+}
+
+.u-small {
+  font-size: 0.8em;
+}
+
+.u-clickable {
+  cursor: var(--cursor);
+}
+
+/* In file recovery, sync version history, and publish diff */
+.diff-view {
+  user-select: text;
+}
+
+.diff-line {
+  padding: 0 var(--size-4-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-line.mod-left {
+  background-color: rgba(var(--background-modifier-error-rgb), 0.2);
+}
+
+.diff-line.mod-left .diff-changed {
+  background-color: rgba(var(--background-modifier-error-rgb), 0.4);
+}
+
+.diff-line.mod-right {
+  background-color: rgba(var(--background-modifier-success-rgb), 0.2);
+}
+
+.diff-line.mod-right .diff-changed {
+  background-color: rgba(var(--background-modifier-success-rgb), 0.4);
+}
+
+.diff-collapsed {
+  text-align: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: var(--font-ui-small);
+  margin: var(--size-4-2) 0;
+}
+
+@media (hover: hover) {
+  .diff-collapsed:hover {
+    color: var(--text-accent);
+  }
+}
+
+/* Document search and replace */
+/*
+Moves search to the top
+#todo move this into DOM */
+.markdown-reading-view.is-searching,
+.markdown-source-view.is-replacing,
+.markdown-source-view.is-searching {
+  flex-direction: column-reverse;
+}
+
+/* Container for dcoument search/replace UI */
+.mod-active .document-search-container {
+  background-color: var(--background-primary);
+}
+
+.document-search-container {
+  display: flex;
+  flex-direction: column;
+  padding: var(--size-4-2) 0;
+  margin: 0 var(--size-4-4);
+  gap: var(--size-4-2);
+  z-index: var(--layer-popover);
+}
+
+.document-search,
+.document-replace {
+  width: 100%;
+  max-width: var(--file-line-width);
+  margin: 0 auto;
+  display: flex;
+  padding: 0 var(--size-4-2);
+  gap: var(--size-4-2);
+}
+
+.document-replace {
+  display: none;
+}
+
+.document-search-container.mod-replace-mode .document-replace {
+  display: flex;
+}
+
+.document-search-input,
+.document-replace-input {
+  flex-grow: 1;
+}
+
+.document-search-input.mod-no-match,
+.document-replace-input.mod-no-match {
+  background-color: rgba(var(--background-modifier-error-rgb), 0.2);
+}
+
+@media (hover: hover) {
+  .document-search-input.mod-no-match:hover,
+  .document-replace-input.mod-no-match:hover {
+    background-color: rgba(var(--background-modifier-error-rgb), 0.2);
+  }
+}
+
+.document-search-count {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-variant-numeric: tabular-nums;
+  position: absolute;
+  transform: translateY(-50%);
+  top: 50%;
+  inset-inline-end: var(--size-4-2);
+}
+
+.search-input-clear-button ~ .document-search-count {
+  inset-inline-end: var(--size-4-8);
+}
+
+.document-replace-buttons,
+.document-search-buttons {
+  display: flex;
+  gap: var(--size-4-1);
+  align-items: center;
+}
+
+.document-search-button {
+  font-size: var(--font-ui-small);
+  color: var(--text-muted);
+}

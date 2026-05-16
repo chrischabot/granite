@@ -86,3 +86,138 @@
     page-break-inside: avoid;
   }
 }
+
+/* ===========================================================================
+ * VERBATIM Obsidian app.css print blocks (xfa fields, dark-theme mix,
+ * outer print container reset, embed print rules).
+ * =========================================================================== */
+
+@media print {
+  .xfaTextfield,
+  .xfaSelect {
+    background: transparent;
+  }
+
+  .xfaSelect {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    text-indent: 1px;
+    text-overflow: "";
+  }
+}
+@media print {
+  .theme-dark {
+    --highlight-mix-blend-mode: darken;
+  }
+}
+@media print {
+  html,
+  body {
+    padding-top: 0 !important;
+    overflow: auto !important;
+    height: auto !important;
+    contain: initial !important;
+  }
+
+  iframe,
+  .titlebar,
+  .app-container,
+  .progress-bar,
+  .popover,
+  .markdown-embed-link,
+  .suggestion-container,
+  .cm-tooltip.cm-tooltip-autocomplete {
+    display: none !important;
+  }
+
+  body > :not(.print) {
+    display: none !important;
+  }
+
+  .print .markdown-preview-view {
+    -webkit-print-color-adjust: exact;
+    color: initial;
+    height: unset !important;
+  }
+
+  .print .markdown-preview-view mark {
+    color: initial;
+  }
+
+  .print .markdown-preview-view .metadata-container {
+    display: none;
+  }
+
+  .print .markdown-preview-view .markdown-embed-content {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .print .markdown-preview-view .callout-content {
+    display: inherit !important;
+  }
+
+  .print .bases-toolbar svg.lucide-chevrons-up-down {
+    display: none;
+  }
+
+  .print .bases-toolbar .bases-toolbar-item.bases-toolbar-sort-menu,
+  .print .bases-toolbar .bases-toolbar-item.bases-toolbar-filter-menu,
+  .print .bases-toolbar .bases-toolbar-item.bases-toolbar-properties-menu,
+  .print .bases-toolbar .bases-toolbar-item.bases-toolbar-new-item-menu {
+    display: none;
+  }
+
+  .print .external-link {
+    background: none;
+    padding-right: 0;
+  }
+
+  * {
+    text-shadow: none !important;
+  }
+
+  webview {
+    display: none;
+  }
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  body {
+    --font-text: var(--font-print) !important;
+  }
+}
+@media print {
+  code[class*="language-"] {
+    text-shadow: none;
+  }
+}
+@media print {
+  .pdf-embed:not(.canvas-node-content) {
+    align-items: center;
+    border: none;
+    justify-content: center;
+    max-height: 80vh;
+  }
+
+  .pdf-embed:not(.canvas-node-content) .pdf-container,
+  .pdf-embed:not(.canvas-node-content) .pdf-toolbar {
+    display: none;
+  }
+
+  .pdf-embed:not(.canvas-node-content) .canvasWrapper {
+    border-radius: var(--radius-s);
+    border: 1px solid var(--background-modifier-border);
+    max-height: 100%;
+    overflow: hidden;
+    width: fit-content;
+  }
+
+  .pdf-embed:not(.canvas-node-content) canvas {
+    height: auto;
+    width: 100%;
+  }
+}

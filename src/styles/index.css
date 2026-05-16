@@ -29,6 +29,7 @@
 @import "./view-canvas.css";
 @import "./view-web-viewer.css";
 @import "./embeds.css";
+@import "./list-container.css";
 @import "./shell.css";
 @import "./tabs.css";
 @import "./overlays.css";

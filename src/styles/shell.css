@@ -297,9 +297,23 @@
   display: none;
 }
 
-/* -------------------------------------------------------------------------- *
- * .workspace-ribbon
- * -------------------------------------------------------------------------- */
+/* .workspace-ribbon — VERBATIM from Obsidian app.css §4693-4764. */
+.workspace-ribbon.mod-left {
+  margin-top: var(--header-height);
+}
+
+.workspace-ribbon.mod-left:before {
+  -webkit-app-region: drag;
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-color: var(--titlebar-background);
+  content: " ";
+  border-bottom: var(--tab-outline-width) solid var(--tab-outline-color);
+  height: var(--header-height);
+  width: var(--ribbon-width);
+}
+
 .workspace-ribbon {
   width: var(--ribbon-width);
   flex: 0 0 var(--ribbon-width);
@@ -312,7 +326,12 @@
   padding: var(--ribbon-padding);
   gap: var(--size-4-1);
   border-right: var(--divider-width) solid var(--divider-color);
-  position: relative;
+}
+
+.workspace-ribbon.mod-left.is-collapsed {
+  transition: background-color 250ms 95ms ease-in-out;
+  background-color: var(--ribbon-background-collapsed);
+  border-right-color: var(--divider-color);
 }
 
 .workspace-ribbon.mod-right {
@@ -321,6 +340,10 @@
 
 .workspace-ribbon.is-hidden {
   display: none;
+}
+
+.workspace-ribbon.is-collapsed {
+  background-color: var(--background-secondary);
 }
 
 body:not(.show-ribbon) {
@@ -332,16 +355,13 @@ body:not(.show-ribbon) .side-dock-ribbon {
   display: none;
 }
 
-.side-dock-actions,
-.side-dock-settings {
+.side-dock-settings,
+.side-dock-actions {
   flex-direction: column;
-  display: flex;
-  gap: var(--size-4-1);
-  align-items: center;
 }
 
-.side-dock-actions .side-dock-ribbon-action,
-.side-dock-settings .side-dock-ribbon-action {
+.side-dock-settings .side-dock-ribbon-action,
+.side-dock-actions .side-dock-ribbon-action {
   margin: 0 auto;
 }
 
@@ -390,9 +410,28 @@ body:not(.show-ribbon) .side-dock-ribbon {
   height: var(--header-height);
   flex: 0 0 auto;
   gap: var(--size-2-1);
-  padding: 0 var(--size-4-2);
+  padding: 0 var(--size-4-1);
   background-color: var(--tab-container-background);
   border-bottom: var(--tab-outline-width) solid var(--tab-outline-color);
+  overflow: hidden;
+  /* Constrain to parent's content box so icons never bleed past the
+     sidebar's right divider. min-width:0 lets flex compute width from the
+     container rather than from the natural sum of icon widths. */
+  min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
+  scrollbar-width: none;
+}
+
+.workspace-sidebar-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.workspace-sidebar-tabs > * {
+  /* Allow icons to shrink so we don't punch through the container. */
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .workspace-sidebar-content {
@@ -442,7 +481,8 @@ body:not(.is-fullscreen) .status-bar {
   border-radius: var(--radius-s);
   display: inline-flex;
   align-items: center;
-  padding: 3px var(--size-2-2);
+  gap: var(--size-2-2);
+  padding: 3px var(--size-2-3);
   line-height: 1;
 }
 
@@ -551,9 +591,7 @@ body:not(.is-fullscreen) .status-bar {
   gap: var(--size-2-1);
 }
 
-/* -------------------------------------------------------------------------- *
- * .view-header (per-leaf chrome above content)
- * -------------------------------------------------------------------------- */
+/* .view-header — VERBATIM IMPORT from Obsidian app.css §4449-4564. */
 .view-header {
   height: var(--header-height);
   display: flex;
@@ -563,25 +601,36 @@ body:not(.is-fullscreen) .status-bar {
   position: relative;
   gap: var(--size-4-2);
   padding: 0 var(--size-4-3);
-  align-items: center;
-  flex: 0 0 auto;
 }
 
 body:not(.show-view-header):not(.is-phone) .view-header {
   display: none;
 }
 
+.is-focused .workspace-leaf.mod-active .view-header {
+  background-color: var(--file-header-background-focused);
+}
+
 .workspace-split.mod-left-split .view-header,
-.workspace-split.mod-right-split .view-header {
+.workspace-split.mod-right-split .view-header,
+.workspace-fake-target-overlay.is-in-sidebar .view-header {
   display: none;
 }
 
-.view-header-left,
-.view-header-nav-buttons {
+.view-header.is-highlighted:after {
+  content: " ";
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  inset-inline-start: 0;
+  background-color: hsla(var(--interactive-accent-hsl), 0.5);
+}
+
+.view-header-left {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: var(--size-2-1);
 }
 
 .view-header-title-container {
@@ -598,20 +647,6 @@ body:not(.show-view-header):not(.is-phone) .view-header {
   min-width: 0;
 }
 
-.view-header-title {
-  flex: 0 0 auto;
-  max-width: 100%;
-  word-wrap: normal;
-  color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: pre;
-}
-
-.is-focused .workspace-leaf.mod-active .view-header-title {
-  color: var(--text-normal);
-}
-
 .view-header-title-parent {
   color: var(--text-muted);
   flex: 0 100 auto;
@@ -625,15 +660,62 @@ body:not(.show-view-header):not(.is-phone) .view-header {
   display: none;
 }
 
+.view-header-title-parent .view-header-breadcrumb {
+  padding: 2px 4px;
+  border-radius: var(--radius-s);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.view-header-title-parent .view-header-breadcrumb.has-active-menu {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+@media (hover: hover) {
+  .view-header-title-parent .view-header-breadcrumb:hover {
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+  }
+}
+
+.view-header-title-parent .view-header-breadcrumb-separator {
+  padding: 2px 1px;
+  color: var(--text-faint);
+}
+
+.view-header-title {
+  flex: 0 0 auto;
+  max-width: 100%;
+  word-wrap: normal;
+  color: var(--text-muted);
+  overflow: hidden;
+  scroll-padding-inline-end: 20px;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+
+.view-header-title:focus-within {
+  max-width: 100%;
+  overflow: auto;
+  text-overflow: unset;
+}
+
+.is-focused .workspace-leaf.mod-active .view-header-title {
+  color: var(--text-normal);
+}
+
+.view-header-title::-webkit-scrollbar {
+  display: none;
+}
+
 .view-actions {
   display: flex;
   align-items: center;
   gap: var(--size-2-1);
 }
 
-/* -------------------------------------------------------------------------- *
- * .view-content
- * -------------------------------------------------------------------------- */
+/* .view-content — Obsidian app.css §4566-4585. */
 .view-content {
   width: 100%;
   height: calc(100% - var(--header-height));

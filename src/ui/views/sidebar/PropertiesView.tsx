@@ -11,12 +11,33 @@ import { useFileMetadata } from "@core/metadata/useMetadata";
 import { noticeManager } from "@core/notices/notice";
 import { useWorkspace } from "@core/workspace/useWorkspace";
 import { Effect } from "effect";
-import { Plus, Trash2 } from "lucide-react";
+import {
+  AlignLeft,
+  Braces,
+  Calendar,
+  CalendarClock,
+  CheckSquare,
+  Hash,
+  List,
+  Plus,
+  Trash2,
+} from "lucide-react";
+import type { ReactElement } from "react";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { useI18n } from "../../i18n/useI18n";
 import { inputPrompt } from "../../overlay/inputPrompt";
 
 type ValueType = "text" | "number" | "checkbox" | "list" | "json" | "date" | "datetime";
+
+const TYPE_ICON: Record<ValueType, (props: { size: number }) => ReactElement> = {
+  text: ({ size }) => <AlignLeft size={size} />,
+  number: ({ size }) => <Hash size={size} />,
+  checkbox: ({ size }) => <CheckSquare size={size} />,
+  list: ({ size }) => <List size={size} />,
+  json: ({ size }) => <Braces size={size} />,
+  date: ({ size }) => <Calendar size={size} />,
+  datetime: ({ size }) => <CalendarClock size={size} />,
+};
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const ISO_DATETIME_RE =
@@ -134,14 +155,14 @@ export function PropertiesView() {
   const entries = Object.entries(meta?.frontmatter ?? {});
 
   return (
-    <div className="metadata-container" style={{ padding: "var(--size-4-3)" }}>
+    <div className="metadata-container">
       <div className="metadata-properties">
         {entries.length === 0 ? (
           <div
             style={{
               color: "var(--text-faint)",
               fontSize: "var(--font-ui-small)",
-              padding: "var(--size-4-3) 0",
+              padding: "var(--size-4-3) var(--size-2-3)",
             }}
           >
             {t("properties.empty.noProperties", { addLabel: t("properties.addLabel") })}
@@ -160,12 +181,8 @@ export function PropertiesView() {
           ))
         )}
       </div>
-      <button
-        type="button"
-        onClick={() => void handleAdd()}
-        style={{ marginTop: "var(--size-4-3)" }}
-      >
-        <Plus size={14} style={{ marginRight: "var(--size-2-2)" }} />
+      <button type="button" className="metadata-add-property" onClick={() => void handleAdd()}>
+        <Plus size={14} />
         {t("properties.addAction")}
       </button>
     </div>
@@ -219,31 +236,16 @@ function PropertyRow({
     onChange(newRaw);
   };
 
+  const TypeIcon = TYPE_ICON[type];
   return (
-    <div
-      className="metadata-property"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "var(--size-4-2)",
-        padding: "var(--size-2-2) var(--size-4-1)",
-      }}
-    >
-      <div
-        className="metadata-property-key"
-        style={{
-          minWidth: 100,
-          maxWidth: 140,
-          fontWeight: "var(--font-medium)",
-          color: "var(--text-muted)",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {propKey}
+    <div className="metadata-property">
+      <div className="metadata-property-key" title={propKey}>
+        <span className="metadata-property-key-icon" aria-hidden="true">
+          <TypeIcon size={14} />
+        </span>
+        <span className="metadata-property-key-text">{propKey}</span>
       </div>
-      <div className="metadata-property-value" style={{ flex: "1 1 auto", minWidth: 0 }}>
+      <div className="metadata-property-value">
         {type === "checkbox" ? (
           <input
             type="checkbox"
@@ -313,9 +315,8 @@ function PropertyRow({
       <button
         type="button"
         aria-label={t("properties.remove", { name: propKey })}
-        className="clickable-icon"
+        className="clickable-icon metadata-property-remove"
         onClick={onRemove}
-        style={{ padding: 2 }}
       >
         <Trash2 size={14} />
       </button>

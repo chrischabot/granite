@@ -1,6 +1,7 @@
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { listStatusBarItems, subscribeStatusBarItems } from "@core/plugins/host-registries";
+import { useSettings } from "@core/settings/useSettings";
 import { workspaceStore } from "@core/workspace/store";
 import { useWorkspace } from "@core/workspace/useWorkspace";
 import { Effect } from "effect";
@@ -30,6 +31,7 @@ export function StatusBar() {
   const t = useI18n();
   const { activeVault } = useVault();
   const { groups, leaves, activeGroupId } = useWorkspace();
+  const settings = useSettings();
   const [wordCount, setWordCount] = useState<number | null>(null);
   const pluginItems = useSyncExternalStore(
     subscribeStatusBarItems,
@@ -95,7 +97,11 @@ export function StatusBar() {
 
   const cycleMode = () => {
     if (!activeLeafId || !activeMode) return;
-    const next = activeMode === "reading" ? "source" : "reading";
+    // Match Obsidian's status-bar toggle: read ↔ edit. The editor's preferred
+    // "edit" mode is whichever the user chose in Settings → defaultEditingMode
+    // (defaults to live-preview), so toggling out of reading lands on the
+    // user's normal editing surface rather than always raw source.
+    const next = activeMode === "reading" ? settings.defaultEditingMode : "reading";
     workspaceStore.setMode(activeLeafId, next);
   };
 

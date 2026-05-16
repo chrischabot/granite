@@ -398,6 +398,26 @@ function scanTree(
           if (!isOnCursorLine(from, to)) hides.push({ from, to });
           return false;
         }
+        case "Blockquote": {
+          // Hide the leading `>` (plus following space) on each line of a
+          // blockquote when the cursor is not on that line. Descend so that
+          // callout headers, inline marks, and nested children inside the
+          // quote still get processed.
+          const startLine = lineOfPos(from);
+          const endLine = lineOfPos(Math.max(from, to - 1));
+          for (let n = startLine; n <= endLine; n++) {
+            if (n === cursorLineIndex) continue;
+            const lineFrom = lineStartByIndex[n] ?? 0;
+            const lineToNext = lineStartByIndex[n + 1];
+            const lineEnd = lineToNext != null ? lineToNext - 1 /* trim newline */ : text.length;
+            const lineText = text.slice(lineFrom, lineEnd);
+            const m = /^\s*(?:>\s*)+/.exec(lineText);
+            if (m && m[0].length > 0) {
+              hides.push({ from: lineFrom, to: lineFrom + m[0].length });
+            }
+          }
+          return;
+        }
         case "ATXHeading1":
         case "ATXHeading2":
         case "ATXHeading3":

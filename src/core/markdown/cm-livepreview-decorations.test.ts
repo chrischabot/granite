@@ -207,8 +207,10 @@ describe("computeLivePreviewRanges", () => {
   });
 
   it("hides callout type and fold marker while keeping title text", () => {
+    // The leading `> ` is also hidden in Live Preview (Obsidian behaviour);
+    // ordering follows the order ranges were emitted by the scanner.
     const slices = hiddenSlices("> [!warning]+ Careful", -1);
-    expect(slices).toEqual(["[!warning]+"]);
+    expect(slices).toEqual(["> ", "[!warning]+"]);
   });
 
   it("hides heading markers on non-cursor lines", () => {

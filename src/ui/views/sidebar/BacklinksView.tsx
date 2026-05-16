@@ -91,9 +91,7 @@ export function BacklinksView() {
   return (
     <div className="backlink-pane">
       {links.length > 0 && (
-        <div className="sidedock-pane-header">
-          {t("backlinks.count", { count: links.length })}
-        </div>
+        <div className="sidedock-pane-header">{t("backlinks.count", { count: links.length })}</div>
       )}
       {links.length === 0 ? (
         <div

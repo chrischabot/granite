@@ -60,7 +60,7 @@ export function OutlineView() {
               type="button"
               key={`${h.line}:${h.text}`}
               className={`tree-item-self is-clickable${activeIndex === i ? " is-active" : ""}`}
-              style={{ paddingInlineStart: 24 + (h.level - 1) * 16 }}
+              style={{ paddingInlineStart: 8 + (h.level - 1) * 16 }}
               onClick={() => {
                 setActiveIndex(i);
                 const group = activeGroupId ? groups.get(activeGroupId) : null;

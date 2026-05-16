@@ -1,8 +1,8 @@
+import { inputPrompt } from "@/ui/overlay/inputPrompt";
 import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { workspaceStore } from "@core/workspace/store";
-import { inputPrompt } from "@/ui/overlay/inputPrompt";
 
 export function registerWebViewerPlugin(): () => void {
   const { register, disposer } = createCommandRegistrar();

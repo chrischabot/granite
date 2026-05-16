@@ -1,99 +1,188 @@
 /* ===========================================================================
- * Granite — Callouts (.callout)
- * Source: specs/renderer/editor-callouts.md
+ * Granite — Callouts + blockquote
+ * VERBATIM IMPORT from Obsidian app.css §11663-11894.
  * =========================================================================== */
 
-.callout {
-  --callout-color: var(--color-blue-rgb);
-  overflow: hidden;
-  border-style: solid;
-  border-color: rgba(var(--callout-color), 0.25);
-  border-width: 0;
-  border-inline-start-width: 4px;
-  border-radius: var(--radius-s);
-  margin: 1em 0;
-  background-color: rgba(var(--callout-color), 0.1);
-  padding: var(--size-4-3);
-  mix-blend-mode: var(--highlight-mix-blend-mode);
+.markdown-rendered blockquote {
+  color: var(--blockquote-color);
+  font-style: var(--blockquote-font-style);
+  background-color: var(--blockquote-background-color);
+  border-inline-start: var(--blockquote-border-thickness) solid var(--blockquote-border-color);
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-inline-start: var(--size-4-6);
+  margin-inline-start: 0;
+  margin-inline-end: 0;
 }
 
-.callout[data-callout="note"] {
-  --callout-color: var(--color-blue-rgb);
-}
-.callout[data-callout="abstract"] {
-  --callout-color: var(--color-cyan-rgb);
-}
-.callout[data-callout="info"] {
-  --callout-color: var(--color-blue-rgb);
-}
-.callout[data-callout="todo"] {
-  --callout-color: var(--color-blue-rgb);
-}
-.callout[data-callout="tip"] {
-  --callout-color: var(--color-cyan-rgb);
-}
-.callout[data-callout="important"] {
-  --callout-color: var(--color-cyan-rgb);
-}
-.callout[data-callout="success"] {
-  --callout-color: var(--color-green-rgb);
-}
-.callout[data-callout="question"] {
-  --callout-color: var(--color-orange-rgb);
-}
-.callout[data-callout="warning"] {
-  --callout-color: var(--color-orange-rgb);
-}
-.callout[data-callout="failure"] {
-  --callout-color: var(--color-red-rgb);
-}
-.callout[data-callout="danger"] {
-  --callout-color: var(--color-red-rgb);
-}
-.callout[data-callout="bug"] {
-  --callout-color: var(--color-red-rgb);
-}
-.callout[data-callout="example"] {
-  --callout-color: var(--color-purple-rgb);
-}
-.callout[data-callout="quote"] {
-  --callout-color: 158, 158, 158;
-}
-
-.callout-title {
-  display: flex;
-  align-items: center;
-  gap: var(--size-4-1);
-  color: rgb(var(--callout-color));
-  line-height: var(--line-height-tight);
-  font-weight: var(--bold-weight);
-  margin-bottom: var(--size-4-1);
-}
-
-.callout-title-inner {
-  font-size: 1em;
-}
-
-.callout-content {
-  color: var(--text-normal);
-}
-
-.callout-content > :first-child {
+.markdown-rendered blockquote > :first-child {
   margin-top: 0;
 }
 
-.callout-content > :last-child {
+.markdown-rendered blockquote > :last-child {
   margin-bottom: 0;
 }
 
-.callout-content .callout {
-  margin-top: var(--size-4-3);
+.cm-host .cm-quote {
+  color: var(--blockquote-color);
 }
 
-/* Footnote rendering (markdown-it-footnote output) */
+.cm-host .cm-formatting-quote {
+  color: var(--text-faint);
+}
+
+.callout {
+  --callout-color: var(--callout-default);
+  --callout-icon: lucide-pencil;
+  overflow: hidden;
+  border-style: solid;
+  border-color: rgba(var(--callout-color), var(--callout-border-opacity));
+  border-width: var(--callout-border-width);
+  border-radius: var(--callout-radius);
+  margin: 1em 0;
+  mix-blend-mode: var(--callout-blend-mode);
+  background-color: rgba(var(--callout-color), 0.1);
+  padding: var(--callout-padding);
+}
+
+.callout[data-callout="abstract"],
+.callout[data-callout="summary"],
+.callout[data-callout="tldr"] {
+  --callout-color: var(--callout-summary);
+}
+.callout[data-callout="info"] {
+  --callout-color: var(--callout-info);
+}
+.callout[data-callout="todo"] {
+  --callout-color: var(--callout-todo);
+}
+.callout[data-callout="important"] {
+  --callout-color: var(--callout-important);
+}
+.callout[data-callout="tip"],
+.callout[data-callout="hint"] {
+  --callout-color: var(--callout-tip);
+}
+.callout[data-callout="success"],
+.callout[data-callout="check"],
+.callout[data-callout="done"] {
+  --callout-color: var(--callout-success);
+}
+.callout[data-callout="question"],
+.callout[data-callout="help"],
+.callout[data-callout="faq"] {
+  --callout-color: var(--callout-question);
+}
+.callout[data-callout="warning"],
+.callout[data-callout="caution"],
+.callout[data-callout="attention"] {
+  --callout-color: var(--callout-warning);
+}
+.callout[data-callout="failure"],
+.callout[data-callout="fail"],
+.callout[data-callout="missing"] {
+  --callout-color: var(--callout-fail);
+}
+.callout[data-callout="danger"],
+.callout[data-callout="error"] {
+  --callout-color: var(--callout-error);
+}
+.callout[data-callout="bug"] {
+  --callout-color: var(--callout-bug);
+}
+.callout[data-callout="example"] {
+  --callout-color: var(--callout-example);
+}
+.callout[data-callout="quote"],
+.callout[data-callout="cite"] {
+  --callout-color: var(--callout-quote);
+}
+
+.callout.is-collapsible .callout-title {
+  cursor: var(--cursor);
+}
+
+.callout-title {
+  padding: var(--callout-title-padding);
+  display: flex;
+  gap: var(--size-4-1);
+  font-size: var(--callout-title-size);
+  color: rgb(var(--callout-color));
+  line-height: var(--line-height-tight);
+  align-items: flex-start;
+}
+
+.callout-content {
+  overflow-x: auto;
+  padding: var(--callout-content-padding);
+  background-color: var(--callout-content-background);
+}
+
+.callout-content .callout {
+  margin-top: 20px;
+}
+
+.callout-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+}
+
+.callout-icon .svg-icon {
+  color: rgb(var(--callout-color));
+}
+
+.callout-icon::after {
+  content: "\200B";
+}
+
+.callout-title-inner {
+  --font-weight: var(--callout-title-weight);
+  font-weight: var(--font-weight);
+  color: var(--callout-title-color);
+}
+
+.callout-fold {
+  display: flex;
+  align-items: center;
+  padding-inline-end: var(--size-4-2);
+}
+
+.callout-fold::after {
+  content: "\200B";
+}
+
+.callout-fold .svg-icon {
+  transition: transform 100ms ease-in-out;
+}
+
+.callout-fold.is-collapsed .svg-icon {
+  transform: rotate(calc(var(--direction) * -1 * 90deg));
+}
+
+.cm-host .callout {
+  margin: 0;
+}
+
+.cm-host .callout-content .callout {
+  margin: 1em 0;
+}
+
+/* Footnote rendering (markdown-it-footnote output) — Obsidian-compatible. */
 .markdown-rendered .footnote-ref {
   vertical-align: super;
   font-size: 0.8em;
+}
+
+.markdown-rendered .footnote-ref a {
+  color: var(--text-accent);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .markdown-rendered .footnote-ref a:hover {
+    text-decoration: underline;
+  }
 }
 
 .markdown-rendered .footnotes-sep {

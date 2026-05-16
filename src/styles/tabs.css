@@ -1,6 +1,6 @@
 /* ===========================================================================
  * Granite — Tabs
- * Source: specs/renderer/tabs.md §2-§9
+ * VERBATIM IMPORT from Obsidian app.css §6703-7002.
  * =========================================================================== */
 
 .workspace-tab-header-container {
@@ -15,58 +15,118 @@
 }
 
 .workspace-tab-header-container-inner {
+  -webkit-app-region: drag;
   display: flex;
-  flex: 1 1 auto;
-  overflow-x: auto;
-  margin: 6px 0 calc(var(--tab-outline-width) * -1);
-  padding: 1px 0 0;
-  scrollbar-width: none;
-  align-items: stretch;
+  flex: 0 1 auto;
+  overflow: auto;
+  margin: 6px -5px calc(var(--tab-outline-width) * -1);
+  padding: 1px 15px 0;
 }
 
-.workspace-tab-header-container-inner::-webkit-scrollbar {
+.workspace-tab-header-container-inner::-webkit-scrollbar,
+.workspace-tab-header-container-inner::-webkit-scrollbar-thumb {
   display: none;
 }
 
-.workspace-tab-header-spacer {
+.workspace-tab-header-inner-icon {
+  flex: 0 0 auto;
   display: flex;
-  flex-grow: 1;
 }
 
-.workspace-tab-header {
-  color: var(--tab-text-color);
-  display: flex;
-  position: relative;
-  padding: 1px 0;
-  text-align: center;
-  border-radius: var(--tab-radius-active);
-  flex: 0 1 auto;
-  width: var(--tab-width);
-  min-width: 4rem;
-  max-width: var(--tab-max-width);
-  cursor: var(--cursor);
+.mod-root .workspace-tab-header[data-type="markdown"] .workspace-tab-header-inner-icon,
+.mod-root .workspace-tab-header[data-type="empty"] .workspace-tab-header-inner-icon {
+  display: none;
 }
 
-.workspace-tab-header.is-active {
-  box-shadow: 0 0 0 var(--tab-outline-width) var(--tab-outline-color);
-  color: var(--tab-text-color-active);
-  background-color: var(--tab-background-active);
-}
-
-@media (hover: hover) {
-  .workspace-tab-header:not(.is-active):hover .workspace-tab-header-inner {
-    background-color: var(--background-modifier-hover);
-  }
+.mod-root .workspace-tab-header.mod-unknown {
+  font-style: italic;
 }
 
 body.is-focused .workspace-tab-header-container .workspace-tab-header {
   color: var(--tab-text-color-focused);
 }
+
 body.is-focused .workspace-tab-header-container .workspace-tab-header.is-active {
   color: var(--tab-text-color-focused-active);
 }
-body.is-focused .mod-root .workspace-tab-header-container .workspace-tab-header.is-active {
+
+body.is-focused
+  .mod-active
+  .workspace-tab-header-container
+  .workspace-tab-header.is-active
+  .workspace-tab-header-inner-icon,
+body.is-focused
+  .mod-active
+  .workspace-tab-header-container
+  .workspace-tab-header.is-active
+  .workspace-tab-header-inner-title {
   color: var(--tab-text-color-focused-active-current);
+}
+
+.workspace-tab-header-container .workspace-tab-header {
+  -webkit-app-region: no-drag;
+  color: var(--tab-text-color);
+  display: flex;
+  position: relative;
+  padding: 1px 4px 3.5px;
+  scroll-margin-inline-start: var(--size-2-3);
+  scroll-margin-inline-end: var(--size-4-1);
+  text-align: center;
+  border-radius: var(--tab-radius-active);
+}
+
+@media (hover: hover) {
+  .workspace-tab-header-container
+    .workspace-tab-header:not(.is-active):hover
+    .workspace-tab-header-inner {
+    background-color: var(--background-modifier-hover);
+  }
+}
+
+.workspace-tab-header-container .workspace-tab-header::before,
+.workspace-tab-header-container .workspace-tab-header::after {
+  position: absolute;
+  bottom: 0;
+  content: "";
+  width: calc(var(--tab-curve) * 2);
+  height: calc(var(--tab-curve) * 2);
+  border-radius: 100%;
+  box-shadow: 0 0 0 calc(var(--tab-curve) * 3) transparent;
+}
+
+.workspace-tab-header-container .workspace-tab-header::before {
+  left: calc(var(--tab-curve) * -2);
+  clip-path: inset(50% calc(var(--tab-curve) * -1) 0 50%);
+}
+
+.workspace-tab-header-container .workspace-tab-header::after {
+  right: calc(var(--tab-curve) * -2);
+  clip-path: inset(50% 50% 0 calc(var(--tab-curve) * -1));
+}
+
+.workspace-tab-header-container .workspace-tab-header.is-active {
+  box-shadow: 0 0 0 var(--tab-outline-width) var(--tab-outline-color);
+  color: var(--tab-text-color-active);
+  background-color: var(--tab-background-active);
+}
+
+.workspace-split.mod-root .workspace-tab-header-container .workspace-tab-header.is-active::before,
+.workspace-split.mod-root .workspace-tab-header-container .workspace-tab-header.is-active::after {
+  box-shadow: inset 0 0 0 var(--tab-outline-width) var(--tab-outline-color), 0 0 0
+    calc(var(--tab-curve) * 4) var(--tab-background-active);
+}
+
+.workspace-tab-header-container .workspace-tab-header.is-active .workspace-tab-header-inner::after {
+  opacity: 0;
+}
+
+.workspace-tab-container {
+  display: flex;
+  overflow: hidden;
+}
+
+.workspace-tab-container > * {
+  flex: 1 0 0;
 }
 
 .workspace-tab-header-inner {
@@ -76,8 +136,27 @@ body.is-focused .mod-root .workspace-tab-header-container .workspace-tab-header.
   height: 100%;
   border-radius: var(--tab-radius);
   overflow: hidden;
-  padding: 0 var(--size-2-3);
+  padding: 0 8px;
   width: 100%;
+}
+
+.workspace-tab-header-inner .workspace-tab-header-inner-icon {
+  color: var(--icon-color);
+  opacity: var(--icon-opacity);
+}
+
+@media (hover: hover) {
+  .workspace-tab-header-inner:hover .workspace-tab-header-inner-icon {
+    color: var(--icon-color-hover);
+    opacity: var(--icon-opacity-hover);
+  }
+}
+
+.mod-root .workspace-tab-header-inner {
+  padding-top: 0;
+  padding-inline-end: 3px;
+  padding-inline-start: 6px;
+  padding-bottom: 0;
 }
 
 .workspace-tab-header-inner-title {
@@ -88,123 +167,109 @@ body.is-focused .mod-root .workspace-tab-header-container .workspace-tab-header.
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 100%;
 }
 
 .workspace-tab-header-status-container {
   display: flex;
   flex-shrink: 0;
   gap: var(--size-2-1);
+  justify-content: center;
 }
 
 .workspace-tab-header-status-container:empty {
   display: none;
 }
 
-.workspace-tab-header-status-icon {
-  display: flex;
-  align-items: center;
+.workspace-tab-header-status-icon,
+.workspace-tab-header-inner-close-button {
+  cursor: var(--cursor);
   padding: var(--size-2-1);
   border-radius: var(--radius-s);
-  color: var(--text-accent);
-  cursor: var(--cursor);
+  display: flex;
+  align-items: center;
+  --icon-size: var(--icon-xs);
+  --icon-stroke: var(--icon-xs-stroke-width);
 }
 
 @media (hover: hover) {
-  .workspace-tab-header.is-active .workspace-tab-header-status-icon:hover {
-    background-color: var(--background-modifier-active-hover);
+  .workspace-tab-header.is-active .workspace-tab-header-status-icon:hover,
+  .workspace-tab-header.is-active .workspace-tab-header-inner-close-button:hover {
+    background-color: var(--background-modifier-hover);
   }
 }
 
-.workspace-tab-header-inner-close-button {
-  background: transparent;
-  border: 0;
-  cursor: var(--cursor);
-  padding: var(--size-2-1);
-  border-radius: var(--radius-s);
-  color: var(--tab-text-color-focused);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.workspace-tab-header:not(.is-active) .workspace-tab-header-inner-close-button {
-  display: none;
-}
-
-.workspace-tab-header:hover .workspace-tab-header-inner-close-button {
-  display: flex;
+.workspace-tab-header.is-active .workspace-tab-header-status-icon::after,
+.workspace-tab-header.is-active .workspace-tab-header-inner-close-button::after {
+  background-color: transparent;
 }
 
 @media (hover: hover) {
   .workspace-tab-header-inner-close-button:hover {
-    background-color: var(--background-modifier-hover);
     color: var(--tab-text-color-focused-active-current);
   }
 }
 
+.workspace-tab-header:hover .workspace-tab-header-inner-close-button {
+  color: var(--tab-text-color-focused);
+}
+
+@media (hover: hover) {
+  .workspace-tab-header:hover .workspace-tab-header-inner-close-button:hover {
+    color: var(--tab-text-color-focused-active-current);
+  }
+}
+
+.workspace-tab-header.is-active .workspace-tab-header-inner-close-button {
+  color: var(--tab-text-color-focused-active);
+}
+
+@media (hover: hover) {
+  .workspace-tab-header.is-active .workspace-tab-header-inner-close-button:hover {
+    color: var(--tab-text-color-focused-active-current);
+  }
+}
+
+.workspace-tab-header.is-before-active .workspace-tab-header-inner {
+  border-bottom-right-radius: 10px;
+}
+
+.workspace-tab-header-spacer {
+  display: flex;
+  flex-grow: 1;
+}
+
+body:not(.is-grabbing):not(.is-fullscreen) .workspace-tabs.mod-top .workspace-tab-header-spacer {
+  -webkit-app-region: drag;
+}
+
 .workspace-tab-header-tab-list,
 .workspace-tab-header-new-tab {
+  -webkit-app-region: no-drag;
   display: flex;
+  z-index: 1;
+  align-items: center;
+}
+
+.workspace-tab-header-tab-list .clickable-icon,
+.workspace-tab-header-new-tab .clickable-icon {
+  color: var(--icon-color);
+  padding: var(--size-2-2);
+  --icon-size: var(--icon-m);
+  --icon-stroke: var(--icon-m-stroke-width);
   align-items: center;
 }
 
 .workspace-tab-header-new-tab {
   padding: var(--size-4-2) 0 var(--size-2-3);
-  margin-inline-start: var(--size-4-1);
+  margin-inline-end: var(--size-4-3);
 }
 
 /* Drag-and-drop drop indicators */
 .workspace-tab-header-drop-before {
   box-shadow: inset 2px 0 0 0 var(--interactive-accent);
 }
-.workspace-tab-header-spacer.workspace-tab-header-drop-end {
-  box-shadow: inset 2px 0 0 0 var(--interactive-accent);
-}
 
-/* Stacked-tabs variant — tabs render as a vertical column of cards. */
-.workspace-tabs.mod-stacked .workspace-tab-header-container {
-  flex-direction: column;
-  height: auto;
-  border-bottom: 0;
-  border-inline-end: var(--tab-outline-width) solid var(--tab-outline-color);
-  align-items: stretch;
-  padding: var(--size-4-2);
-  gap: var(--size-4-1);
-  flex: 0 0 auto;
-}
-
-.workspace-tabs.mod-stacked .workspace-tab-header-container-inner {
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  gap: var(--size-2-2);
-  overflow-y: auto;
-  overflow-x: hidden;
-  max-height: 50vh;
-}
-
-.workspace-tabs.mod-stacked .workspace-tab-header {
-  width: 100%;
-  max-width: 100%;
-  flex: 0 0 auto;
-  border-radius: var(--radius-s);
-}
-
-.workspace-tabs.mod-stacked .workspace-tab-header-spacer {
-  display: none;
-}
-
-/* In stacked mode the drop indicator switches to a top-edge shadow. */
-.workspace-tabs.mod-stacked .workspace-tab-header-drop-before {
-  box-shadow: inset 0 2px 0 0 var(--interactive-accent);
-}
-
-.workspace-tabs.mod-stacked .workspace-tab-header-new-tab {
-  flex-direction: row;
-  margin-inline-start: 0;
-  margin-top: var(--size-2-2);
-  padding: 0;
-  justify-content: flex-end;
-  gap: var(--size-2-1);
+.workspace-tab-header-drop-after {
+  box-shadow: inset -2px 0 0 0 var(--interactive-accent);
 }

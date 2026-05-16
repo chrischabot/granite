@@ -22,42 +22,17 @@ export function NoticeContainer() {
   return createPortal(
     <div className="notice-container">
       {notices.map((n) => (
-        <div
-          key={n.id}
-          className={`notice notice-${n.kind}`}
-          role="alert"
-          style={{ display: "flex", alignItems: "center", gap: 12 }}
-        >
-          <button
-            type="button"
-            onClick={() => activateNotice(n)}
-            style={{
-              flex: 1,
-              minWidth: 0,
-              padding: 0,
-              background: "transparent",
-              border: 0,
-              color: "inherit",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-          >
+        <div key={n.id} className={`notice notice-${n.kind}`} role="alert">
+          <button type="button" className="notice-message" onClick={() => activateNotice(n)}>
             {n.message}
           </button>
           <button
             type="button"
             aria-label={t("notice.dismiss")}
+            className="notice-dismiss"
             onClick={(e) => {
               e.stopPropagation();
               noticeManager.dismiss(n.id);
-            }}
-            style={{
-              background: "transparent",
-              border: 0,
-              padding: 2,
-              color: "inherit",
-              cursor: "pointer",
-              opacity: 0.7,
             }}
           >
             <X size={14} />

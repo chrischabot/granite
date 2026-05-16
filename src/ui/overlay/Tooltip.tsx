@@ -17,8 +17,12 @@ export function TooltipHost() {
 
   useEffect(() => {
     const onOver = (e: MouseEvent) => {
+      // Only tooltip on interactive atomic elements — buttons, links, explicit
+      // `data-tooltip` carriers, or interactive ARIA roles. Container elements
+      // like `[role="tablist"]` carry an `aria-label` for screen readers but
+      // are not atomic hover targets, so their rect-center can land anywhere.
       const target = (e.target as HTMLElement | null)?.closest<HTMLElement>(
-        "[aria-label], [data-tooltip]",
+        "button, a[href], [data-tooltip], [role='tab'], [role='menuitem'], [role='option'], [role='switch'], [role='checkbox']",
       );
       if (!target) return;
       // Skip targets that already have a real tooltip (e.g. native title) and

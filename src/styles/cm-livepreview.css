@@ -19,6 +19,16 @@
   color: var(--text-faint);
 }
 
+/* ----- Active-line highlight — subtle, matches Obsidian ---- */
+.cm-host .cm-activeLine {
+  background-color: var(--background-modifier-hover);
+}
+
+.cm-host .cm-activeLineGutter {
+  background-color: transparent;
+  color: var(--text-normal);
+}
+
 /* ----- Inline code ---- */
 .cm-host .cm-inline-code {
   font-family: var(--font-monospace);
@@ -131,6 +141,23 @@
   text-decoration: none !important;
   font-size: inherit !important;
   color: inherit !important;
+}
+
+/* ----- Fold gutter — chevrons only on hover ---- */
+.cm-host .cm-foldGutter {
+  color: var(--text-faint);
+  min-width: 14px;
+  font-size: var(--font-ui-smaller);
+}
+
+.cm-host .cm-foldGutter .cm-gutterElement {
+  opacity: 0;
+  transition: opacity var(--anim-duration-fast) ease-in-out;
+}
+
+.cm-host:hover .cm-foldGutter .cm-gutterElement,
+.cm-host .cm-foldGutter .cm-gutterElement.cm-foldGutter-folded {
+  opacity: 1;
 }
 
 /* ----- Links + tags ---- */

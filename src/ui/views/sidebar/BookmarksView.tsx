@@ -349,7 +349,10 @@ export function BookmarksView() {
   }, [activePath, meta, activeGroup, t]);
 
   const addSearch = useCallback(async () => {
-    const query = await inputPrompt({ title: t("bookmarks.prompt.searchQuery"), requireValue: true });
+    const query = await inputPrompt({
+      title: t("bookmarks.prompt.searchQuery"),
+      requireValue: true,
+    });
     if (!query) return;
     setBookmarks((prev) => [
       ...prev,

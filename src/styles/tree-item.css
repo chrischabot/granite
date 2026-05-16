@@ -1,25 +1,20 @@
 /* SPEC: specs/renderer/tree-item.md */
+/* ===========================================================================
+ * Granite — Tree items
+ * VERBATIM IMPORT from Obsidian app.css §10664-10838.
+ * =========================================================================== */
 
 .tree-item-self {
   align-items: baseline;
-  background: transparent;
-  border: 0;
+  display: flex;
   border-radius: var(--nav-item-radius);
   color: var(--nav-item-color);
-  cursor: default;
-  display: flex;
-  font: inherit;
   font-size: var(--nav-item-size);
-  font-weight: var(--nav-item-weight);
-  gap: var(--size-2-2);
   line-height: var(--line-height-tight);
+  font-weight: var(--nav-item-weight);
   margin-bottom: var(--nav-item-margin-bottom);
-  outline: none;
   padding: var(--nav-item-padding);
   position: relative;
-  text-align: start;
-  user-select: none;
-  width: 100%;
 }
 
 .is-mobile .tree-item-self {
@@ -34,34 +29,33 @@
   padding: var(--nav-item-parent-padding);
 }
 
-.tree-item-self.is-clickable,
-.tree-item-self.mod-collapsible {
-  cursor: var(--cursor);
-}
-
 .tree-item-self.is-cut {
   opacity: 0.5;
 }
 
+.tree-item-self.is-being-dragged-over {
+  color: var(--nav-item-color-highlighted);
+  background: hsla(var(--interactive-accent-hsl), 0.1);
+}
+
+.tree-item-self.is-being-dragged-over .collapse-icon {
+  color: var(--nav-item-color-highlighted);
+}
+
 .tree-item-self.mobile-tap {
-  background-color: var(--nav-item-background-hover);
   color: var(--nav-item-color-hover);
   font-weight: var(--nav-item-weight-hover);
+  background-color: var(--nav-item-background-hover);
 }
 
 .tree-item-self.has-active-menu {
   box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
-.tree-item-self.is-clickable:focus-visible,
-.tree-item-self.mod-collapsible:focus-visible {
-  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
-}
-
 .tree-item-self.is-being-renamed {
-  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
   flex-grow: 1;
   white-space: normal;
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
 .tree-item-self.is-being-renamed [contenteditable="true"],
@@ -71,45 +65,44 @@
 }
 
 .tree-item-self.is-being-renamed:focus-within {
-  box-shadow: 0 0 0 2px var(--interactive-accent);
   color: var(--nav-item-color-active);
+  box-shadow: 0 0 0 2px var(--interactive-accent);
+}
+
+.tree-item-self.is-clickable {
+  cursor: var(--cursor);
+}
+
+.tree-item-self.is-clickable:focus-visible,
+.tree-item-self.mod-collapsible:focus-visible {
+  box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
 @media (hover: hover) {
-  body:not(.is-grabbing) .tree-item-self.is-clickable:hover,
-  body:not(.is-grabbing) .tree-item-self.mod-collapsible:hover {
-    background-color: var(--nav-item-background-hover);
+  body:not(.is-grabbing) .tree-item-self.is-clickable:hover {
     color: var(--nav-item-color-hover);
+    background-color: var(--nav-item-background-hover);
     font-weight: var(--nav-item-weight-hover);
   }
 }
 
 body:not(.is-grabbing) .tree-item-self.is-active:hover,
 .tree-item-self.is-active {
-  background-color: var(--nav-item-background-active);
   color: var(--nav-item-color-active);
+  background-color: var(--nav-item-background-active);
   font-weight: var(--nav-item-weight-active);
 }
 
 body:not(.is-grabbing) .tree-item-self.is-selected:hover,
 .tree-item-self.is-selected {
-  background-color: var(--nav-item-background-selected);
   color: var(--nav-item-color-selected);
-}
-
-.tree-item-self.is-being-dragged-over {
-  background-color: hsla(var(--interactive-accent-hsl), 0.1);
-  color: var(--nav-item-color-highlighted);
-}
-
-.tree-item-self.is-being-dragged-over .collapse-icon {
-  color: var(--nav-item-color-highlighted);
+  background-color: var(--nav-item-background-selected);
 }
 
 body:not(.is-grabbing) .tree-item-self.is-being-dragged:hover,
 .tree-item-self.is-being-dragged {
-  background-color: var(--interactive-accent);
   color: var(--text-on-accent);
+  background-color: var(--interactive-accent);
 }
 
 body:not(.is-grabbing) .tree-item-self.is-being-dragged:hover .tree-item-icon,
@@ -125,29 +118,20 @@ body:not(.is-phone) .workspace-leaf.mod-active .tree-item-self.has-focus:focus-w
   box-shadow: 0 0 0 2px var(--interactive-accent);
 }
 
-.tree-item-self .collapse-icon {
-  align-items: center;
-  color: var(--nav-collapse-icon-color);
-  display: flex;
-}
-
-.tree-item-self .collapse-icon.is-collapsed {
-  color: var(--nav-collapse-icon-color-collapsed);
-}
-
 .tree-item-self .tree-item-icon {
-  align-items: center;
-  color: var(--icon-color);
-  display: flex;
-  flex: 0 0 auto;
-  justify-content: center;
-  margin-inline-end: var(--size-2-2);
-  opacity: var(--icon-opacity);
+  position: absolute;
+  margin-inline-start: calc(-1 * var(--size-4-5));
   width: var(--size-4-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: var(--icon-opacity);
+  color: var(--icon-color);
+  flex: 0 0 auto;
 }
 
 .tree-item-self .tree-item-icon::before {
-  content: "\200B";
+  content: "\200b";
 }
 
 .tree-item-self .tree-item-icon .svg-icon:not(.right-triangle) {
@@ -155,19 +139,35 @@ body:not(.is-phone) .workspace-leaf.mod-active .tree-item-self.has-focus:focus-w
   --icon-stroke: var(--icon-s-stroke-width);
 }
 
+.tree-item-flair-outer {
+  padding-inline-start: var(--size-4-1);
+  margin-inline-start: auto;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.tree-item-flair {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+  line-height: 1;
+  border-radius: var(--radius-s);
+}
+
+@media (hover: hover) {
+  .tree-item-self:hover .tree-item-flair {
+    color: var(--text-muted);
+  }
+}
+
 .tree-item-inner {
-  flex: 1 1 auto;
-  min-width: 0;
   overflow: hidden;
   white-space: pre-wrap;
 }
 
 .tree-item-inner-text {
-  display: inline-block;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 100%;
 }
 
 .tree-item-inner-subtext {
@@ -176,10 +176,10 @@ body:not(.is-phone) .workspace-leaf.mod-active .tree-item-self.has-focus:focus-w
 }
 
 .tree-item-children {
-  border-inline-start: var(--nav-indentation-guide-width) solid var(--nav-indentation-guide-color);
-  margin-inline-start: var(--nav-item-children-margin-start, var(--nav-item-children-margin-left));
   padding-inline-start: var(
     --nav-item-children-padding-start,
     var(--nav-item-children-padding-left)
   );
+  margin-inline-start: var(--nav-item-children-margin-start, var(--nav-item-children-margin-left));
+  border-inline-start: var(--nav-indentation-guide-width) solid var(--nav-indentation-guide-color);
 }

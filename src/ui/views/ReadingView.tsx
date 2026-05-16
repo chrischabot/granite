@@ -5,7 +5,7 @@ import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { isExcluded, parseExcludePatterns } from "@core/fs/exclude";
 import { mimeForNativeExtension, nativeFileKindForExtension } from "@core/fs/file-formats";
-import { extension, stem } from "@core/fs/path";
+import { extension, resolveRelative, stem } from "@core/fs/path";
 import type { VaultFile, VaultPath } from "@core/fs/types";
 import { noteDirectionFromFrontmatter } from "@core/i18n/direction";
 import { extractBlock, extractHeadingSection } from "@core/markdown/extract";
@@ -165,7 +165,14 @@ export function ReadingView({ path }: ReadingViewProps) {
         scrollToFragment(root, fragmentText);
         return;
       }
-      const pathToOpen = cleanPath.endsWith(".md") ? cleanPath : `${cleanPath}.md`;
+      const withExt = cleanPath.endsWith(".md") ? cleanPath : `${cleanPath}.md`;
+      let decoded = withExt;
+      try {
+        decoded = decodeURIComponent(withExt);
+      } catch {
+        /* fall through */
+      }
+      const pathToOpen = resolveRelative(path, decoded);
       workspaceStore.openFile(pathToOpen, {
         newTab: e.metaKey || e.ctrlKey,
         ...(fragmentText ? { fragment: fragmentText } : {}),
@@ -800,14 +807,21 @@ export function ReadingView({ path }: ReadingViewProps) {
         a.classList.remove("is-unresolved");
         continue;
       }
-      const targetPath = cleanPath.endsWith(".md") ? cleanPath : `${cleanPath}.md`;
+      const withExt = cleanPath.endsWith(".md") ? cleanPath : `${cleanPath}.md`;
+      let decoded = withExt;
+      try {
+        decoded = decodeURIComponent(withExt);
+      } catch {
+        /* fall through */
+      }
+      const targetPath = resolveRelative(path, decoded);
       if (metadataCache.getMetadata(targetPath)) {
         a.classList.remove("is-unresolved");
       } else {
         a.classList.add("is-unresolved");
       }
     }
-  }, [html, metadataVersion]);
+  }, [html, metadataVersion, path]);
 
   // Final unmount: revoke blob URLs.
   useEffect(() => {

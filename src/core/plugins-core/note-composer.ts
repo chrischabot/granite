@@ -1,5 +1,5 @@
-import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { inputPrompt } from "@/ui/overlay/inputPrompt";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
 import { extension, stem } from "@core/fs/path";

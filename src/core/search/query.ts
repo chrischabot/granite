@@ -21,12 +21,20 @@ export interface ParsedQuery {
   readonly exclude: ReadonlyArray<string>;
   /** Tag names (without leading `#`). */
   readonly tags: ReadonlyArray<string>;
+  /** Tag names that must NOT be present. */
+  readonly negatedTags: ReadonlyArray<string>;
   /** Path substrings — file path must contain each. */
   readonly paths: ReadonlyArray<string>;
+  /** Path substrings that must NOT appear in the file path. */
+  readonly negatedPaths: ReadonlyArray<string>;
   /** File stem substrings. */
   readonly files: ReadonlyArray<string>;
+  /** File stem substrings that must NOT appear. */
+  readonly negatedFiles: ReadonlyArray<string>;
   /** Line-level constraints — for each, at least one line in the file must contain the term. */
   readonly lineTerms: ReadonlyArray<string>;
+  /** Line-level constraints whose term must NOT appear on any line. */
+  readonly negatedLineTerms: ReadonlyArray<string>;
   /** /pattern/flags regexes that MUST match against the content. */
   readonly regexes: ReadonlyArray<RegExp>;
   /** Negated /pattern/flags regexes — MUST NOT match. */
@@ -105,9 +113,13 @@ export function parseQuery(input: string): ParsedQuery {
   const include: string[] = [];
   const exclude: string[] = [];
   const tags: string[] = [];
+  const negatedTags: string[] = [];
   const paths: string[] = [];
+  const negatedPaths: string[] = [];
   const files: string[] = [];
+  const negatedFiles: string[] = [];
   const lineTerms: string[] = [];
+  const negatedLineTerms: string[] = [];
   const regexes: RegExp[] = [];
   const negatedRegexes: RegExp[] = [];
   const props: PropertyConstraint[] = [];
@@ -159,16 +171,16 @@ export function parseQuery(input: string): ParsedQuery {
     if (!value) continue;
     switch (key) {
       case "tag":
-        tags.push(value.replace(/^#/, ""));
+        (negate ? negatedTags : tags).push(value.replace(/^#/, ""));
         break;
       case "path":
-        paths.push(value);
+        (negate ? negatedPaths : paths).push(value);
         break;
       case "file":
-        files.push(value);
+        (negate ? negatedFiles : files).push(value);
         break;
       case "line":
-        lineTerms.push(value);
+        (negate ? negatedLineTerms : lineTerms).push(value);
         break;
       default: {
         if (negate) exclude.push(value);
@@ -181,9 +193,13 @@ export function parseQuery(input: string): ParsedQuery {
     include,
     exclude,
     tags,
+    negatedTags,
     paths,
+    negatedPaths,
     files,
+    negatedFiles,
     lineTerms,
+    negatedLineTerms,
     regexes,
     negatedRegexes,
     props,
@@ -255,11 +271,19 @@ export function fileMatchesQuery(
     const needle = cased ? p : p.toLowerCase();
     if (!path.includes(needle)) return false;
   }
+  for (const p of query.negatedPaths) {
+    const needle = cased ? p : p.toLowerCase();
+    if (path.includes(needle)) return false;
+  }
   for (const f of query.files) {
     const needle = cased ? f : f.toLowerCase();
     if (!fileStem.includes(needle)) return false;
   }
-  if (query.tags.length > 0) {
+  for (const f of query.negatedFiles) {
+    const needle = cased ? f : f.toLowerCase();
+    if (fileStem.includes(needle)) return false;
+  }
+  if (query.tags.length > 0 || query.negatedTags.length > 0) {
     const tagsRaw = ctx.metadata
       ? ctx.metadata.tags.map((t) => t.name)
       : extractInlineTagsFromText(ctx.content);
@@ -268,13 +292,21 @@ export function fileMatchesQuery(
       const needle = cased ? wanted : wanted.toLowerCase();
       if (!tagSet.has(needle)) return false;
     }
+    for (const wanted of query.negatedTags) {
+      const needle = cased ? wanted : wanted.toLowerCase();
+      if (tagSet.has(needle)) return false;
+    }
   }
-  if (query.lineTerms.length > 0) {
+  if (query.lineTerms.length > 0 || query.negatedLineTerms.length > 0) {
     const rawLines = ctx.content.split("\n");
     const lines = cased ? rawLines : rawLines.map((l) => l.toLowerCase());
     for (const term of query.lineTerms) {
       const needle = cased ? term : term.toLowerCase();
       if (!lines.some((line) => line.includes(needle))) return false;
+    }
+    for (const term of query.negatedLineTerms) {
+      const needle = cased ? term : term.toLowerCase();
+      if (lines.some((line) => line.includes(needle))) return false;
     }
   }
   if (query.regexes.length > 0 || query.negatedRegexes.length > 0) {

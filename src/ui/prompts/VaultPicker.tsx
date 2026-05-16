@@ -1,8 +1,8 @@
 import { ExternalLink, FolderOpen, FolderPlus, Globe, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useI18n } from "../i18n/useI18n";
-import { inputPrompt } from "../overlay/inputPrompt";
 import { Modal } from "../overlay/Modal";
+import { inputPrompt } from "../overlay/inputPrompt";
 import { useVault } from "../vault/VaultContext";
 
 export interface VaultPickerProps {

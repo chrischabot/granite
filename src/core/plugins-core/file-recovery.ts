@@ -1,5 +1,5 @@
-import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { inputPrompt } from "@/ui/overlay/inputPrompt";
+import { createCommandRegistrar } from "@core/commands/CommandRegistry";
 import { t } from "@core/i18n";
 import { noticeManager } from "@core/notices/notice";
 import { workspaceStore } from "@core/workspace/store";
@@ -196,7 +196,9 @@ export function registerFileRecoveryPlugin(openRecoveryUi?: (path: string) => vo
             })})`,
         )
         .join("\n");
-      const pick = await inputPrompt({ title: t("plugin.fileRecovery.prompt.restore", { labels }) });
+      const pick = await inputPrompt({
+        title: t("plugin.fileRecovery.prompt.restore", { labels }),
+      });
       const n = pick ? Number.parseInt(pick, 10) - 1 : -1;
       const chosen = list[n];
       if (!chosen) return;

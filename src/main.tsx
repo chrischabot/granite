@@ -15,8 +15,13 @@ function detectPlatform(): "macos" | "windows" | "linux" {
 const body = document.body;
 body.classList.add(`mod-${detectPlatform()}`);
 body.classList.add("show-ribbon");
-body.classList.add("show-view-header");
+// `show-view-header` (centered file-path bar above the editor) is opt-in via
+// settings — Obsidian removed it from the default chrome and the tab title
+// already serves as the file label.
 body.classList.add("show-inline-title");
+// Use Granite's thin custom scrollbars (Obsidian's default styling) rather
+// than the platform's native chunky scrollbars.
+body.classList.add("styled-scrollbars");
 
 // Pop-out windows: tag the body so chrome is hidden. The popout gets its
 // vault and initial leaf from URL parameters; VaultProvider handles the

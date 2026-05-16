@@ -48,6 +48,24 @@ export function normalize(path: string): VaultPath {
   return segments.join("/");
 }
 
+/**
+ * Resolve a markdown-link href against the source note's path.
+ *
+ *   ./twitter-x.md                        → siblings of source
+ *   ../tactics/content-strategy.md        → parent + sibling dir
+ *   bluesky-mastodon-threads.md           → also sibling (no `./` is implicit)
+ *   subfolder/note.md                     → child dir
+ *   /vault-rooted/abs-path.md             → vault-absolute (leading slash)
+ *
+ * External URLs (http://, mailto:, javascript:, …) and fragment-only hrefs
+ * (#anchor) are filtered out by the caller; this function assumes a local
+ * file href.
+ */
+export function resolveRelative(sourcePath: VaultPath, href: string): VaultPath {
+  if (href.startsWith("/")) return normalize(href);
+  return normalize(`${dirname(sourcePath)}/${href}`);
+}
+
 const ILLEGAL_CHARS = '<>:"\\|?*';
 
 /** Returns true if `name` contains characters disallowed by Windows or POSIX. */

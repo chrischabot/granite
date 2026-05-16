@@ -1,7 +1,6 @@
 import { useMetadataCache } from "@core/metadata/useMetadata";
 import { bindNativeHistory } from "@core/workspace/native-history";
 import { bindRecentsToFs } from "@core/workspace/recents";
-import { useVault } from "./ui/vault/VaultContext";
 import { useCallback, useEffect, useState } from "react";
 import { A11yAnnouncer, WorkspaceA11yAnnouncements } from "./ui/A11yAnnouncer";
 import { CssClassesBinder } from "./ui/CssClassesBinder";
@@ -28,6 +27,7 @@ import { StatusBar } from "./ui/shell/StatusBar";
 import { Titlebar } from "./ui/shell/Titlebar";
 import { Workspace } from "./ui/shell/Workspace";
 import { ThemeProvider } from "./ui/theme/ThemeProvider";
+import { useVault } from "./ui/vault/VaultContext";
 import { VaultProvider } from "./ui/vault/VaultContext";
 
 function MetadataCacheBinder() {

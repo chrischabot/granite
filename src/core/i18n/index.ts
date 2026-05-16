@@ -162,11 +162,22 @@ export function t(key: string, params?: Record<string, string | number>): string
     template = map[key] ?? fallback[key] ?? key;
   }
   if (params) {
+    template = resolvePluralBlocks(template, params);
     for (const [name, value] of Object.entries(params)) {
       template = template.replace(new RegExp(`\\{${escapeRegex(name)}\\}`, "g"), String(value));
     }
   }
   return template;
+}
+
+const PLURAL_BLOCK_RE = /\{(\w+),\s*plural,\s*one\s*\{([^}]*)\}\s*other\s*\{([^}]*)\}\}/g;
+
+function resolvePluralBlocks(template: string, params: Record<string, string | number>): string {
+  return template.replace(PLURAL_BLOCK_RE, (_match, name, oneBranch, otherBranch) => {
+    const raw = params[name];
+    const n = typeof raw === "number" ? raw : Number(raw);
+    return Number.isFinite(n) && n === 1 ? oneBranch : otherBranch;
+  });
 }
 
 /** Look up the source English string for migration logic, not for rendering. */

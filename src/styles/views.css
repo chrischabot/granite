@@ -87,6 +87,24 @@
   flex-direction: column;
 }
 
+/* CM6 surface — mirrors Obsidian app.css §3577-3650 verbatim. The
+ * `.cm-host` element is also tagged with `.markdown-source-view.mod-cm6`,
+ * so the Obsidian-shaped selectors below match. */
+.markdown-source-view {
+  font-size: var(--font-text-size);
+  font-family: var(--font-text);
+}
+
+.markdown-source-view:not(.is-live-preview) {
+  --p-spacing: 0rem;
+}
+
+.markdown-source-view.mod-cm6 {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .cm-host {
   flex: 1 1 auto;
   min-height: 0;
@@ -94,15 +112,97 @@
   background-color: var(--background-primary);
 }
 
-.cm-host .cm-editor {
-  height: 100%;
+.markdown-source-view.mod-cm6 ::selection {
+  background-color: var(--text-selection);
+}
+
+.markdown-source-view.mod-cm6 .cm-line .cm-selection,
+.markdown-source-view.mod-cm6 .cm-line .cm-inline-code .cm-selection {
+  background-color: var(--text-selection);
+}
+
+.markdown-source-view.mod-cm6 .cm-selectionBackground,
+.markdown-source-view.mod-cm6
+  .cm-editor
+  > .cm-scroller
+  > .cm-selectionLayer
+  > .cm-selectionBackground {
+  background-color: var(--text-selection);
+}
+
+.markdown-source-view.mod-cm6.is-readable-line-width .cm-sizer,
+.markdown-source-view.mod-cm6.is-readable-line-width .cm-content,
+.markdown-source-view.mod-cm6.is-readable-line-width .cm-line {
+  max-width: var(--file-line-width);
+}
+
+.markdown-source-view.mod-cm6.is-readable-line-width .cm-sizer {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.markdown-source-view.mod-cm6.is-readable-line-width .cm-line.HyperMD-table-row {
+  max-width: 100%;
+}
+
+.markdown-source-view.mod-cm6 .cm-editor {
+  flex: 1 1;
+  min-height: 0;
+}
+
+.markdown-source-view.mod-cm6 .cm-editor.cm-focused {
   outline: none;
 }
 
-.cm-host .cm-content {
+.markdown-source-view.mod-cm6 .cm-scroller {
+  font-family: var(--font-text);
+  line-height: var(--line-height-normal);
+  scrollbar-gutter: stable;
+}
+
+.markdown-source-view.mod-cm6 .cm-sizer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  min-height: 100%;
+}
+
+.markdown-source-view.mod-cm6 .cm-contentContainer {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: stretch;
+  overflow-x: visible;
+}
+
+.markdown-source-view.mod-cm6 .cm-content {
   font-family: var(--font-text);
   font-size: var(--font-text-size);
   line-height: var(--line-height-normal);
+  flex-basis: unset !important;
+  width: 0;
+  caret-color: var(--caret-color);
+  min-height: unset;
+  padding: 0;
+}
+
+.markdown-source-view.mod-cm6 .cm-content > * {
+  margin: 0 !important;
+  display: block;
+}
+
+.markdown-source-view.mod-cm6 .cm-gutters {
+  flex: 0 0 auto;
+  background-color: transparent;
+  color: var(--text-faint) !important;
+  border-right: none !important;
+  font-size: var(--font-ui-smaller);
+  z-index: 1;
+  font-variant: tabular-nums;
+}
+
+.markdown-source-view.mod-cm6 .cm-line > * {
+  text-indent: 0;
 }
 
 .save-status {
@@ -135,34 +235,114 @@
  * Properties view (sidebar)
  * -------------------------------------------------------------------------- */
 .metadata-container {
-  padding: var(--size-4-3);
+  padding: var(--size-4-2) var(--size-4-1);
   font-size: var(--font-ui-small);
 }
 
 .metadata-properties {
   display: flex;
   flex-direction: column;
-  gap: var(--size-4-2);
 }
 
 .metadata-property {
   display: flex;
-  flex-direction: column;
-  gap: var(--size-2-1);
-  padding: var(--size-2-3);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: 2px var(--size-2-3);
+  min-height: 28px;
   border-radius: var(--radius-s);
-  background-color: var(--background-primary-alt);
+}
+
+.metadata-property:hover {
+  background-color: var(--background-modifier-hover);
 }
 
 .metadata-property-key {
+  flex: 0 0 auto;
+  width: 38%;
+  min-width: 80px;
+  max-width: 180px;
   color: var(--text-muted);
-  font-weight: var(--font-medium);
-  font-size: var(--font-ui-smaller);
+  font-weight: var(--font-normal);
+  font-size: var(--font-ui-small);
+  display: flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metadata-property-key-icon {
+  flex: 0 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-faint);
 }
 
 .metadata-property-value {
+  flex: 1 1 auto;
+  min-width: 0;
   color: var(--text-normal);
   word-break: break-word;
+}
+
+.metadata-property-value > input[type="text"],
+.metadata-property-value > input[type="number"],
+.metadata-property-value > input[type="date"],
+.metadata-property-value > input[type="datetime-local"],
+.metadata-property-value > textarea {
+  width: 100%;
+  padding: 2px 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-s);
+  color: inherit;
+  font: inherit;
+}
+
+.metadata-property-value > input:hover,
+.metadata-property-value > textarea:hover {
+  border-color: var(--background-modifier-border);
+}
+
+.metadata-property-value > input:focus,
+.metadata-property-value > textarea:focus {
+  border-color: var(--background-modifier-border-focus);
+  background-color: var(--background-primary);
+  outline: none;
+}
+
+.metadata-property-remove {
+  flex: 0 0 auto;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+
+.metadata-property:hover .metadata-property-remove,
+.metadata-property:focus-within .metadata-property-remove {
+  opacity: 1;
+}
+
+.metadata-add-property {
+  margin: var(--size-2-3) 0 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--size-2-2);
+  padding: 4px var(--size-2-3);
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  border-radius: var(--radius-s);
+  cursor: var(--cursor);
+}
+
+.metadata-add-property:hover {
+  background-color: var(--background-modifier-hover);
+  color: var(--text-normal);
 }
 
 /* Outline */

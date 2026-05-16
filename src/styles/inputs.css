@@ -17,6 +17,7 @@ input[type="number"] {
   font-family: inherit;
   padding: var(--input-padding);
   font-size: var(--font-ui-small);
+  line-height: 1.4;
   border-radius: var(--input-radius);
   outline: none;
 }

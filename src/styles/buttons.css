@@ -1,41 +1,59 @@
 /* SPEC: specs/renderer/buttons.md */
 
-button:not(.clickable-icon):not(.titlebar-button):not(.modal-close-button):not(
-    .workspace-drawer-vault-switcher
-  ) {
-  --text-color: var(--text-normal);
+/* ---------------------------------------------------------------------- *
+ * Base button reset — every <button> starts BARE (transparent, no border,
+ * no shadow). Surfaces that want a "filled action button" look opt in
+ * with `.mod-cta`, `.mod-warning`, or `.mod-button-fill`; modal button
+ * containers also auto-fill their direct <button> children.
+ * ---------------------------------------------------------------------- */
+button {
   -webkit-app-region: no-drag;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: var(--cursor);
+  text-align: inherit;
+  user-select: none;
+  outline: none;
+}
+
+/* Filled action button (CTAs, modal OK/Cancel, opt-in via .mod-button-fill) */
+button.mod-button-fill,
+button.mod-cta,
+button.mod-warning,
+button.mod-destructive,
+.modal-button-container > button:not(.clickable-icon):not(.bare) {
+  --text-color: var(--text-normal);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   color: var(--text-color);
   font-size: var(--font-ui-small);
   border-radius: var(--button-radius);
-  border: 0;
   padding: var(--size-4-1) var(--size-4-3);
   height: var(--input-height);
   font-weight: var(--input-font-weight);
-  cursor: var(--cursor);
-  font-family: inherit;
-  outline: none;
-  user-select: none;
   white-space: nowrap;
   background-color: var(--interactive-normal);
   box-shadow: var(--input-shadow);
 }
 
 @media (hover: hover) {
-  button:not(.clickable-icon):not(.titlebar-button):not(.modal-close-button):not(
-      .workspace-drawer-vault-switcher
-    ):hover {
+  button.mod-button-fill:hover,
+  .modal-button-container > button:not(.clickable-icon):not(.bare):hover {
     background-color: var(--interactive-hover);
     box-shadow: var(--input-shadow-hover);
   }
 }
 
-button:focus-visible:not(.clickable-icon):not(.titlebar-button):not(.modal-close-button):not(
-    .workspace-drawer-vault-switcher
-  ) {
+button.mod-button-fill:focus-visible,
+button.mod-cta:focus-visible,
+button.mod-warning:focus-visible,
+button.mod-destructive:focus-visible,
+.modal-button-container > button:not(.clickable-icon):not(.bare):focus-visible {
   box-shadow: 0 0 0 3px var(--background-modifier-border-focus);
 }
 

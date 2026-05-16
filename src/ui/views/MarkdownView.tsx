@@ -3,8 +3,8 @@ import { type CompletionSource, autocompletion, closeBrackets } from "@codemirro
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import {
+  HighlightStyle,
   codeFolding,
-  defaultHighlightStyle,
   foldEffect,
   foldGutter,
   foldKeymap,
@@ -18,6 +18,8 @@ import {
   EditorView,
   crosshairCursor,
   drawSelection,
+  highlightActiveLine,
+  highlightActiveLineGutter,
   keymap,
   lineNumbers,
   rectangularSelection,
@@ -26,7 +28,7 @@ import { commandRegistry } from "@core/commands/CommandRegistry";
 import { markdownFileUrlLink, shouldDropExternalFileAsLink } from "@core/dnd/external-files";
 import { run } from "@core/effect/runtime";
 import { FileSystem } from "@core/fs/FileSystem";
-import { stem } from "@core/fs/path";
+import { resolveRelative, stem } from "@core/fs/path";
 import { type FsError, FsNotFound } from "@core/fs/types";
 import type { VaultPath } from "@core/fs/types";
 import { t as i18n } from "@core/i18n";
@@ -50,6 +52,7 @@ import { markClean, markDirty } from "@core/workspace/dirty";
 import { collectFoldRanges, foldEffectsForRanges } from "@core/workspace/folds";
 import { workspaceStore } from "@core/workspace/store";
 import type { LeafId } from "@core/workspace/types";
+import { tags as t } from "@lezer/highlight";
 import { vim } from "@replit/codemirror-vim";
 import { Effect } from "effect";
 import { useEffect, useRef, useState } from "react";
@@ -65,6 +68,28 @@ export interface MarkdownViewProps {
 }
 
 const SAVE_DEBOUNCE_MS = 500;
+
+// Granite syntax highlighting — drops the user-agent's heading underline and
+// keeps tokens visually quiet inside Live Preview. Heading sizes are applied
+// by `typography.css` via the `.cm-heading-N` line classes.
+const graniteHighlightStyle = HighlightStyle.define([
+  { tag: t.heading1, fontWeight: "var(--h1-weight)", textDecoration: "none" },
+  { tag: t.heading2, fontWeight: "var(--h2-weight)", textDecoration: "none" },
+  { tag: t.heading3, fontWeight: "var(--h3-weight)", textDecoration: "none" },
+  { tag: t.heading4, fontWeight: "var(--h4-weight)", textDecoration: "none" },
+  { tag: t.heading5, fontWeight: "var(--h5-weight)", textDecoration: "none" },
+  { tag: t.heading6, fontWeight: "var(--h6-weight)", textDecoration: "none" },
+  { tag: t.strong, fontWeight: "var(--bold-weight)" },
+  { tag: t.emphasis, fontStyle: "italic" },
+  { tag: t.strikethrough, textDecoration: "line-through" },
+  { tag: t.link, color: "var(--text-accent)" },
+  { tag: t.url, color: "var(--text-accent)" },
+  { tag: t.quote, color: "var(--blockquote-color, var(--text-muted))" },
+  { tag: t.comment, color: "var(--text-faint)" },
+  { tag: t.processingInstruction, color: "var(--text-faint)" },
+  { tag: t.monospace, fontFamily: "var(--font-monospace)" },
+  { tag: t.contentSeparator, color: "var(--text-faint)" },
+]);
 
 type SaveStatus = "idle" | "dirty" | "saving" | "saved" | "error";
 type LoadState = "loading" | "loaded" | "missing" | "error";
@@ -206,6 +231,8 @@ export function MarkdownView({
         drawSelection({ drawRangeCursor: true }),
         rectangularSelection(),
         crosshairCursor(),
+        highlightActiveLine(),
+        highlightActiveLineGutter(),
         codeFolding(),
         foldGutter(),
         indentOnInput(),
@@ -220,7 +247,7 @@ export function MarkdownView({
         }),
         unresolvedWikilinkExtension,
         livePreview ? [livePreviewDecorations, livePreviewClasses] : [],
-        syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+        syntaxHighlighting(graniteHighlightStyle, { fallback: true }),
         markdown({ base: markdownLanguage }),
         EditorView.lineWrapping,
         EditorView.theme(
@@ -539,7 +566,8 @@ export function MarkdownView({
         } catch {
           /* fall through */
         }
-        const targetMd = decoded.endsWith(".md") ? decoded : `${decoded}.md`;
+        const withExt = decoded.endsWith(".md") ? decoded : `${decoded}.md`;
+        const targetMd = resolveRelative(path, withExt);
         if (openTimer) clearTimeout(openTimer);
         openTimer = setTimeout(() => {
           if (!hoveredRange || hoveredRange.start !== fullStartMd) return;
@@ -627,7 +655,8 @@ export function MarkdownView({
             } catch {
               decoded = pathPart;
             }
-            const target = decoded.endsWith(".md") ? decoded : `${decoded}.md`;
+            const withExt = decoded.endsWith(".md") ? decoded : `${decoded}.md`;
+            const target = resolveRelative(path, withExt);
             ev.preventDefault();
             hideHoverPopover(true);
             workspaceStore.openFile(target, {

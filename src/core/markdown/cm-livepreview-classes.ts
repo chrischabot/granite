@@ -31,6 +31,15 @@ const WIKILINK_RE = /(!?)\[\[([^\]\n]+)\]\]/g;
 const CALLOUT_RE = /^(\s*>+\s*)\[!([^\]\n]+)\]([+-])?/;
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
 
+const headingLines = [
+  Decoration.line({ class: "HyperMD-header HyperMD-header-1 cm-heading cm-heading-1" }),
+  Decoration.line({ class: "HyperMD-header HyperMD-header-2 cm-heading cm-heading-2" }),
+  Decoration.line({ class: "HyperMD-header HyperMD-header-3 cm-heading cm-heading-3" }),
+  Decoration.line({ class: "HyperMD-header HyperMD-header-4 cm-heading cm-heading-4" }),
+  Decoration.line({ class: "HyperMD-header HyperMD-header-5 cm-heading cm-heading-5" }),
+  Decoration.line({ class: "HyperMD-header HyperMD-header-6 cm-heading cm-heading-6" }),
+] as const;
+
 const codeblockLine = Decoration.line({ class: "HyperMD-codeblock cm-codeblock" });
 const codeblockBegin = Decoration.line({
   class: "HyperMD-codeblock HyperMD-codeblock-begin cm-codeblock",
@@ -111,6 +120,35 @@ function classDecorationsForState(state: EditorState): DecorationSet {
       if (fm && from >= fm.from && to <= fm.to) return false;
 
       switch (name) {
+        case "ATXHeading1":
+        case "ATXHeading2":
+        case "ATXHeading3":
+        case "ATXHeading4":
+        case "ATXHeading5":
+        case "ATXHeading6":
+        case "SetextHeading1":
+        case "SetextHeading2": {
+          const level =
+            name === "ATXHeading1" || name === "SetextHeading1"
+              ? 1
+              : name === "ATXHeading2" || name === "SetextHeading2"
+                ? 2
+                : name === "ATXHeading3"
+                  ? 3
+                  : name === "ATXHeading4"
+                    ? 4
+                    : name === "ATXHeading5"
+                      ? 5
+                      : 6;
+          const startLine = state.doc.lineAt(from);
+          const endLine = state.doc.lineAt(Math.max(from, to - 1));
+          for (let n = startLine.number; n <= endLine.number; n++) {
+            const ln = state.doc.line(n);
+            const deco = headingLines[level - 1] ?? headingLines[0];
+            if (deco) pushLine(ln.from, deco);
+          }
+          return false;
+        }
         case "FencedCode":
         case "CodeBlock": {
           const startLine = state.doc.lineAt(from);
@@ -241,8 +279,7 @@ function classDecorationsForState(state: EditorState): DecorationSet {
 
   const all: { from: number; to: number; deco: Decoration; isLine: boolean }[] = [];
   for (const e of lineEntries) all.push({ from: e.pos, to: e.pos, deco: e.deco, isLine: true });
-  for (const e of markEntries)
-    all.push({ from: e.from, to: e.to, deco: e.deco, isLine: false });
+  for (const e of markEntries) all.push({ from: e.from, to: e.to, deco: e.deco, isLine: false });
   all.sort((a, b) => {
     if (a.from !== b.from) return a.from - b.from;
     // Line decorations must precede mark decorations at the same offset.

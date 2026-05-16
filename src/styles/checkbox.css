@@ -1,4 +1,8 @@
 /* SPEC: specs/renderer/checkbox.md */
+/* ===========================================================================
+ * Granite — Checkbox / radio
+ * VERBATIM IMPORT from Obsidian app.css §14771-14892.
+ * =========================================================================== */
 
 input[type="radio"],
 input[type="checkbox"] {
@@ -36,12 +40,6 @@ input[type="checkbox"]:focus-visible {
   box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
-input[type="radio"]:checked,
-input[type="checkbox"]:checked {
-  background-color: var(--checkbox-color);
-  border-color: var(--checkbox-color);
-}
-
 input[type="radio"]:checked::after,
 input[type="checkbox"]:checked::after {
   content: "";
@@ -55,7 +53,13 @@ input[type="checkbox"]:checked::after {
   -webkit-mask-position: 52% 52%;
   -webkit-mask-size: 65%;
   -webkit-mask-repeat: no-repeat;
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'><path d='M6.62 12.04 2.9 8.34l1.15-1.15 2.57 2.57 5.33-5.33 1.15 1.15z'/></svg>");
+  -webkit-mask-image: url('data:image/svg+xml; utf8, <svg width="12px" height="10px" viewBox="0 0 12 8" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g transform="translate%28-4.000000, -6.000000%29" fill="%23000000"><path d="M8.1043257,14.0367999 L4.52468714,10.5420499 C4.32525014,10.3497722 4.32525014,10.0368095 4.52468714,9.8424863 L5.24777413,9.1439454 C5.44721114,8.95166768 5.77142411,8.95166768 5.97086112,9.1439454 L8.46638057,11.5903727 L14.0291389,6.1442083 C14.2285759,5.95193057 14.5527889,5.95193057 14.7522259,6.1442083 L15.4753129,6.84377194 C15.6747499,7.03604967 15.6747499,7.35003511 15.4753129,7.54129009 L8.82741268,14.0367999 C8.62797568,14.2290777 8.3037627,14.2290777 8.1043257,14.0367999"></path></g></g></svg>');
+}
+
+input[type="radio"]:checked,
+input[type="checkbox"]:checked {
+  background-color: var(--checkbox-color);
+  border-color: var(--checkbox-color);
 }
 
 @media (hover: hover) {
@@ -85,7 +89,13 @@ input[type="radio"] {
   border-radius: 50%;
 }
 
+input[type="radio"]:checked {
+  background-color: var(--interactive-accent);
+  border-color: var(--interactive-accent);
+}
+
 input[type="radio"]:checked::after {
   -webkit-mask-size: 50%;
-  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 16 16' xmlns='http://www.w3.org/2000/svg'><circle cx='8' cy='8' r='6'/></svg>");
+  -webkit-mask-position: 50% 50%;
+  -webkit-mask-image: url('data:image/svg+xml; utf8, <svg width="12px" height="12px" viewBox="0 0 12 12" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><circle cx="6" cy="6" r="6" /></svg>');
 }

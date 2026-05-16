@@ -1,31 +1,181 @@
+/* SPEC: specs/renderer/hover-popover.md */
 /* ===========================================================================
- * Granite — Hover popover + Mermaid blocks
- * Source: specs/renderer/hover-popover.md (subset)
+ * Granite — Popover / hover popover / follow-link popover
+ * VERBATIM IMPORT from Obsidian app.css §9506-9662 (popover + hover-popover
+ * + follow-link-popover). Granite extras: Mermaid block styling.
  * =========================================================================== */
 
+.popover,
+.suggestion-container,
+.cm-tooltip.cm-tooltip-autocomplete {
+  display: flex;
+  position: absolute;
+  z-index: var(--layer-popover);
+  background-color: var(--background-primary);
+  border: var(--border-width) solid var(--background-modifier-border);
+  box-shadow: var(--shadow-s);
+  border-radius: var(--radius-m);
+  max-height: var(--popover-max-height);
+}
+
 .popover.hover-popover {
-  font-family: var(--font-interface);
+  --callout-blend-mode: normal;
+  justify-content: stretch;
+  overflow: hidden;
+  max-width: 80vw;
+  max-height: inherit;
+  min-height: 30px;
+  width: fit-content;
+}
+
+.popover.hover-popover.is-editing {
+  outline: 2px var(--background-modifier-border-focus) solid;
+  border-color: var(--background-modifier-border-focus);
+}
+
+.popover.hover-popover > * {
+  width: var(--popover-width);
+}
+
+.popover.hover-popover .markdown-preview-view {
   font-size: var(--popover-font-size);
 }
 
-.popover.hover-popover .markdown-rendered h1,
-.popover.hover-popover .markdown-rendered h2,
-.popover.hover-popover .markdown-rendered h3 {
-  margin-block-start: var(--size-4-2);
-  margin-block-end: var(--size-4-2);
-  font-size: 1.1em;
+.popover.hover-popover > .mod-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  font-size: var(--popover-font-size);
+  color: var(--text-muted);
 }
 
-.popover.hover-popover .markdown-rendered p {
-  margin-block-start: var(--size-4-2);
-  margin-block-end: var(--size-4-2);
+.popover.hover-popover > .image-embed,
+.popover.hover-popover > .video-embed {
+  width: auto;
+  max-height: inherit;
+  max-width: var(--popover-width);
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.popover.hover-popover .markdown-rendered pre {
-  font-size: var(--code-size);
+.popover.hover-popover > .image-embed img,
+.popover.hover-popover > .video-embed img,
+.popover.hover-popover > .image-embed video,
+.popover.hover-popover > .video-embed video {
+  width: 100%;
+  max-width: inherit;
+  max-height: inherit;
 }
 
-/* Mermaid renderings: center, scale to width, soft padding */
+.popover.hover-popover > .audio-embed {
+  display: flex;
+}
+
+.popover.hover-popover > .pdf-embed {
+  width: var(--popover-pdf-width);
+  height: var(--popover-pdf-height) !important;
+  max-height: inherit;
+}
+
+.popover.hover-popover > .markdown-embed {
+  max-height: var(--popover-height);
+  overflow: auto;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.popover.hover-popover > .markdown-embed > .markdown-embed-content {
+  width: 100%;
+}
+
+.popover.hover-popover
+  > .markdown-embed
+  > .markdown-embed-content
+  > .markdown-source-view.mod-cm6
+  > .cm-editor
+  > .cm-scroller,
+.popover.hover-popover > .markdown-embed > .markdown-embed-content .markdown-preview-view {
+  padding: var(--file-margins);
+}
+
+.popover.hover-popover > .markdown-embed .markdown-source-view {
+  font-size: var(--popover-font-size);
+}
+
+.popover.hover-popover > .markdown-embed[data-type="footnote"].mod-empty {
+  cursor: var(--cursor-link);
+  text-align: center;
+  background-color: var(--background-secondary-alt);
+}
+
+.popover.hover-popover > .markdown-embed[data-type="footnote"].mod-empty .markdown-preview-view {
+  color: var(--text-muted);
+}
+
+.popover.hover-popover > .markdown-embed[data-type="footnote"]:not(.mod-empty) {
+  --popover-font-size: var(--footnote-size);
+}
+
+.popover.hover-popover
+  > .markdown-embed[data-type="footnote"]
+  > .markdown-embed-content
+  .cm-scroller,
+.popover.hover-popover
+  > .markdown-embed[data-type="footnote"]
+  > .markdown-embed-content
+  .markdown-preview-view {
+  --file-margins: var(--size-4-3) var(--size-4-4);
+}
+
+.follow-link-popover {
+  transition: opacity var(--anim-duration-fast) ease-in-out, transform var(--anim-duration-fast)
+    ease-in-out;
+  box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
+  background-color: rgba(0, 0, 0, 0.9);
+  border-radius: var(--radius-m);
+  color: #ccc;
+  font-size: var(--font-ui-small);
+  line-height: 20px;
+  max-width: 300px;
+  padding: 5px 12px;
+  text-align: center;
+  z-index: var(--layer-tooltip);
+  white-space: pre-wrap;
+  top: calc(100%);
+}
+
+@media (hover: hover) {
+  .follow-link-popover:hover {
+    background-color: #000000;
+  }
+}
+
+.follow-link-popover.mobile-tap {
+  opacity: 0.9;
+  transform: scale(0.9, 0.9);
+}
+
+.follow-link-popover .popover-arrow {
+  position: absolute;
+  top: calc(100%);
+  inset-inline-start: 50%;
+  width: 0;
+  margin-inline-start: -5px;
+  border-inline-end: 5px solid transparent;
+  border-inline-start: 5px solid transparent;
+  content: " ";
+  font-size: 0;
+  line-height: 0;
+  border-top: 5px solid rgba(0, 0, 0, 0.9);
+  border-bottom: 5px solid transparent;
+}
+
+/* Mermaid renderings (Granite extension): center, scale to width, soft padding */
 .markdown-rendered .mermaid-block,
 .markdown-rendered .mermaid {
   display: flex;

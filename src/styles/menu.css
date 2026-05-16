@@ -1,28 +1,64 @@
+/* SPEC: specs/renderer/menu.md */
 /* ===========================================================================
  * Granite — Menu (.menu) primitive
- * Source: specs/renderer/menu.md
+ * VERBATIM IMPORT from Obsidian app.css §8937-9062.
  * =========================================================================== */
 
 .menu {
+  -webkit-app-region: no-drag;
   display: flex;
   flex-direction: column;
   border: var(--menu-border-width) solid var(--menu-border-color);
   background-color: var(--menu-background);
+  backdrop-filter: var(--menu-backdrop-filter);
   overflow: hidden;
   padding: 0;
   border-radius: var(--menu-radius);
   box-shadow: var(--menu-shadow);
-  max-height: 70vh;
+  max-height: 100%;
+  position: fixed;
   z-index: var(--layer-menu);
   user-select: none;
-  outline: none;
+}
+
+.menu.mod-no-icon .menu-item-icon:first-child {
+  display: none;
 }
 
 .menu-scroll {
   display: flex;
   flex-direction: column;
-  overflow: auto;
+  overflow: hidden;
   padding: var(--menu-padding);
+}
+
+.menu-grabber {
+  display: none;
+}
+
+.menu-separator {
+  height: 0;
+  margin: var(--size-2-3) calc(var(--size-2-3) * -1);
+  border-bottom: var(--border-width) solid var(--background-modifier-border);
+}
+
+.menu-separator:last-child,
+.menu-separator:first-child {
+  display: none;
+}
+
+.menu-separator + .menu-separator {
+  display: none;
+}
+
+.menu-separator + .menu-item.is-label {
+  padding-bottom: var(--size-4-1);
+}
+
+.menu-item-desc {
+  padding-top: var(--size-4-1);
+  color: var(--text-faint);
+  font-size: 0.8em;
 }
 
 .menu-item {
@@ -34,17 +70,23 @@
   font-size: var(--font-ui-small);
   border-radius: var(--radius-s);
   white-space: nowrap;
-  color: var(--text-normal);
-  outline: none;
 }
 
-.menu-item.selected:not(.is-label):not(.is-disabled) {
-  background-color: var(--background-modifier-hover);
-}
-
-.menu-item.is-warning:not(.is-disabled),
-.menu-item.is-warning.selected:not(.is-disabled) {
+.menu-item.is-warning:not(.is-disabled) {
   color: var(--text-error);
+}
+
+.menu-item.is-warning:not(.is-disabled).selected {
+  color: var(--text-error);
+}
+
+.menu-item.is-label {
+  cursor: default;
+  font-size: var(--font-ui-medium);
+  color: var(--text-muted);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .menu-item.is-disabled {
@@ -52,31 +94,37 @@
   color: var(--text-faint);
 }
 
-.menu-item.is-label {
-  cursor: default;
-  font-size: var(--font-ui-medium);
-  color: var(--text-muted);
+.menu-item:not(.is-label):not(.is-disabled).mobile-tap,
+.menu-item:not(.is-label):not(.is-disabled).selected {
+  background-color: var(--background-modifier-hover);
 }
 
 .menu-item-icon {
   flex: 0 1 auto;
   display: flex;
-  align-items: center;
   color: var(--text-muted);
 }
 
+.menu-item.is-warning .menu-item-icon {
+  color: var(--text-error);
+}
+
+.menu-item.is-disabled .menu-item-icon {
+  color: var(--text-faint);
+}
+
+.menu-item-icon .mod-submenu {
+  color: var(--text-faint);
+}
+
 .menu-item-title {
-  flex: 1 1 auto;
+  flex: 1 0 0;
 }
 
-.menu-separator {
-  height: 0;
-  margin: var(--size-2-3) calc(var(--size-2-3) * -1);
-  border-bottom: var(--border-width) solid var(--background-modifier-border);
-}
-
-.menu-separator:first-child,
-.menu-separator:last-child,
-.menu-separator + .menu-separator {
-  display: none;
+.menu.mod-tab-list .menu-item-title {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }

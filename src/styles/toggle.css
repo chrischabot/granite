@@ -1,9 +1,12 @@
+/* SPEC: specs/renderer/toggle.md */
 /* ===========================================================================
  * Granite — Toggle switch (.checkbox-container)
- * Source: specs/renderer/toggle.md
+ * VERBATIM IMPORT from Obsidian app.css §10372-10519.
+ * Note: `:before`/`:after` kept as single-colon to match upstream exactly.
  * =========================================================================== */
 
 .checkbox-container {
+  -webkit-app-region: no-drag;
   cursor: var(--cursor);
   background-color: var(--background-modifier-border-hover);
   border-radius: var(--toggle-radius);
@@ -12,18 +15,17 @@
   position: relative;
   user-select: none;
   box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.07), inset 0 0 1px rgba(0, 0, 0, 0.21);
-  transition: box-shadow 0.15s ease-in-out, border 0.15s ease-in-out, opacity 0.15s ease-in-out;
+  transition: box-shadow 0.15s ease-in-out, outline 0.15s ease-in-out, border 0.15s ease-in-out,
+    opacity 0.15s ease-in-out;
+  outline: 0 solid var(--background-modifier-border-focus);
   width: var(--toggle-s-width);
   height: calc(var(--toggle-s-thumb-height) + var(--toggle-s-border-width) * 2);
-  outline: none;
 }
 
 .checkbox-container input[type="checkbox"] {
   position: absolute;
   opacity: 0;
   left: 0;
-  margin: 0;
-  pointer-events: none;
 }
 
 @media (hover: hover) {
@@ -36,9 +38,15 @@
   background-color: var(--interactive-accent);
 }
 
-.checkbox-container:focus-visible {
-  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.07), inset 0 0 1px rgba(0, 0, 0, 0.21), 0 0 0 2px
-    var(--background-modifier-border-focus);
+.checkbox-container::before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  opacity: 0;
 }
 
 .checkbox-container::after {
@@ -48,14 +56,23 @@
   position: absolute;
   background-color: var(--toggle-thumb-color);
   border-radius: var(--toggle-thumb-radius);
-  transition: transform 0.15s ease-in-out, width 0.1s ease-in-out 0.05s, height 0.1s ease-in-out
-    0.05s;
+  transition:
+    transform 0.15s ease-in-out, width 0.1s ease-in-out 0.05s, height 0.1s ease-in-out
+    0.05s, margin-top 0.1s ease-in-out 0.05s, left 0.1s ease-in-out 0.05s, opacity 0.1s
+    ease-in-out 0.05s;
+  left: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.checkbox-container:focus-visible {
+  outline: var(--toggle-s-border-width) solid var(--background-modifier-border-focus);
+}
+
+.checkbox-container::after {
   width: var(--toggle-s-thumb-width);
   height: var(--toggle-s-thumb-height);
-  top: var(--toggle-s-border-width);
-  left: 0;
+  margin: var(--toggle-s-border-width) 0 0 0;
   transform: translate3d(var(--toggle-s-border-width), 0, 0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
 }
 
 .checkbox-container.is-enabled::after {
@@ -67,20 +84,25 @@
 }
 
 .checkbox-container:active::after {
+  opacity: var(--toggle-thumb-opacity-active);
   width: calc(var(--toggle-s-thumb-width) + var(--toggle-s-border-width) * 2);
   height: calc(var(--toggle-s-thumb-height) + var(--toggle-s-border-width) * 2);
+  margin-top: 0;
 }
 
-/* Larger toggles inside modals */
 .modal .checkbox-container {
   width: var(--toggle-width);
   height: calc(var(--toggle-thumb-height) + var(--toggle-border-width) * 2);
 }
 
+.modal .checkbox-container:focus-visible {
+  outline: var(--toggle-border-width) solid var(--background-modifier-border-focus);
+}
+
 .modal .checkbox-container::after {
   width: var(--toggle-thumb-width);
   height: var(--toggle-thumb-height);
-  top: var(--toggle-border-width);
+  margin: var(--toggle-border-width) 0 0 0;
   transform: translate3d(var(--toggle-border-width), 0, 0);
 }
 
@@ -90,4 +112,60 @@
     0,
     0
   );
+}
+
+.modal .checkbox-container.is-enabled:active::after {
+  left: -4px;
+}
+
+.modal .checkbox-container:active::after {
+  opacity: var(--toggle-thumb-opacity-active);
+  width: calc(var(--toggle-thumb-width) + var(--toggle-border-width) * 4);
+  height: calc(var(--toggle-thumb-height) + var(--toggle-border-width) * 4);
+  margin-top: calc(var(--toggle-border-width) * -1);
+}
+
+.checkbox-container.mod-small {
+  width: var(--toggle-s-width);
+  height: calc(var(--toggle-s-thumb-height) + var(--toggle-s-border-width) * 2);
+}
+
+.checkbox-container.mod-small:focus-visible {
+  outline: var(--toggle-s-border-width) solid var(--background-modifier-border-focus);
+}
+
+.checkbox-container.mod-small::after {
+  width: var(--toggle-s-thumb-width);
+  height: var(--toggle-s-thumb-height);
+  margin: var(--toggle-s-border-width) 0 0 0;
+  transform: translate3d(var(--toggle-s-border-width), 0, 0);
+}
+
+.checkbox-container.mod-small.is-enabled::after {
+  transform: translate3d(
+    calc(var(--toggle-s-width) - var(--toggle-s-thumb-width) - var(--toggle-s-border-width)),
+    0,
+    0
+  );
+}
+
+.checkbox-container.mod-small:active::after {
+  opacity: var(--toggle-thumb-opacity-active);
+  width: calc(var(--toggle-s-thumb-width) + var(--toggle-s-border-width) * 2);
+  height: calc(var(--toggle-s-thumb-height) + var(--toggle-s-border-width) * 2);
+  margin-top: 0;
+}
+
+@media (forced-colors: active) {
+  .checkbox-container {
+    outline: 1px ButtonBorder solid;
+  }
+
+  .checkbox-container::after {
+    outline: 1px ButtonBorder solid;
+  }
+
+  .checkbox-container.is-enabled {
+    background-color: SelectedItem;
+  }
 }

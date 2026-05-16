@@ -1,4 +1,8 @@
 /* SPEC: specs/renderer/suggestion-and-prompt.md */
+/* ===========================================================================
+ * Granite — Suggestion + Prompt
+ * VERBATIM IMPORT from Obsidian app.css §9808-9883, §9958-10231, §5669-5690.
+ * =========================================================================== */
 
 .prompt {
   display: flex;
@@ -37,9 +41,6 @@ input.prompt-input {
   height: var(--prompt-input-height);
   border-radius: 0;
   border-bottom: var(--border-width) solid var(--background-secondary);
-  color: var(--text-normal);
-  outline: none;
-  font-family: inherit;
 }
 
 input.prompt-input:hover,
@@ -48,10 +49,6 @@ input.prompt-input:focus-visible {
   border-bottom: var(--border-width) solid var(--background-secondary);
   box-shadow: none;
   background-color: transparent;
-}
-
-input.prompt-input::placeholder {
-  color: var(--input-placeholder-color);
 }
 
 .prompt-results {
@@ -83,17 +80,8 @@ input.prompt-input::placeholder {
   margin-inline-end: var(--size-2-2);
 }
 
-.popover,
-.suggestion-container,
-.cm-tooltip.cm-tooltip-autocomplete {
-  display: flex;
-  position: absolute;
-  z-index: var(--layer-popover);
-  background-color: var(--background-primary);
-  border: var(--border-width) solid var(--background-modifier-border);
-  box-shadow: var(--shadow-s);
-  border-radius: var(--radius-m);
-  max-height: var(--popover-max-height);
+.suggestion-bg {
+  display: none;
 }
 
 .suggestion-container {
@@ -112,15 +100,108 @@ input.prompt-input::placeholder {
   max-height: 240px;
 }
 
-.suggestion-bg {
+/* CM6 autocomplete tooltip — VERBATIM Obsidian app.css §9992-10062. */
+.cm-tooltip.cm-completionInfo {
+  box-shadow: 0 2px 8px var(--background-modifier-box-shadow);
+  background-color: var(--background-modifier-message);
+  border-radius: var(--radius-s);
+  font-size: 11px;
+  font-weight: var(--font-medium);
+  line-height: var(--line-height-tight);
+  color: #fafafa;
+  padding: var(--size-2-3) var(--size-4-2);
+  border: none;
+  max-width: 200px;
+}
+
+.cm-tooltip.cm-tooltip-autocomplete {
+  background-color: var(--suggestion-background);
+  backdrop-filter: var(--suggestion-backdrop-filter);
+  align-self: stretch;
+  overflow: hidden;
+  flex-direction: column;
+  max-width: 500px;
+  max-height: 300px;
+  z-index: var(--layer-notice);
+  --no-tooltip: true;
+  overflow: unset;
+}
+
+.is-mobile .cm-tooltip.cm-tooltip-autocomplete {
+  max-width: calc(100vw - 20px - var(--safe-area-inset-left) - var(--safe-area-inset-right));
+  max-height: 240px;
+}
+
+.cm-tooltip.cm-tooltip-autocomplete .cm-completionLabel {
+  flex-grow: 1;
+}
+
+.cm-tooltip.cm-tooltip-autocomplete .cm-completionLabel .cm-completionMatchedText {
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.cm-tooltip.cm-tooltip-autocomplete .cm-completionDetail {
   display: none;
-  position: fixed;
-  top: 0;
-  inset-inline-start: 0;
-  width: 100%;
-  height: 100%;
-  background-color: var(--background-modifier-cover);
-  z-index: var(--layer-popover);
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul[role="listbox"] {
+  padding: var(--size-2-3);
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul > li[role="option"] {
+  font-size: var(--font-ui-medium);
+  margin-bottom: 1px;
+  cursor: var(--cursor);
+  padding: var(--size-2-3) var(--size-4-3);
+  white-space: pre-wrap;
+  border-radius: var(--radius-s);
+  color: var(--text-normal);
+  font-family: var(--font-interface);
+  font-size: var(--font-ui-small);
+  padding-inline-start: var(--size-4-2);
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul > li[role="option"].is-selected,
+.cm-tooltip.cm-tooltip-autocomplete > ul > li[role="option"].mobile-tap {
+  background-color: var(--background-modifier-hover);
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul > li[role="option"].is-being-dragged {
+  pointer-events: auto;
+  background-color: var(--background-modifier-hover);
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul > li[role="option"].mod-downranked {
+  color: var(--text-muted);
+}
+
+.cm-tooltip.cm-tooltip-autocomplete
+  > ul
+  > li[role="option"].mod-complex
+  .suggestion-icon
+  .suggestion-flair {
+  margin: 0;
+  margin-inline-end: var(--size-4-2);
+}
+
+.cm-tooltip.cm-tooltip-autocomplete > ul > li[role="option"][aria-selected] {
+  background-color: var(--background-modifier-hover);
+}
+
+.suggestion-container.mod-property-value .suggestion-item {
+  font-size: var(--font-ui-small);
+  padding: var(--size-2-3) var(--size-4-2);
+}
+
+.suggestion-container.mod-property-key .suggestion-item {
+  font-size: var(--font-ui-small);
+  padding: var(--size-2-3) var(--size-4-2) var(--size-2-3) var(--size-4-1);
+}
+
+.suggestion {
+  overflow-y: auto;
+  padding: var(--size-2-3);
 }
 
 .suggestion-item,
@@ -148,13 +229,13 @@ input.prompt-input::placeholder {
 }
 
 .suggestion-item.is-selected,
-.suggestion-item.mobile-tap,
-.suggestion-item.is-being-dragged {
+.suggestion-item.mobile-tap {
   background-color: var(--background-modifier-hover);
 }
 
 .suggestion-item.is-being-dragged {
   pointer-events: auto;
+  background-color: var(--background-modifier-hover);
 }
 
 .suggestion-item.mod-downranked {
@@ -178,50 +259,35 @@ input.prompt-input::placeholder {
   order: 2;
 }
 
-.suggestion-item.mod-complex,
-.suggestion-item-row {
-  display: flex;
+.suggestion-item.mod-complex {
   align-items: baseline;
-  gap: var(--size-4-2);
-  width: 100%;
-}
-
-.suggestion-item.mod-complex,
-.suggestion-item-row.mod-complex {
-  justify-content: space-between;
-}
-
-.suggestion-content,
-.suggestion-item.mod-complex .suggestion-content {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  flex: 1 1 auto;
-  min-width: 0;
-  text-overflow: ellipsis;
-  margin-inline-end: auto;
-}
-
-.suggestion-title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  justify-content: space-between;
 }
 
 .suggestion-item.mod-complex .suggestion-title {
   overflow-wrap: break-word;
 }
 
+.suggestion-item.mod-complex .suggestion-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-inline-end: auto;
+}
+
 .suggestion-item.mod-complex .suggestion-prefix::after {
   content: ": ";
 }
 
-.suggestion-note,
+.suggestion-item.mod-complex .suggestion-highlight {
+  font-weight: bold;
+}
+
 .suggestion-item.mod-complex .suggestion-note {
   font-size: 0.8em;
   color: var(--text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
   width: 100%;
   flex-basis: 100%;
   overflow-wrap: break-word;
@@ -235,22 +301,10 @@ input.prompt-input::placeholder {
   flex-shrink: 0;
 }
 
-.suggestion-highlight,
-.suggestion-item.mod-complex .suggestion-highlight {
-  font-weight: bold;
-  color: var(--text-accent);
-}
-
-.suggestion-hotkey,
 .suggestion-item.mod-complex .suggestion-hotkey {
   font-size: var(--font-ui-smaller);
   font-family: var(--font-interface);
   padding: 2px 6px;
-  color: var(--text-muted);
-  background-color: var(--background-modifier-hover);
-  border-radius: var(--radius-s);
-  flex-shrink: 0;
-  white-space: nowrap;
 }
 
 .suggestion-item.mod-complex .suggestion-hotkey:not(:last-child) {
@@ -288,6 +342,21 @@ input.prompt-input::placeholder {
   margin-inline-end: var(--size-4-1);
 }
 
+.suggestion-highlight {
+  font-weight: bold;
+}
+
+.suggestion-bg {
+  position: fixed;
+  top: 0;
+  inset-inline-start: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--background-modifier-cover);
+  z-index: var(--layer-popover);
+}
+
+/* Secret-key suggestion variant — app.css §5669-5690 */
 .suggestion-item.mod-complex.suggestion-secret-key {
   --checkbox-size: 18px;
   align-items: center;

@@ -446,12 +446,12 @@ body:not(.show-ribbon) .side-dock-ribbon {
 /* -------------------------------------------------------------------------- *
  * Status bar — bottom-right floating capsule
  * -------------------------------------------------------------------------- */
+/* .status-bar — VERBATIM from Obsidian app.css §6045-6123. */
 .status-bar {
   position: var(--status-bar-position);
   width: auto;
   bottom: 0;
-  right: auto;
-  inset-inline-end: 0;
+  right: 0;
   border-radius: var(--status-bar-radius);
   border-style: solid;
   border-width: var(--status-bar-border-width);
@@ -470,7 +470,7 @@ body:not(.show-ribbon) .side-dock-ribbon {
 }
 
 body:not(.is-fullscreen) .status-bar {
-  padding-inline-end: var(--size-4-2);
+  padding-right: var(--size-4-2);
 }
 
 .is-screenshotting .status-bar {
@@ -481,17 +481,16 @@ body:not(.is-fullscreen) .status-bar {
   border-radius: var(--radius-s);
   display: inline-flex;
   align-items: center;
-  gap: var(--size-2-2);
-  padding: 3px var(--size-2-3);
+  padding: 3px var(--size-2-2);
   line-height: 1;
 }
 
 .status-bar-item.mod-clickable {
   cursor: var(--cursor);
-  outline: none;
 }
 
 .status-bar-item.mod-clickable:focus-visible {
+  outline: none;
   box-shadow: 0 0 0 2px var(--background-modifier-border-focus);
 }
 
@@ -499,6 +498,18 @@ body:not(.is-fullscreen) .status-bar {
   .status-bar-item.mod-clickable:hover {
     background-color: var(--background-modifier-hover);
     color: var(--text-normal);
+  }
+}
+
+.status-bar-item.plugin-editor-status,
+.status-bar-item.plugin-sync {
+  padding: 0 var(--size-2-2);
+}
+
+@media (hover: hover) {
+  .status-bar-item.plugin-editor-status:hover,
+  .status-bar-item.plugin-sync:hover {
+    background-color: var(--background-modifier-hover);
   }
 }
 

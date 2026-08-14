@@ -71,7 +71,61 @@ docs/                User/developer docs: vault format, plugin API, contributor 
 examples/plugins/    Example plugin code and API definitions
 specs/               Product and renderer reference specs
 public/              Static assets used by the Vite app
+worker/              Authenticated, read-only Arcwell portal API
 ```
+
+## Arcwell Portal
+
+Granite also powers the private knowledge browser at `wiki.chabot.dev`. On
+that hostname it switches into a read-only portal over Arcwell's existing
+Cloudflare D1 and R2 data rather than opening a local folder. The portal shows:
+
+- all active wiki pages, full-text search, current bodies, versions, and source
+  lineage;
+- every Activity Intelligence task, its frozen evidence packet, exact prompt,
+  Pi/Muse invocation, accepted structured output, audit state, and linked wiki
+  result;
+- an explicit gap notice for historical process data that was never retained
+  (Pi stdout/stderr and token-by-token timing).
+
+Cloudflare Access protects every static and API request. The Worker validates
+the signed Access JWT and an email allowlist rather than trusting the injected
+email header by itself. The portal has no write routes and does not expose the
+private Activity evidence R2 bucket.
+
+### Cost model
+
+The portal deliberately reuses the existing `arcwell` D1 database and
+`arcwell-wiki` Standard R2 bucket. It does not add KV, Durable Objects,
+Vectorize, AI Search, R2 SQL, a replicated content store, polling, or
+background jobs.
+
+- Wiki metadata and run lists use bounded keyset queries backed by explicit
+  compound indexes.
+- Page bodies are fetched lazily from R2 only when opened.
+- Corpus-wide counters are cached at the edge for one hour.
+- Browser requests are user-driven; there is no automatic refresh loop.
+- Static assets are served by Workers Static Assets and the Worker has no
+  observability/log drain enabled by default.
+
+This keeps the normal single-user workload inside the generous Workers, D1,
+R2 Standard, and Access free allocations. The R2 bucket must remain Standard;
+Infrequent Access has no free tier and adds retrieval fees.
+
+### Deploy the portal
+
+Set up a Cloudflare Access self-hosted application for `wiki.chabot.dev`, then
+set its exact team domain and audience as Worker variables:
+
+```sh
+bun run deploy
+bunx wrangler secret put ACCESS_TEAM_DOMAIN
+bunx wrangler secret put ACCESS_AUD
+```
+
+`ACCESS_ALLOWED_EMAILS` is a comma-separated allowlist and defaults to the
+owner email in `wrangler.jsonc`. Missing Access configuration fails closed.
+Use `bun run cf:check` for a deploy dry-run.
 
 ## Documentation
 

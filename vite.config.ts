@@ -4,30 +4,35 @@ import react from "@vitejs/plugin-react";
 
 const here = import.meta.dirname;
 
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    host: "0.0.0.0",
-    port: 8080,
-    strictPort: true,
-    allowedHosts: [".preview.dev.igent.ai", ".preview.igent.ai", "localhost"],
-  },
-  resolve: {
-    alias: {
-      "@": `${here}/src`,
-      "@core": `${here}/src/core`,
-      "@ui": `${here}/src/ui`,
-      "@styles": `${here}/src/styles`,
-      "@api": `${here}/src/api`,
+export default defineConfig(({ mode }) => {
+  const portal = mode === "portal";
+  return {
+    root: portal ? `${here}/portal-site` : here,
+    plugins: [react()],
+    publicDir: portal ? `${here}/portal-public` : "public",
+    server: {
+      host: "0.0.0.0",
+      port: 8080,
+      strictPort: true,
+      allowedHosts: [".preview.dev.igent.ai", ".preview.igent.ai", "localhost"],
     },
-  },
-  build: {
-    target: "es2022",
-    sourcemap: true,
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
+    resolve: {
+      alias: {
+        "@": `${here}/src`,
+        "@core": `${here}/src/core`,
+        "@ui": `${here}/src/ui`,
+        "@styles": `${here}/src/styles`,
+        "@api": `${here}/src/api`,
+      },
+    },
+    build: {
+      ...(portal ? { outDir: `${here}/dist`, emptyOutDir: true } : {}),
+      target: "es2022",
+      sourcemap: true,
+      chunkSizeWarningLimit: 1000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
           if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/scheduler/")) {
             return "vendor-react";
@@ -73,15 +78,16 @@ export default defineConfig({
             return "vendor-utils";
           }
           return "vendor";
+          },
         },
       },
     },
-  },
-  test: {
-    environment: "happy-dom",
-    setupFiles: ["src/test/setup.ts"],
-    globals: false,
-    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
-    exclude: ["node_modules/**", "dist/**", ".bun/**", "specs/**"],
-  },
+    test: {
+      environment: "happy-dom",
+      setupFiles: ["src/test/setup.ts"],
+      globals: false,
+      include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+      exclude: ["node_modules/**", "dist/**", ".bun/**", "specs/**"],
+    },
+  };
 });

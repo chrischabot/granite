@@ -1,0 +1,35 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "granite-arcwell-wiki",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-08",
+  "workers_dev": false,
+  "keep_vars": true,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "arcwell",
+      "database_id": "a84a04fe-81dd-403d-9439-b8c96be2df67",
+      "remote": true
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "WIKI",
+      "bucket_name": "arcwell-wiki",
+      "remote": true
+    }
+  ],
+  "vars": {
+    "ACCESS_ALLOWED_EMAILS": "chabotc@gmail.com"
+  },
+  "routes": [
+    { "pattern": "wiki.chabot.dev", "custom_domain": true }
+  ]
+}

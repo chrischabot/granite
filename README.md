@@ -1,377 +1,87 @@
 # Granite
 
-Granite is a local-first, Markdown-native personal knowledge base. It stores
-your notes as plain files in a folder you control, gives you fast linked-note
-navigation, and keeps the app extensible through themes, snippets, and
-community-style plugins.
+Granite is a personal knowledge base that runs in your browser and keeps your notes as plain Markdown files in a folder you choose. It rebuilds the way of working that Obsidian made familiar, with wikilinks and backlinks, a live-preview editor, a graph view, canvases and database-style views, as an application whose source you can read, run and change. It is for people who keep their thinking in Markdown and want the same ownership of the tool that they already have of the files, and for developers looking for a substantial local-first web application to study or extend.
 
-The project is built as a desktop-class web UI with React, Vite, CodeMirror,
-Effect, and plain vault files. In development it runs in the browser; packaged
-or host-integrated builds can add native capabilities such as operating-system
-trash integration.
+A folder of Markdown stays portable because any editor can open it, but the links, previews and views that make it useful belong to the application, and that part usually comes from a single vendor. Granite was written against a [detailed specification](specs/product/00_README.md) of Obsidian's behavior and file formats, so existing vaults open without a migration: it keeps its own state in `.granite/`, does not write to `.obsidian/`, and offers any themes it finds in `.obsidian/themes/`.
 
-## Why Granite Exists
+## How it works
 
-Most note systems eventually ask you to trade ownership for convenience:
-proprietary sync, opaque databases, or a single vendor's app as the only real
-way to inspect your work. Granite takes the opposite position:
+Granite is a React single-page application with no server of its own. You grant it a folder through the browser's File System Access API, and from then on it reads and writes ordinary files there, so your notes never depend on Granite continuing to exist: you can edit them in another program while the app is open and it will pick up the changes, and you can leave with the folder at any time. Backlinks, the graph and the database views are all worked out from those files, and the app's own settings sit beside them in `.granite/`.
 
-- Your vault is a normal folder.
-- Notes are UTF-8 Markdown.
-- Canvases and Bases use readable file formats.
-- App state is stored beside the vault under `.granite/`.
-- Existing Obsidian-style vault content can be opened without forcing a
-  migration.
+## Getting started
 
-The goal is a capable knowledge-work environment that stays portable, fast, and
-hackable.
-
-## What Granite Can Do
-
-Granite includes the core surfaces expected from a modern linked-thinking app:
-
-- Vault picker and multi-vault window support.
-- File explorer, folders, accepted native file formats, and configurable trash
-  behavior: system trash, vault `.trash/`, or permanent deletion.
-- Markdown editor with Reading, Live Preview, and Source modes.
-- CommonMark, GitHub Flavored Markdown, wikilinks, embeds, callouts, math,
-  Mermaid, footnotes, block IDs, tags, and YAML properties.
-- Vim mode, multi-cursor editing, rectangular selection, code folding, and
-  persisted fold state.
-- Quick Switcher, Command Palette, configurable hotkeys, and keyboard-first
-  navigation.
-- Backlinks, outgoing links, outline, recents, bookmarks, tags, and properties
-  sidebars.
-- Search with operators, regex, property filters, match-case, sort controls,
-  and embedded query blocks.
-- Graph view with filters, groups, colors, display/force controls, local graph,
-  and persisted state.
-- Canvas files with text, file, link, and group cards; marquee selection,
-  duplication, snap control, and embeds inside notes.
-- Bases files with table, list, cards, and map views; formulas, summaries,
-  grouping, filtering, sorting, and embedded base blocks.
-- Themes, CSS snippets, light/dark/high-contrast modes, RTL support, and
-  localized UI strings.
-- Community plugin browser, install/enable/disable flow, plugin data
-  persistence, update checks, settings tabs, status-bar items, and lifecycle
-  cleanup.
-- File recovery snapshots, crash/restart workspace restoration, error boundary,
-  debug info, accessibility announcements, and broad browser verification.
-
-## What Is Included In This Repo
-
-```text
-src/                 Application source
-  core/              File system, vaults, metadata, parser, search, graph,
-                     plugins, settings, workspace, i18n, and data services
-  ui/                React shell, editor surfaces, prompts, sidebars, overlays
-  styles/            Renderer CSS modules and theme tokens
-scripts/             Browser and integration verifiers
-docs/                User/developer docs: vault format, plugin API, contributor guide
-examples/plugins/    Example plugin code and API definitions
-specs/               Product and renderer reference specs
-public/              Static assets used by the Vite app
-worker/              Authenticated, read-only Arcwell portal API
-```
-
-## Arcwell Portal
-
-Granite also powers the private knowledge browser at `wiki.chabot.dev`. On
-that hostname it switches into a read-only portal over Arcwell's existing
-Cloudflare D1 and R2 data rather than opening a local folder. The portal shows:
-
-- all active wiki pages, full-text search, current bodies, versions, and source
-  lineage;
-- every Activity Intelligence task, its frozen evidence packet, exact prompt,
-  Pi/Muse invocation, accepted structured output, audit state, and linked wiki
-  result;
-- an explicit gap notice for historical process data that was never retained
-  (Pi stdout/stderr and token-by-token timing).
-
-Cloudflare Access protects every static and API request. The Worker validates
-the signed Access JWT and an email allowlist rather than trusting the injected
-email header by itself. The portal has no write routes and does not expose the
-private Activity evidence R2 bucket.
-
-### Cost model
-
-The portal deliberately reuses the existing `arcwell` D1 database and
-`arcwell-wiki` Standard R2 bucket. It does not add KV, Durable Objects,
-Vectorize, AI Search, R2 SQL, a replicated content store, polling, or
-background jobs.
-
-- Wiki metadata and run lists use bounded keyset queries backed by explicit
-  compound indexes.
-- Page bodies are fetched lazily from R2 only when opened.
-- Corpus-wide counters are cached at the edge for one hour.
-- Browser requests are user-driven; there is no automatic refresh loop.
-- Static assets are served by Workers Static Assets and the Worker has no
-  observability/log drain enabled by default.
-
-This keeps the normal single-user workload inside the generous Workers, D1,
-R2 Standard, and Access free allocations. The R2 bucket must remain Standard;
-Infrequent Access has no free tier and adds retrieval fees.
-
-### Deploy the portal
-
-Set up a Cloudflare Access self-hosted application for `wiki.chabot.dev`, then
-set its exact team domain and audience as Worker variables:
+You need [Bun](https://bun.sh) and, to work with a real folder, a Chromium-based browser. Folder access depends on the File System Access API; other browsers can only create in-browser vaults, whose files you cannot reach from outside the browser.
 
 ```sh
-bun run deploy
-bunx wrangler secret put ACCESS_TEAM_DOMAIN
-bunx wrangler secret put ACCESS_AUD
-```
-
-`ACCESS_ALLOWED_EMAILS` is a comma-separated allowlist and defaults to the
-owner email in `wrangler.jsonc`. Missing Access configuration fails closed.
-Use `bun run cf:check` for a deploy dry-run.
-
-## Documentation
-
-The full documentation lives under [`docs/`](docs/README.md). Top-level
-sections:
-
-- [Getting started](docs/getting-started/README.md) — install, first run,
-  first note, workspace tour.
-- [User guide](docs/user-guide/README.md) — every Granite feature explained
-  for end users: vaults, editor modes, Markdown syntax, links and embeds,
-  properties and tags, Canvas, Bases, search, graph view, command palette,
-  hotkeys, settings, themes and snippets, plugins, accessibility,
-  troubleshooting.
-- [Developer guide](docs/developer/README.md) — architecture, repo layout,
-  running the dev/preview servers, build and deploy, web app structure,
-  testing, browser verifiers, reporting (notices/errors/file
-  recovery/debug info), CSS and design tokens, i18n, contributing.
-- [Reference](docs/reference/README.md) — parameter-level reference for the
-  Plugin API, vault format, file formats, commands, events, settings,
-  hotkeys, and a glossary.
-- [Plugin SDK](docs/sdk/README.md) — overview, quickstart, manifest,
-  lifecycle, type reference, cookbook, and publishing guide.
-
-Internal references:
-
-- [Stable API and format specifications](specs/api) (plugin API, vault format)
-- [Product specs](specs/product)
-- [Renderer specs](specs/renderer)
-
-## How It Is Built
-
-Granite is a TypeScript application with a React UI and Effect-powered core
-services.
-
-- **Build tool:** Vite
-- **Runtime/package manager:** Bun
-- **UI:** React 19
-- **Editor:** CodeMirror 6 plus Vim support
-- **Markdown:** markdown-it, KaTeX, Mermaid, Prism
-- **State and services:** Effect services, local stores, IndexedDB handle
-  registry, File System Access / OPFS adapters
-- **Testing:** Vitest, Playwright/Chromium browser verifiers, Lighthouse a11y
-  audit, Biome linting
-
-In a browser/dev environment Granite can open OPFS-backed vaults and, where the
-browser allows it, user-picked folders through the File System Access API. A
-native host can provide extra bridges such as `window.graniteHost.fs`
-system-trash support.
-
-## Requirements
-
-- Bun
-- A modern Chromium-based browser for local development and browser verifiers
-- macOS, Linux, or Windows for development
-
-The app is designed for desktop-class local use. Some browser APIs used by the
-development build, especially File System Access, are not uniformly available in
-all browsers.
-
-## Install
-
-```sh
+git clone https://github.com/chrischabot/granite.git
+cd granite
 bun install
-```
-
-## Run For Development
-
-```sh
 bun run dev
 ```
 
-Vite serves the app at:
+Open <http://localhost:8080> and choose **Pick a folder...**, pointing it at an existing vault or an empty folder. Create your first note with the **New note** button at the top of the file explorer. If port 8080 is taken, Vite stops rather than choosing another, and `bunx vite --port 8081` runs it elsewhere. The [documentation](docs/README.md) covers the rest, with a user guide, a developer guide, a reference and a plugin SDK.
 
-```text
-http://localhost:8080
-```
+There is no packaged desktop app or tagged release, so you either run Granite from source or host the build yourself. `bun run build` type-checks the project and writes a static site to `dist/`, and `bun run preview` serves it locally. Anywhere other than localhost it needs HTTPS for folder access to work. A native shell such as Electron or Tauri could wrap `dist/` and inject a bridge for moving files to the system trash, which a browser cannot do; [Build and deploy](docs/developer/build-and-deploy.md) sketches how, but the repository does not include a shell.
 
-If port `8080` is already in use, run Vite manually with another port:
+## What it does
 
-```sh
-bunx vite --host 0.0.0.0 --port 8081
-```
+- **Editing:** Reading, Live Preview and Source modes built on CodeMirror 6, with CommonMark, GitHub Flavored Markdown, callouts, math, Mermaid, footnotes, block IDs and YAML properties, plus Vim bindings, multiple cursors and folding that survives a reload.
+- **Finding things:** a quick switcher, command palette, configurable hotkeys, search with operators and regex, backlinks, outgoing links, an outline, tags and bookmarks.
+- **Seeing connections:** global and local graphs with filters, color groups and force controls.
+- **Structured work:** `.canvas` boards in the open JSON Canvas format, and `.base` files that show notes as tables, lists, cards or maps, with formulas, summaries and grouping.
+- **Files:** native views for images, audio, video and PDFs, a choice of vault `.trash/` or permanent deletion, and multiple vaults in separate windows.
+- **Customization:** CSS themes and snippets, light, dark and high-contrast modes, English and Hebrew interface strings with right-to-left layout, built-in plugins such as daily notes and templates, and a plugin API.
 
-## Build And Preview
+## Themes and plugins
 
-```sh
-bun run build
-bun run preview
-```
+Themes and snippets are plain CSS, at `.granite/themes/<name>.css` and in `.granite/snippets/`. A plugin is a folder at `.granite/plugins/<id>/` with a `manifest.json` and a `main.js`, and Granite loads plugins only from there, so anything under `.obsidian/plugins/` stays dormant. Community plugins do not run until you turn off Restricted mode in Settings, and after that they have the same privileges as the app, because Granite has no plugin sandbox. Enable only code you trust.
 
-The production build is written to `dist/`.
+Plugins can target Granite's own API, documented in the [Plugin SDK](docs/sdk/README.md) and shown in the [examples](examples/plugins/README.md), or be written in Obsidian's style and load through a `require("obsidian")` shim. The shim covers commands, ribbon icons, status-bar items, settings tabs, events, plugin data and basic vault operations. It does not cover the editor, `MarkdownView`, custom views, `requestUrl` or DOM helpers such as `createEl`, so many real plugins will not work, and the repository tests it with small fixtures shaped like popular plugins rather than with the plugins themselves.
 
-## First Run
+The install dialog can search Obsidian's public plugin list, but installing from that list currently fails in a browser tab, because GitHub's release downloads do not allow cross-origin requests. Copy a plugin's files into its folder instead, or paste a `manifest.json` URL whose `main.js` sits beside it on a host that permits them, such as `raw.githubusercontent.com`.
 
-1. Start the dev server with `bun run dev`.
-2. Open the local URL in Chromium.
-3. Choose or create a vault from the Vault Picker.
-4. Start writing Markdown notes, importing files, creating canvases, or creating
-   bases.
+## Known gaps
 
-Granite writes app-owned state under `.granite/` inside the vault. Existing
-`.obsidian/` folders are read for compatibility, but Granite does not need to
-rewrite that folder to operate.
+- The commands for a new note (`Cmd/Ctrl+N`), a new note in a new tab (`Cmd/Ctrl+Shift+N`) and reopening a closed tab (`Cmd/Ctrl+Shift+T`) show a "not yet implemented" notice.
+- Folders cannot be renamed.
+- The file explorer's **Rename** menu item does not update links to the note. Rename from the note's inline title, or drag the note to another folder, and Granite rewrites wikilinks and Markdown links across the vault.
 
-## Configure Granite
+Parts of the [user guide](docs/user-guide/README.md) were written from the specification and describe more than the code does today, notably the plugin marketplace.
 
-Open Settings from the ribbon or Command Palette. Important areas include:
+## Technical details
 
-- **Appearance:** theme, light/dark behavior, accent color, inline title,
-  ribbon/header visibility, CSS snippets.
-- **Files and links:** attachments folder, excluded files, link behavior,
-  deletion mode, confirmation behavior.
-- **Editor:** spellcheck, languages, Vim mode, source/live-preview behavior.
-- **Hotkeys:** capture, save, reset, and assign multiple bindings.
-- **Core plugins:** enable or disable built-in features.
-- **Community plugins:** turn off Restricted mode, browse/install plugins,
-  enable/disable installed plugins, and check for updates.
-- **Plugin options:** settings pages registered by enabled plugins.
+Every read and write goes through one `FileSystem` service, written with [Effect](https://effect.website) 4 over browser directory handles, which can point either at a real folder opened through the File System Access API or at a private vault in the browser's Origin Private File System.
 
-## Vaults And Files
+A save writes the new content to a temporary file beside the note and then moves it over the original, or, where the browser has no move call, copies it across under a commit marker. An interrupted save can leave temporary files or commit markers; the next time the vault opens, Granite warns about those leftovers and leaves them untouched. Edits made by other programs are found by polling: Granite walks the vault and compares modification times every 200 ms while files are changing, backs off to every two seconds when they are not, and stops while the tab is hidden. Those file events keep a metadata cache current, and backlinks, tags and property views read from it.
 
-Granite vaults are plain folders. Common files include:
+State is divided by how far it should travel. The workspace layout, graph settings, enabled plugins and a mirror of your settings live in `.granite/`, so they move with the folder. File recovery snapshots the active Markdown note's saved contents into the browser's IndexedDB, with a default five-minute interval. It prunes snapshots whose file modification time is more than seven days old. These snapshots do not follow the vault to another machine. The [architecture overview](docs/developer/architecture.md) and [vault format reference](docs/reference/vault-format.md) have the full detail.
 
-```text
-MyVault/
-  .granite/
-    workspace.json
-    graph.json
-    plugins/
-  Notes/
-    Project.md
-  Board.canvas
-  Tasks.base
-  attachments/
-    image.png
-```
-
-Granite opens:
-
-- Markdown: `.md`
-- Canvas: `.canvas`
-- Bases: `.base`
-- Images: `.avif`, `.bmp`, `.gif`, `.jpeg`, `.jpg`, `.png`, `.svg`, `.webp`
-- Audio: `.flac`, `.m4a`, `.mp3`, `.ogg`, `.wav`, `.webm`, `.3gp`
-- Video: `.mkv`, `.mov`, `.mp4`, `.ogv`, `.webm`
-- PDF: `.pdf`
-
-## Plugins, Themes, And Snippets
-
-Community plugins live under:
-
-```text
-.granite/plugins/<plugin-id>/
-  manifest.json
-  main.js
-  styles.css
-  data.json
-```
-
-Plugins can register commands, status-bar items, workspace events, metadata
-reads, vault reads/writes, data persistence, and settings tabs. See
-[docs/reference/plugin-api.md](docs/reference/plugin-api.md) and the
-[Plugin SDK](docs/sdk/README.md).
-
-Themes and snippets are normal CSS. Granite's renderer CSS is tokenized so
-themes can override visual variables without patching app logic.
-
-Security note: community plugins are third-party JavaScript. Restricted mode is
-on by default for new vaults. Only enable plugins you trust.
-
-## Quality And Verification
-
-Run the standard local gate before committing:
+## Development
 
 ```sh
-bun run lint
-bun run typecheck
-bun run test
-bun run build
-git diff --check
+bun run lint        # Biome
+bun run typecheck   # tsgo --noEmit
+bun run test        # Vitest
+bun run build       # type-check, then Vite build
 ```
 
-Documentation checks:
+CI runs the type check, tests and build on pushes to `main` and on pull requests. Beyond those, more than 40 Playwright verifiers drive real Chromium through scenarios such as keyboard navigation, saving, vault compatibility and visual rendering. Install the browser once and run them by name:
 
 ```sh
-bun run docs:check
-bun run docs:verify-browser
-```
-
-Accessibility checks:
-
-```sh
-bun run audit:a11y
-bun run audit:lighthouse-a11y
-```
-
-Browser verifiers live under `scripts/` and are exposed as `verify:*` package
-scripts. Examples:
-
-```sh
+bunx playwright install chromium
 bun run verify:keyboard-browser
-bun run verify:obsidian-vault-browser
-bun run verify:community-plugin-browser
-bun run verify:renderer-visual-browser
 ```
 
-To run every audit/docs/verify script:
+The [verifier index](docs/developer/verifiers.md) lists them all, `bun run docs:check` and `bun run audit:a11y` cover the documentation and accessibility checks, and [Contributing](docs/developer/contributing.md) describes how to work on the project. The [developer guide](docs/developer/README.md), [reference](docs/reference/README.md) and [product specification](specs/product/00_README.md) go deeper.
 
-```sh
-node - <<'NODE' | while read script; do
-  echo "== $script =="
-  bun run "$script" || exit $?
-done
-const pkg = JSON.parse(require("fs").readFileSync("package.json", "utf8"));
-for (const name of Object.keys(pkg.scripts)) {
-  if (
-    name.startsWith("verify:") ||
-    name.startsWith("audit:") ||
-    name === "docs:check" ||
-    name === "docs:verify-browser"
-  ) console.log(name);
-}
-NODE
-```
+## The portal build
 
-## Contributing
+The repository also holds a separate application with nothing to do with local vaults: a read-only viewer for the wiki and activity records of Arcwell, a private system, served by a Cloudflare Worker behind Cloudflare Access. It reuses Granite's Markdown renderer but has its own code in `src/portal/` and `worker/`, and `wrangler.jsonc` binds it to one deployment's database and bucket, so it is of little use elsewhere without adapting it. `bun run build:portal` builds it, `bun run test:portal` checks the Worker, and `bun run cf:check` does a deploy dry run. `bun run deploy` also needs the `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` Worker secrets, and the Worker refuses every request until they are set.
 
-Start with [docs/developer/contributing.md](docs/developer/contributing.md).
+## License and credits
 
-The short version:
+Granite's original code is released under the [MIT License](LICENSE), copyright 2026 Chris Chabot. That grant does not extend to third-party material. `src/styles/obsidian-fallback.css` is a verbatim copy of Obsidian's renderer stylesheet, loaded beneath Granite's CSS so that selectors Granite does not define still resolve, and it embeds Mozilla's Apache-2.0 pdf.js styles. Other modules in `src/styles/` were synced against the same source. Those rules belong to their owners and are not offered under the MIT License.
 
-- Read the relevant spec or existing implementation first.
-- Root-cause bugs instead of papering over symptoms.
-- Add tests or browser verifiers that would have failed before the fix.
-- Keep user-facing docs, API docs, and examples in sync when public behavior
-  changes.
-- Run the strongest relevant checks before pushing.
+Granite is built on React, CodeMirror, Effect, markdown-it, KaTeX, Mermaid, Prism, PDF.js, Lucide and the other packages listed in `package.json`, each under its own license, and bundles the Inter and JetBrains Mono fonts. Canvas files follow the open [JSON Canvas](https://jsoncanvas.org) format.
 
-## Compatibility Notes
-
-Granite is designed for interoperability with Markdown vaults and Obsidian-style
-ecosystem conventions. It uses its own `.granite/` state folder while preserving
-existing `.obsidian/` content. It implements compatible file formats, plugin API
-concepts, theme/snippet conventions, and common linked-note workflows without
-requiring a proprietary database.
-
-## License
-
-See [LICENSE](LICENSE).
+Obsidian is a trademark of Dynalist Inc. This project is not affiliated with, sponsored by, or endorsed by Dynalist Inc.

@@ -78,6 +78,10 @@ The [verifier index](docs/developer/verifiers.md) lists them all, `bun run docs:
 
 The repository also holds a separate application with nothing to do with local vaults: a read-only viewer for the wiki and activity records of Arcwell, a private system, served by a Cloudflare Worker behind Cloudflare Access. It reuses Granite's Markdown renderer but has its own code in `src/portal/` and `worker/`, and `wrangler.jsonc` binds it to one deployment's database and bucket, so it is of little use elsewhere without adapting it. `bun run build:portal` builds it, `bun run test:portal` checks the Worker, and `bun run cf:check` does a deploy dry run. `bun run deploy` also needs the `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` Worker secrets, and the Worker refuses every request until they are set.
 
+## Project background
+
+- [Granite project overview](https://chabot.dev/projects/#granite) on Chris Chabot’s site.
+
 ## License and credits
 
 Granite's original code is released under the [MIT License](LICENSE), copyright 2026 Chris Chabot. That grant does not extend to third-party material. `src/styles/obsidian-fallback.css` is a verbatim copy of Obsidian's renderer stylesheet, loaded beneath Granite's CSS so that selectors Granite does not define still resolve, and it embeds Mozilla's Apache-2.0 pdf.js styles. Other modules in `src/styles/` were synced against the same source. Those rules belong to their owners and are not offered under the MIT License.
